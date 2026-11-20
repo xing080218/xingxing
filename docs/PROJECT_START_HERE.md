@@ -198,6 +198,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 - GitHub `main` 是正式分支；Vercel Production Branch 必须设为 `main`，Git 集成必须保持启用。
 - 正式项目为 `xingxing`，正式网址为 `https://xingxing-tan.vercel.app/`；项目保持公开访问，不启用 SSO 或密码保护，除非用户明确要求。
 - 若中国大陆网络把 `vercel.app` 域名解析到异常地址，先确认 DNS 结果；需要长期稳定访问时绑定自有域名，不能把错误 IP 写进代码。
+- `xingxing-tan.vercel.app` 超时但外部检查为 `Ready` 且健康接口返回 200 时，判断为用户网络到 `vercel.app` 的线路或域名拦截，不要反复重新部署；临时测试可用 Cloudflare Quick Tunnel 指向本机 `http://127.0.0.1:4176`，必须明确它依赖本机服务和隧道进程，永久访问仍需自有域名或其他固定公网主机。
 - 云函数总等待时间受 Vercel 时限限制；模型请求最多等待 50 秒，接口函数上限设为 60 秒。
 - 线上失败先检查 `/api/health` 的 `mode` 是否为 `vercel`，再区分 Vercel 到模型服务商与用户浏览器到 Vercel 两段。
 - API Key 只随当前请求进入云函数内存；日志、GitHub、文档和测试只允许使用占位符。

@@ -1,0 +1,23 @@
+# Local test output and user-created screenshots/backups
+work/
+outputs/
+*.log
+*.pid
+*.tmp
+*.bak
+$null
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+config.local.*
+*.local.json
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db

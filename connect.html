@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>小手机连接入口</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei UI", sans-serif;
+        color: #1c2320;
+        background: #f5f2ea;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        padding: 28px 18px 42px;
+        background:
+          linear-gradient(rgba(28, 117, 97, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(28, 117, 97, 0.045) 1px, transparent 1px),
+          #f5f2ea;
+        background-size: 24px 24px;
+      }
+
+      main {
+        width: min(100%, 620px);
+        margin: 0 auto;
+      }
+
+      .sheet {
+        padding: 28px 24px;
+        border: 1px solid #d8d1c4;
+        border-radius: 10px;
+        background: #fffdf8;
+        box-shadow: 0 16px 42px rgba(41, 48, 43, 0.1);
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: #1c7561;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 0 0 14px;
+        color: #5f6b65;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      .status-box {
+        margin: 20px 0;
+        padding: 13px 14px;
+        border: 1px solid #c8d8d1;
+        border-radius: 8px;
+        color: #125343;
+        background: #f1f8f4;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.55;
+      }
+
+      .status-box.is-error {
+        border-color: #e0c5bf;
+        color: #923c2e;
+        background: #fff5f2;
+      }
+
+      .address-row {
+        margin: 16px 0;
+      }
+
+      .address-label {
+        display: block;
+        margin: 0 0 7px;
+        color: #315a4e;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .address {
+        display: block;
+        margin: 0;
+        padding: 12px;
+        border: 1px solid #ddd8cc;
+        border-radius: 7px;
+        color: #26312c;
+        background: #f5f2ea;
+        font: 600 15px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+        overflow-wrap: anywhere;
+        text-align: center;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .actions a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 10px 14px;
+        border: 1px solid #125343;
+        border-radius: 8px;
+        color: #125343;
+        font-size: 15px;
+        font-weight: 800;
+        text-align: center;
+        text-decoration: none;
+      }
+
+      .actions a:first-child {
+        color: #f8fffb;
+        background: #125343;
+      }
+
+      .notes {
+        margin: 20px 0 0;
+        padding-left: 21px;
+        color: #5f6b65;
+        font-size: 15px;
+        line-height: 1.65;
+      }
+
+      .notes li + li {
+        margin-top: 7px;
+      }
+
+      @media (max-width: 460px) {
+        body {
+          padding: 14px 12px 28px;
+        }
+
+        .sheet {
+          padding: 22px 16px;
+        }
+
+        h1 {
+          font-size: 24px;
+        }
+
+        .actions {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="sheet">
+        <p class="eyebrow">POCKET LAB · LOCAL WI-FI</p>
+        <h1>手机连接入口</h1>
+        <p>让手机和这台电脑连接同一个 Wi-Fi，然后把下面的手机地址输入手机浏览器。</p>
+        <div class="status-box" id="connection-status" role="status" aria-live="polite">
+          正在读取电脑当前的 Wi-Fi 地址...
+        </div>
+        <div class="address-row">
+          <span class="address-label">手机打开小手机</span>
+          <span class="address" id="phone-main-address">正在读取...</span>
+        </div>
+        <div class="address-row">
+          <span class="address-label">手机打不开时，先打开检查页</span>
+          <span class="address" id="phone-check-address">正在读取...</span>
+        </div>
+        <div class="actions">
+          <a id="phone-main-link" href="/">打开手机用小手机地址</a>
+          <a id="phone-check-link" href="/mobile-check.html">打开手机用检查页</a>
+          <a href="/">在电脑打开小手机</a>
+        </div>
+        <ol class="notes">
+          <li>手机上的地址必须以 <strong>http://</strong> 开头，不能使用 127.0.0.1、localhost、https:// 或旧网址。</li>
+          <li>如果 Safari 询问是否允许访问“本地网络”，请选择允许。</li>
+          <li>测试期间请保留启动窗口；如果窗口已经关闭，重新双击 <strong>start.bat</strong>，再刷新本页。</li>
+        </ol>
+      </section>
+    </main>
+    <script src="/connect.js?v=20261120-14" defer></script>
+  </body>
+</html>

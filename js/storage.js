@@ -1,0 +1,774 @@
+"use strict";
+
+(() => {
+  const DB_NAME = String(window.POCKET_LAB_DB_NAME || "pocket-lab");
+  const DB_VERSION = 1;
+  const STORES = Object.freeze({
+    characters: "characters",
+    messages: "messages",
+    memories: "memories",
+    appData: "appData",
+    images: "images",
+    meta: "meta",
+  });
+  const USER_DATA_STORES = Object.freeze([
+    STORES.characters,
+    STORES.messages,
+    STORES.memories,
+    STORES.appData,
+    STORES.images,
+  ]);
+  const PRIMARY_CHARACTER_ID = "primary-character";
+  const MIGRATION_META_KEY = "legacy-local-storage-migration";
+  const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+  const MAX_TOTAL_IMAGE_BYTES = 100 * 1024 * 1024;
+
+  let databasePromise = null;
+
+  function createId(prefix = "id") {
+    const suffix =
+      window.crypto && typeof window.crypto.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+    return `${prefix}-${suffix}`;
+  }
+
+  function requestToPromise(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error("IndexedDB 请求失败。"));
+    });
+  }
+
+  function transactionToPromise(transaction) {
+    return new Promise((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () =>
+        reject(transaction.error || new Error("IndexedDB 事务失败。"));
+      transaction.onabort = () =>
+        reject(transaction.error || new Error("IndexedDB 事务已中止。"));
+    });
+  }
+
+  async function runWriteTransaction(storeNames, work) {
+    const database = await open();
+    const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+    const transaction = database.transaction(names, "readwrite");
+    const completion = transactionToPromise(transaction);
+
+    try {
+      work(transaction);
+      await completion;
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // The transaction may already have completed or aborted.
+      }
+      await completion.catch(() => undefined);
+      throw error;
+    }
+  }
+
+  function createStores(database) {
+    if (!database.objectStoreNames.contains(STORES.characters)) {
+      database.createObjectStore(STORES.characters, { keyPath: "id" });
+    }
+    if (!database.objectStoreNames.contains(STORES.messages)) {
+      const store = database.createObjectStore(STORES.messages, { keyPath: "id" });
+      store.createIndex("by-order", "order", { unique: false });
+      store.createIndex("by-turn", "turnId", { unique: false });
+    }
+    if (!database.objectStoreNames.contains(STORES.memories)) {
+      database.createObjectStore(STORES.memories, { keyPath: "id" });
+    }
+    if (!database.objectStoreNames.contains(STORES.appData)) {
+      database.createObjectStore(STORES.appData, { keyPath: "appId" });
+    }
+    if (!database.objectStoreNames.contains(STORES.images)) {
+      database.createObjectStore(STORES.images, { keyPath: "id" });
+    }
+    if (!database.objectStoreNames.contains(STORES.meta)) {
+      database.createObjectStore(STORES.meta, { keyPath: "key" });
+    }
+  }
+
+  function open() {
+    if (databasePromise) return databasePromise;
+
+    databasePromise = new Promise((resolve, reject) => {
+      if (!("indexedDB" in window)) {
+        reject(new Error("当前浏览器不支持 IndexedDB，无法安全保存本机数据。"));
+        return;
+      }
+
+      let request;
+      try {
+        request = window.indexedDB.open(DB_NAME, DB_VERSION);
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      request.onupgradeneeded = () => createStores(request.result);
+      request.onsuccess = () => {
+        const database = request.result;
+        database.onversionchange = () => {
+          database.close();
+          databasePromise = null;
+        };
+        resolve(database);
+      };
+      request.onerror = () =>
+        reject(request.error || new Error("无法打开本机 IndexedDB 数据库。"));
+      request.onblocked = () =>
+        reject(new Error("本机数据库被其他旧页面占用，请关闭旧页面后刷新重试。"));
+    }).catch((error) => {
+      databasePromise = null;
+      throw error;
+    });
+
+    return databasePromise;
+  }
+
+  async function readAll(storeName) {
+    const database = await open();
+    const transaction = database.transaction(storeName, "readonly");
+    return requestToPromise(transaction.objectStore(storeName).getAll());
+  }
+
+  async function readOne(storeName, key) {
+    const database = await open();
+    const transaction = database.transaction(storeName, "readonly");
+    return requestToPromise(transaction.objectStore(storeName).get(key));
+  }
+
+  async function putOne(storeName, value) {
+    await runWriteTransaction(storeName, (transaction) => {
+      transaction.objectStore(storeName).put(value);
+    });
+    return value;
+  }
+
+  async function deleteOne(storeName, key) {
+    await runWriteTransaction(storeName, (transaction) => {
+      transaction.objectStore(storeName).delete(key);
+    });
+  }
+
+  function makeImageRecord(blob, source = {}) {
+    if (!(blob instanceof Blob) || !String(blob.type || "").startsWith("image/")) {
+      throw new Error("只能保存图片 Blob。");
+    }
+    if (!blob.size) {
+      throw new Error("不能保存空图片。");
+    }
+    if (blob.size > MAX_IMAGE_BYTES) {
+      throw new Error("单张图片超过 25 MB，无法保存。");
+    }
+    const now = Date.now();
+    return {
+      id: String(source.id || createId("image")),
+      blob,
+      mimeType: String(source.mimeType || blob.type || "image/jpeg"),
+      size: blob.size,
+      createdAt: Number(source.createdAt) || now,
+      updatedAt: Number(source.updatedAt) || now,
+    };
+  }
+
+  async function saveImage(blob, source = {}) {
+    const record = makeImageRecord(blob, source);
+    return putOne(STORES.images, record);
+  }
+
+  async function getImage(imageId) {
+    if (!imageId) return null;
+    return readOne(STORES.images, imageId);
+  }
+
+  async function getImageBlob(imageId) {
+    const record = await getImage(imageId);
+    return record && record.blob instanceof Blob ? record.blob : null;
+  }
+
+  async function deleteImage(imageId) {
+    if (!imageId) return;
+    await deleteOne(STORES.images, imageId);
+  }
+
+  async function getCharacter(characterId = PRIMARY_CHARACTER_ID) {
+    return readOne(STORES.characters, characterId);
+  }
+
+  function persistentCharacterRecord(source, id, avatarId, updatedAt) {
+    const record = { ...source };
+    ["avatarUrl", "avatar", "avatarData", "dataUrl"].forEach((key) => {
+      delete record[key];
+    });
+    return {
+      ...record,
+      id,
+      avatarId,
+      updatedAt,
+    };
+  }
+
+  async function saveCharacter(record, avatarBlob = null) {
+    const source = record && typeof record === "object" ? record : {};
+    const imageRecord = avatarBlob ? makeImageRecord(avatarBlob) : null;
+    const id = requireStableId(source.id || PRIMARY_CHARACTER_ID, "角色");
+    const avatarId = imageRecord
+      ? imageRecord.id
+      : typeof source.avatarId === "string"
+        ? source.avatarId.trim()
+        : "";
+    const saved = persistentCharacterRecord(
+      source,
+      id,
+      avatarId,
+      Date.now(),
+    );
+
+    if (avatarId && !imageRecord) {
+      const existingImage = await getImage(avatarId);
+      if (!existingImage) {
+        throw new Error("角色头像引用不存在，未保存角色资料。");
+      }
+    }
+
+    await runWriteTransaction(
+      [STORES.characters, STORES.images],
+      (transaction) => {
+        if (imageRecord) {
+          transaction.objectStore(STORES.images).put(imageRecord);
+        }
+        transaction.objectStore(STORES.characters).put(saved);
+      },
+    );
+    return saved;
+  }
+
+  function normalizeMessageOrder(messages) {
+    return messages.map((message, index) => ({
+      ...message,
+      order: index,
+      updatedAt: Date.now(),
+    }));
+  }
+
+  async function saveMessages(messages) {
+    const records = normalizeMessageOrder(Array.isArray(messages) ? messages : []);
+    const ids = new Set();
+    records.forEach((message) => {
+      const id = requireStableId(message.id, "聊天记录");
+      if (ids.has(id)) throw new Error(`聊天记录编号重复：${id}`);
+      if (message.role !== "user" && message.role !== "assistant") {
+        throw new Error(`聊天记录 ${id} 的角色无效。`);
+      }
+      if (typeof message.content !== "string" || !message.content.trim()) {
+        throw new Error(`聊天记录 ${id} 的内容为空或格式不正确。`);
+      }
+      ids.add(id);
+    });
+    await runWriteTransaction(STORES.messages, (transaction) => {
+      const store = transaction.objectStore(STORES.messages);
+      store.clear();
+      records.forEach((message) => store.put(message));
+    });
+    return records;
+  }
+
+  async function getMessages() {
+    const messages = await readAll(STORES.messages);
+    return messages.sort((left, right) => {
+      const orderDifference = Number(left.order || 0) - Number(right.order || 0);
+      if (orderDifference) return orderDifference;
+      return Number(left.createdAt || 0) - Number(right.createdAt || 0);
+    });
+  }
+
+  async function getMemories() {
+    return readAll(STORES.memories);
+  }
+
+  async function saveMemories(memories) {
+    const records = Array.isArray(memories) ? memories : [];
+    const ids = new Set();
+    records.forEach((memory) => {
+      const id = requireStableId(memory && memory.id, "记忆");
+      if (ids.has(id)) throw new Error(`记忆编号重复：${id}`);
+      ids.add(id);
+    });
+    await runWriteTransaction(STORES.memories, (transaction) => {
+      const store = transaction.objectStore(STORES.memories);
+      store.clear();
+      records.forEach((memory) => store.put(memory));
+    });
+    return records;
+  }
+
+  async function getAppData(appId) {
+    if (!appId) return null;
+    return readOne(STORES.appData, appId);
+  }
+
+  async function listAppData() {
+    return readAll(STORES.appData);
+  }
+
+  async function saveAppData(appId, data) {
+    const id = String(appId || "").trim();
+    if (!id) throw new Error("App 存档必须使用稳定编号。");
+    return putOne(STORES.appData, {
+      appId: id,
+      data,
+      updatedAt: Date.now(),
+    });
+  }
+
+  async function getMeta(key) {
+    const record = await readOne(STORES.meta, key);
+    return record ? record.value : null;
+  }
+
+  async function setMeta(key, value) {
+    return putOne(STORES.meta, {
+      key: String(key),
+      value,
+      updatedAt: Date.now(),
+    });
+  }
+
+  function requireStableId(value, label) {
+    if (typeof value !== "string" || !value.trim()) {
+      throw new Error(`${label}缺少稳定编号。`);
+    }
+    const id = value.trim();
+    if (id.length > 200) {
+      throw new Error(`${label}编号过长，无法导入。`);
+    }
+    return id;
+  }
+
+  function requireRecordArray(value, label) {
+    if (value === undefined) return [];
+    if (!Array.isArray(value)) {
+      throw new Error(`备份中的${label}必须是列表。`);
+    }
+    return value;
+  }
+
+  function assertUniqueRecords(records, key, label) {
+    const seen = new Set();
+    records.forEach((record) => {
+      const id = requireStableId(record && record[key], label);
+      if (seen.has(id)) {
+        throw new Error(`${label}编号重复：${id}`);
+      }
+      seen.add(id);
+    });
+    return seen;
+  }
+
+  function prepareImportedImages(records) {
+    const imageIds = assertUniqueRecords(records, "id", "图片");
+    let totalBytes = 0;
+    const images = records.map((record) => {
+      if (!record || typeof record !== "object") {
+        throw new Error("备份中的图片记录格式不正确。");
+      }
+      if (!(record.blob instanceof Blob)) {
+        throw new Error(`图片 ${record.id} 没有成功转换为 Blob。`);
+      }
+      const mimeType = String(record.mimeType || record.blob.type || "");
+      if (!/^image\/(?:png|jpeg|webp|gif)$/i.test(mimeType)) {
+        throw new Error(`图片 ${record.id} 的类型不受支持。`);
+      }
+      if (!record.blob.size || record.blob.size > MAX_IMAGE_BYTES) {
+        throw new Error(`图片 ${record.id} 为空或超过 25 MB。`);
+      }
+      totalBytes += record.blob.size;
+      if (totalBytes > MAX_TOTAL_IMAGE_BYTES) {
+        throw new Error("备份中的图片总量超过 100 MB，无法一次导入。");
+      }
+      const blob =
+        record.blob.type === mimeType
+          ? record.blob
+          : new Blob([record.blob], { type: mimeType });
+      return {
+        id: record.id.trim(),
+        blob,
+        mimeType,
+        size: blob.size,
+        createdAt: Number(record.createdAt) || Date.now(),
+        updatedAt: Number(record.updatedAt) || Date.now(),
+      };
+    });
+    return { images, imageIds };
+  }
+
+  function prepareImportedCharacters(records, imageIds) {
+    assertUniqueRecords(records, "id", "角色");
+    return records.map((record) => {
+      if (!record || typeof record !== "object") {
+        throw new Error("备份中的角色记录格式不正确。");
+      }
+      const id = record.id.trim();
+      const avatarId =
+        typeof record.avatarId === "string" ? record.avatarId.trim() : "";
+      if (avatarId && !imageIds.has(avatarId)) {
+        throw new Error(`角色 ${id} 引用了备份中不存在的头像 ${avatarId}。`);
+      }
+      return persistentCharacterRecord(
+        record,
+        id,
+        avatarId,
+        Number(record.updatedAt) || Date.now(),
+      );
+    });
+  }
+
+  function prepareImportedMessages(records) {
+    assertUniqueRecords(records, "id", "聊天记录");
+    return records.map((record) => {
+      if (!record || typeof record !== "object") {
+        throw new Error("备份中的聊天记录格式不正确。");
+      }
+      if (record.role !== "user" && record.role !== "assistant") {
+        throw new Error(`聊天记录 ${record.id} 的角色无效。`);
+      }
+      if (typeof record.content !== "string" || !record.content.trim()) {
+        throw new Error(`聊天记录 ${record.id} 的内容为空或格式不正确。`);
+      }
+      return { ...record, id: record.id.trim() };
+    });
+  }
+
+  function prepareImportedMemories(records) {
+    assertUniqueRecords(records, "id", "记忆");
+    return records.map((record) => {
+      if (!record || typeof record !== "object") {
+        throw new Error("备份中的记忆记录格式不正确。");
+      }
+      return { ...record, id: record.id.trim() };
+    });
+  }
+
+  function prepareImportedAppData(records) {
+    assertUniqueRecords(records, "appId", "App 存档");
+    return records.map((record) => {
+      if (!record || typeof record !== "object") {
+        throw new Error("备份中的 App 存档格式不正确。");
+      }
+      return { ...record, appId: record.appId.trim() };
+    });
+  }
+
+  function prepareImportRecords(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const rawCharacters = requireRecordArray(source.characters, "角色");
+    const rawMessages = requireRecordArray(source.messages, "聊天记录");
+    const rawMemories = requireRecordArray(source.memories, "记忆");
+    const rawAppData = requireRecordArray(source.appData, "App 存档");
+    const rawImages = requireRecordArray(source.images, "图片");
+    const preparedImages = prepareImportedImages(rawImages);
+    const preparedCharacters = prepareImportedCharacters(
+      rawCharacters,
+      preparedImages.imageIds,
+    );
+    return {
+      characters: preparedCharacters,
+      messages: prepareImportedMessages(rawMessages),
+      memories: prepareImportedMemories(rawMemories),
+      appData: prepareImportedAppData(rawAppData),
+      images: preparedImages.images,
+    };
+  }
+
+  async function importRecords(input) {
+    const records = prepareImportRecords(input);
+    await runWriteTransaction(USER_DATA_STORES, (transaction) => {
+      USER_DATA_STORES.forEach((storeName) => {
+        transaction.objectStore(storeName).clear();
+      });
+      records.characters.forEach((record) => {
+        transaction.objectStore(STORES.characters).put(record);
+      });
+      records.messages.forEach((record) => {
+        transaction.objectStore(STORES.messages).put(record);
+      });
+      records.memories.forEach((record) => {
+        transaction.objectStore(STORES.memories).put(record);
+      });
+      records.appData.forEach((record) => {
+        transaction.objectStore(STORES.appData).put(record);
+      });
+      records.images.forEach((record) => {
+        transaction.objectStore(STORES.images).put(record);
+      });
+    });
+
+    return {
+      characters: records.characters.length,
+      messages: records.messages.length,
+      memories: records.memories.length,
+      appData: records.appData.length,
+      images: records.images.length,
+    };
+  }
+
+  async function readAllData() {
+    const [characters, messages, memories, appData, images] = await Promise.all([
+      readAll(STORES.characters),
+      getMessages(),
+      readAll(STORES.memories),
+      readAll(STORES.appData),
+      readAll(STORES.images),
+    ]);
+    return { characters, messages, memories, appData, images };
+  }
+
+  async function migrateLegacyData(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const legacyCharacter =
+      source.character && typeof source.character === "object"
+        ? source.character
+        : null;
+    const legacyMessages = Array.isArray(source.messages) ? source.messages : [];
+    const avatarBlob = source.avatarBlob instanceof Blob ? source.avatarBlob : null;
+    if (!legacyCharacter && !legacyMessages.length) {
+      return { characterMigrated: false, messagesMigrated: 0, avatarMigrated: false };
+    }
+
+    const [currentCharacter, currentMessages] = await Promise.all([
+      getCharacter(PRIMARY_CHARACTER_ID),
+      getMessages(),
+    ]);
+    const existingMessageIds = new Set(currentMessages.map((message) => message.id));
+    let expectedCharacter = null;
+    let expectedAvatarId = "";
+    let imageRecord = null;
+    let nextOrder =
+      currentMessages.reduce(
+        (maximum, message) => Math.max(maximum, Number(message.order) || 0),
+        -1,
+      ) + 1;
+
+    if (!currentCharacter && legacyCharacter) {
+      imageRecord = avatarBlob ? makeImageRecord(avatarBlob) : null;
+      expectedAvatarId = imageRecord ? imageRecord.id : "";
+      expectedCharacter = persistentCharacterRecord(
+        legacyCharacter,
+        PRIMARY_CHARACTER_ID,
+        expectedAvatarId,
+        Date.now(),
+      );
+    } else if (currentCharacter && !currentCharacter.avatarId && avatarBlob) {
+      imageRecord = makeImageRecord(avatarBlob);
+      expectedAvatarId = imageRecord.id;
+      expectedCharacter = persistentCharacterRecord(
+        currentCharacter,
+        PRIMARY_CHARACTER_ID,
+        expectedAvatarId,
+        Date.now(),
+      );
+    }
+
+    const messagesToWrite = [];
+    const legacyMessageIds = new Set();
+    legacyMessages.forEach((message) => {
+      const id = requireStableId(message && message.id, "旧版聊天记录");
+      if (legacyMessageIds.has(id)) {
+        throw new Error(`旧版聊天记录编号重复：${id}`);
+      }
+      legacyMessageIds.add(id);
+      if (message.role !== "user" && message.role !== "assistant") {
+        throw new Error(`旧版聊天记录 ${id} 的角色无效。`);
+      }
+      if (typeof message.content !== "string" || !message.content.trim()) {
+        throw new Error(`旧版聊天记录 ${id} 的内容为空或格式不正确。`);
+      }
+      if (existingMessageIds.has(id)) return;
+      existingMessageIds.add(id);
+      messagesToWrite.push({
+        ...message,
+        id,
+        order: nextOrder,
+        updatedAt: Date.now(),
+      });
+      nextOrder += 1;
+    });
+
+    await runWriteTransaction(
+      [STORES.characters, STORES.messages, STORES.images],
+      (transaction) => {
+        if (imageRecord) {
+          transaction.objectStore(STORES.images).put(imageRecord);
+        }
+        if (expectedCharacter) {
+          transaction.objectStore(STORES.characters).put(expectedCharacter);
+        }
+        messagesToWrite.forEach((message) => {
+          transaction.objectStore(STORES.messages).put(message);
+        });
+      },
+    );
+
+    const [verifiedCharacter, verifiedMessages] = await Promise.all([
+      getCharacter(PRIMARY_CHARACTER_ID),
+      getMessages(),
+    ]);
+    if (expectedCharacter) {
+      if (
+        !verifiedCharacter ||
+        verifiedCharacter.name !== expectedCharacter.name ||
+        verifiedCharacter.persona !== expectedCharacter.persona
+      ) {
+        throw new Error("旧角色文字写入后未能完整读回。");
+      }
+      if (expectedAvatarId) {
+        const blob = await getImageBlob(expectedAvatarId);
+        if (!(blob instanceof Blob) || blob.size <= 0) {
+          throw new Error("旧头像写入后未能完整读回。");
+        }
+      }
+    }
+
+    const verifiedById = new Map(verifiedMessages.map((message) => [message.id, message]));
+    messagesToWrite.forEach((message) => {
+      const verified = verifiedById.get(message.id);
+      if (!verified || verified.content !== message.content) {
+        throw new Error("旧聊天记录写入后未能完整读回。");
+      }
+    });
+
+    await setMeta(MIGRATION_META_KEY, {
+      version: 1,
+      completedAt: Date.now(),
+      characterMigrated: Boolean(expectedCharacter),
+      messagesMigrated: messagesToWrite.length,
+      avatarMigrated: Boolean(expectedAvatarId),
+    });
+
+    return {
+      characterMigrated: Boolean(expectedCharacter),
+      messagesMigrated: messagesToWrite.length,
+      avatarMigrated: Boolean(expectedAvatarId),
+    };
+  }
+
+  function isQuotaError(error) {
+    const raw = error || {};
+    return (
+      raw.name === "QuotaExceededError" ||
+      raw.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      raw.code === 22 ||
+      raw.code === 1014 ||
+      /quota|storage is full|存储空间不足|磁盘空间/i.test(String(raw.message || ""))
+    );
+  }
+
+  function describeError(error, action = "保存本机数据") {
+    const raw = error || {};
+    const detail = String(raw.message || "浏览器没有返回详细原因。");
+    if (isQuotaError(raw)) {
+      return {
+        title: "本机存储空间不足",
+        message: `${action}没有完成：浏览器可用于网页的存储空间已经不足。`,
+        nextStep:
+          "先到设置页导出备份，再清理浏览器中不需要的站点数据或删除不用的图片，然后刷新页面重试。",
+        isQuota: true,
+      };
+    }
+
+    if (
+      raw.name === "SecurityError" ||
+      /indexeddb|database|数据库|安全策略|not allowed/i.test(detail)
+    ) {
+      return {
+        title: "浏览器阻止了本机数据库",
+        message: `${action}没有完成：${detail}`,
+        nextStep:
+          "确认没有使用无痕模式或禁用站点数据；关闭其他旧页面，再刷新当前页面重试。",
+        isQuota: false,
+      };
+    }
+
+    return {
+      title: `${action}失败`,
+      message: detail.slice(0, 500),
+      nextStep:
+        "先刷新页面重试；如果仍失败，请导出备份并保留旧数据，不要清理浏览器站点数据。",
+      isQuota: false,
+    };
+  }
+
+  async function storageEstimate() {
+    if (!navigator.storage || typeof navigator.storage.estimate !== "function") {
+      return null;
+    }
+    try {
+      return await navigator.storage.estimate();
+    } catch {
+      return null;
+    }
+  }
+
+  async function clearStoreForTests(storeName) {
+    if (!Object.values(STORES).includes(storeName)) {
+      throw new Error(`未知对象仓库：${storeName}`);
+    }
+    const database = await open();
+    const transaction = database.transaction(storeName, "readwrite");
+    transaction.objectStore(storeName).clear();
+    await transactionToPromise(transaction);
+  }
+
+  async function deleteDatabaseForTests() {
+    const database = await open();
+    database.close();
+    databasePromise = null;
+    await new Promise((resolve, reject) => {
+      const request = window.indexedDB.deleteDatabase(DB_NAME);
+      request.onsuccess = () => resolve();
+      request.onerror = () =>
+        reject(request.error || new Error("测试数据库删除失败。"));
+    });
+  }
+
+  window.PocketLabStorage = {
+    dbName: DB_NAME,
+    dbVersion: DB_VERSION,
+    stores: STORES,
+    primaryCharacterId: PRIMARY_CHARACTER_ID,
+    migrationMetaKey: MIGRATION_META_KEY,
+    open,
+    createId,
+    readAll,
+    getCharacter,
+    saveCharacter,
+    getMessages,
+    saveMessages,
+    getMemories,
+    saveMemories,
+    getAppData,
+    listAppData,
+    saveAppData,
+    getImage,
+    getImageBlob,
+    saveImage,
+    deleteImage,
+    getMeta,
+    setMeta,
+    readAllData,
+    prepareImportRecords,
+    importRecords,
+    migrateLegacyData,
+    describeError,
+    isQuotaError,
+    storageEstimate,
+    clearStoreForTests,
+    deleteDatabaseForTests,
+  };
+})();

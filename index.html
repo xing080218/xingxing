@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#191b1a" />
+    <meta name="color-scheme" content="light" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="description" content="可在电脑和手机上使用的虚拟小手机与角色聊天网页。" />
+    <meta name="application-name" content="小手机" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="小手机" />
+    <title>小手机 · 单角色对话</title>
+    <style id="critical-bootstrap-style">
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+        background: #f5f2ea;
+      }
+
+      #bootstrap-status {
+        position: fixed;
+        z-index: 2147483647;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 28px;
+        color: #1c2320;
+        background: #f5f2ea;
+        text-align: center;
+        font-family: "PingFang SC", "Microsoft YaHei UI", "Segoe UI", sans-serif;
+      }
+
+      #bootstrap-status.is-hidden {
+        display: none !important;
+      }
+
+      #bootstrap-status::before {
+        content: "";
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(28, 117, 97, 0.18);
+        border-top-color: #1c7561;
+        border-radius: 50%;
+        animation: bootstrap-spin 850ms linear infinite;
+      }
+
+      #bootstrap-status.is-error::before {
+        width: 34px;
+        height: 3px;
+        border: 0;
+        border-radius: 2px;
+        background: #b74332;
+        animation: none;
+      }
+
+      #bootstrap-status strong {
+        max-width: 340px;
+        font-size: 19px;
+        line-height: 1.35;
+      }
+
+      #bootstrap-status > span {
+        max-width: 340px;
+        color: #5f6b65;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .bootstrap-steps {
+        width: min(340px, 100%);
+        margin: 4px 0 2px;
+        padding: 0;
+        list-style: none;
+        text-align: left;
+      }
+
+      .bootstrap-step {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 31px;
+        color: #8a938e;
+        font-size: 12px;
+      }
+
+      .bootstrap-step-marker {
+        display: grid;
+        place-items: center;
+        flex: 0 0 20px;
+        width: 20px;
+        height: 20px;
+        border: 1px solid #c8c1b2;
+        border-radius: 50%;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .bootstrap-step[data-state="running"] {
+        color: #1c7561;
+      }
+
+      .bootstrap-step[data-state="ok"] {
+        color: #1c7561;
+      }
+
+      .bootstrap-step[data-state="ok"] .bootstrap-step-marker {
+        border-color: #1c7561;
+        color: #fffdf8;
+        background: #1c7561;
+      }
+
+      .bootstrap-step[data-state="failed"] {
+        color: #b74332;
+      }
+
+      .bootstrap-step[data-state="failed"] .bootstrap-step-marker {
+        border-color: #b74332;
+        color: #fffdf8;
+        background: #b74332;
+      }
+
+      .bootstrap-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        max-width: 360px;
+        margin-top: 3px;
+      }
+
+      .bootstrap-actions button,
+      .bootstrap-actions a {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 12px;
+        border: 1px solid rgba(28, 117, 97, 0.3);
+        border-radius: 8px;
+        color: #125343;
+        background: transparent;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .bootstrap-actions button {
+        cursor: pointer;
+      }
+
+      .bootstrap-details {
+        width: min(340px, 100%);
+        max-height: 120px;
+        overflow: auto;
+        margin: 0;
+        padding: 8px 10px;
+        border: 1px solid #ddd8cc;
+        border-radius: 6px;
+        color: #5f6b65;
+        background: rgba(255, 253, 248, 0.72);
+        font: 11px/1.45 Consolas, monospace;
+        text-align: left;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .bootstrap-build {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border: 1px solid rgba(28, 117, 97, 0.18);
+        border-radius: 999px;
+        color: #53625b;
+        background: rgba(255, 253, 248, 0.72);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      @keyframes bootstrap-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="/styles.css?v=20261120-14" />
+  </head>
+  <body>
+    <aside
+      class="service-warning is-hidden"
+      id="service-warning"
+      role="status"
+      aria-live="polite"
+      aria-hidden="true"
+    >
+      <span class="service-warning-mark" aria-hidden="true">!</span>
+      <div class="service-warning-copy">
+        <strong>本地状态检查未完成</strong>
+        <p id="service-warning-message">
+          页面和小手机已经启动，但本地状态检查没有及时完成。
+        </p>
+        <p class="service-warning-next" id="service-warning-next">
+          可以先继续使用；若反复出现，再打开连接检查页。
+        </p>
+        <div class="service-warning-actions">
+          <button id="service-warning-retry" type="button">重新检查</button>
+          <a href="/mobile-check.html?v=20261120-14">连接检查页</a>
+        </div>
+      </div>
+      <button
+        class="service-warning-dismiss"
+        id="service-warning-dismiss"
+        type="button"
+        aria-label="关闭本地状态提示"
+      >
+        关闭
+      </button>
+    </aside>
+
+    <div class="bootstrap-status" id="bootstrap-status" role="status" aria-live="polite">
+      <strong id="bootstrap-title">正在打开小手机</strong>
+      <span id="bootstrap-message">页面已开始加载，正在检查本地服务。</span>
+      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261120-14</span>
+      <ol class="bootstrap-steps" aria-label="启动检查">
+        <li class="bootstrap-step" data-bootstrap-step="page" data-state="ok">
+          <span class="bootstrap-step-marker" aria-hidden="true">1</span>
+          <span>页面文件已接收</span>
+        </li>
+        <li class="bootstrap-step" data-bootstrap-step="service" data-state="running">
+          <span class="bootstrap-step-marker" aria-hidden="true">2</span>
+          <span>正在确认本地服务</span>
+        </li>
+        <li class="bootstrap-step" data-bootstrap-step="app" data-state="pending">
+          <span class="bootstrap-step-marker" aria-hidden="true">3</span>
+          <span>正在启动聊天界面</span>
+        </li>
+      </ol>
+      <div class="bootstrap-actions">
+        <button id="bootstrap-retry" type="button">重新加载</button>
+        <button id="bootstrap-details-toggle" type="button" aria-expanded="false">显示诊断信息</button>
+        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261120-14">连接检查页</a>
+        <a href="/connect.html?v=20261120-14">电脑连接入口</a>
+      </div>
+      <pre class="bootstrap-details is-hidden" id="bootstrap-details" aria-label="启动诊断信息"></pre>
+    </div>
+
+    <main class="workspace">
+      <section class="phone" aria-label="虚拟小手机">
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="status-bar" aria-hidden="true">
+              <span class="status-time" id="status-time">09:41</span>
+              <div class="status-indicators">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 18v-2M8 18v-5M12 18v-8M16 18V7M20 18V4" />
+                </svg>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
+                </svg>
+                <span class="battery"><span></span></span>
+              </div>
+            </div>
+
+            <div class="screen-content">
+              <section class="view home-view" id="home-view" aria-label="手机主屏幕" aria-hidden="true">
+                <div class="home-wallpaper" aria-hidden="true">
+                  <span class="wallpaper-line line-one"></span>
+                  <span class="wallpaper-line line-two"></span>
+                  <span class="wallpaper-tile tile-one"></span>
+                  <span class="wallpaper-tile tile-two"></span>
+                </div>
+
+                <div class="home-top">
+                  <div>
+                    <p class="eyebrow">POCKET LAB</p>
+                    <h1>我的小手机</h1>
+                  </div>
+                  <button class="round-icon-button" id="quick-settings" type="button" aria-label="打开设置">
+                    <span data-icon="settings"></span>
+                  </button>
+                </div>
+
+                <div class="device-summary">
+                  <div class="summary-heading">
+                    <span class="signal-orb" id="connection-orb">
+                      <span data-icon="wifi"></span>
+                    </span>
+                    <div>
+                      <p class="summary-kicker">API 状态</p>
+                      <strong id="home-connection-label">等待配置</strong>
+                    </div>
+                  </div>
+                  <button class="text-link" id="summary-action" type="button">
+                    去连接
+                    <span data-icon="arrow-up-right"></span>
+                  </button>
+                </div>
+
+                <div class="home-section-heading">
+                  <span>常用功能</span>
+                  <span class="date-label" id="home-date">11月19日</span>
+                </div>
+
+                <div class="app-grid">
+                  <button class="app-icon-button" id="open-settings-app" type="button">
+                    <span class="app-icon app-settings">
+                      <span data-icon="settings"></span>
+                    </span>
+                    <span>设置</span>
+                  </button>
+                  <button class="app-icon-button" id="open-test-app" type="button">
+                    <span class="app-icon app-test">
+                      <span data-icon="plug-zap"></span>
+                    </span>
+                    <span>连接测试</span>
+                  </button>
+                  <button class="app-icon-button" id="open-guide-app" type="button">
+                    <span class="app-icon app-guide">
+                      <span data-icon="book-open"></span>
+                    </span>
+                    <span>使用说明</span>
+                  </button>
+                  <button class="app-icon-button" id="open-chat-app" type="button">
+                    <span class="app-icon app-chat">
+                      <span data-icon="message-circle"></span>
+                    </span>
+                    <span>对话</span>
+                  </button>
+                </div>
+
+                <div class="home-note">
+                  <span data-icon="shield-check"></span>
+                  <p>API Key 只保留在当前浏览器会话，不写入项目文件或日志。</p>
+                </div>
+
+                <div class="dock" aria-label="快捷栏">
+                  <button class="dock-app" id="dock-chat" type="button" aria-label="对话">
+                    <span data-icon="message-circle"></span>
+                  </button>
+                  <button class="dock-app" id="dock-settings" type="button" aria-label="设置">
+                    <span data-icon="sliders-horizontal"></span>
+                  </button>
+                  <button class="dock-app" id="dock-test" type="button" aria-label="连接测试">
+                    <span data-icon="activity"></span>
+                  </button>
+                  <button class="dock-app" id="dock-guide" type="button" aria-label="使用说明">
+                    <span data-icon="circle-help"></span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="view settings-view is-active" id="settings-view" aria-label="API 设置" aria-hidden="false">
+                <header class="app-header">
+                  <button class="back-button" id="settings-back" type="button" aria-label="返回主屏幕">
+                    <span data-icon="chevron-left"></span>
+                  </button>
+                  <div>
+                    <p class="eyebrow">CONNECTIONS</p>
+                    <h1>API 接入</h1>
+                  </div>
+                  <span class="header-status" id="header-status">
+                    <span class="status-dot"></span>
+                    未连接
+                  </span>
+                </header>
+
+                <div class="settings-scroll">
+                  <section class="connection-intro">
+                    <div class="intro-icon">
+                      <span data-icon="server-cog"></span>
+                    </div>
+                    <div>
+                      <h2>连接你的模型服务</h2>
+                      <p>支持 OpenAI 兼容接口。可填写 Base URL，也可以填写完整的 chat/completions 地址。</p>
+                    </div>
+                  </section>
+
+                  <form class="settings-form" id="api-form" novalidate>
+                    <label class="field">
+                      <span class="field-label">
+                        <span data-icon="link-2"></span>
+                        接口地址
+                      </span>
+                      <input
+                        id="api-url"
+                        name="apiUrl"
+                        type="url"
+                        inputmode="url"
+                        autocomplete="url"
+                        placeholder="https://api.example.com/v1"
+                        spellcheck="false"
+                        required
+                      />
+                      <span class="field-help">例如：https://api.openai.com/v1</span>
+                      <span class="field-error" id="api-url-error"></span>
+                    </label>
+
+                    <label class="field">
+                      <span class="field-label">
+                        <span data-icon="key-round"></span>
+                        API Key
+                      </span>
+                      <span class="input-with-action">
+                        <input
+                          id="api-key"
+                          name="apiKey"
+                          type="password"
+                          autocomplete="off"
+                          placeholder="在此填写你的 API Key"
+                          spellcheck="false"
+                          required
+                        />
+                        <button class="field-action" id="toggle-key" type="button" aria-label="显示 API Key">
+                          <span data-icon="eye"></span>
+                        </button>
+                      </span>
+                      <span class="field-help">不会写入代码、日志或上传文件。</span>
+                      <span class="field-error" id="api-key-error"></span>
+                    </label>
+
+                    <label class="field">
+                      <span class="field-label">
+                        <span data-icon="box"></span>
+                        模型名
+                      </span>
+                      <input
+                        id="model-name"
+                        name="modelName"
+                        type="text"
+                        autocomplete="off"
+                        placeholder="例如：gpt-4.1-mini"
+                        spellcheck="false"
+                        required
+                      />
+                      <span class="field-help">请填写服务商文档中的模型 ID，不要填写展示名称。</span>
+                      <span class="field-error" id="model-name-error"></span>
+                    </label>
+
+                    <button class="primary-button" id="test-connection" type="submit">
+                      <span class="button-label">
+                        <span data-icon="plug-zap"></span>
+                        连接测试
+                      </span>
+                      <span class="button-spinner" aria-hidden="true"></span>
+                    </button>
+                  </form>
+
+                  <section class="test-result is-hidden" id="test-result" aria-live="polite">
+                    <div class="result-heading">
+                      <span class="result-icon" id="result-icon">
+                        <span data-icon="circle-check"></span>
+                      </span>
+                      <div>
+                        <p class="result-kicker" id="result-kicker">连接结果</p>
+                        <h2 id="result-title">等待测试</h2>
+                      </div>
+                    </div>
+                    <p class="result-message" id="result-message"></p>
+                    <dl class="result-meta" id="result-meta"></dl>
+                    <div class="next-step is-hidden" id="next-step">
+                      <span data-icon="lightbulb"></span>
+                      <p id="next-step-text"></p>
+                    </div>
+                  </section>
+
+                  <section class="local-data-panel" aria-labelledby="local-data-title">
+                    <div class="local-data-heading">
+                      <div class="local-data-icon" aria-hidden="true">
+                        <span data-icon="box"></span>
+                      </div>
+                      <div>
+                        <p class="eyebrow">LOCAL DATA</p>
+                        <h2 id="local-data-title">本机数据</h2>
+                      </div>
+                      <span class="local-data-usage" id="storage-usage">正在检查</span>
+                    </div>
+                    <p class="local-data-description">
+                      聊天、角色、记忆和 App 存档保存在 IndexedDB；头像等图片以 Blob 保存。API Key 不包含在备份中。
+                    </p>
+                    <div class="local-data-actions">
+                      <button class="secondary-button local-data-button" id="export-backup" type="button">
+                        <span data-icon="box"></span>
+                        导出备份
+                      </button>
+                      <button class="secondary-button local-data-button" id="import-backup" type="button">
+                        <span data-icon="arrow-up-right"></span>
+                        导入备份
+                      </button>
+                      <input id="backup-file" type="file" accept="application/json,.json" hidden />
+                    </div>
+                    <div class="local-data-status" id="local-data-status" role="status" aria-live="polite">
+                      <strong id="local-data-status-title">本机数据已准备</strong>
+                      <p id="local-data-status-message">页面运行时会自动检查旧数据并迁移。</p>
+                      <small id="local-data-status-next"></small>
+                    </div>
+                  </section>
+
+                  <div class="privacy-note">
+                    <span data-icon="shield-check"></span>
+                    <div>
+                      <strong>本地安全说明</strong>
+                      <p>接口地址和模型名保存在本机浏览器；API Key 只保留在当前标签页，关闭标签页后清除。本机服务只对当前局域网开放。</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="view chat-view" id="chat-view" aria-label="单角色聊天">
+                <header class="chat-header">
+                  <button class="back-button" id="chat-back" type="button" aria-label="返回主屏幕">
+                    <span data-icon="chevron-left"></span>
+                  </button>
+                  <div class="chat-contact">
+                    <div class="chat-avatar chat-header-avatar" id="chat-header-avatar" aria-hidden="true"></div>
+                    <div class="chat-contact-copy">
+                      <p class="eyebrow">CHARACTER CHAT</p>
+                      <h1 id="chat-character-name">小雾</h1>
+                      <span class="chat-api-status" id="chat-api-status">
+                        <span class="status-dot"></span>
+                        未连接
+                      </span>
+                    </div>
+                  </div>
+                  <button class="chat-edit-button" id="edit-character-button" type="button" aria-label="编辑角色">
+                    <span data-icon="pen-line"></span>
+                  </button>
+                </header>
+
+                <div class="chat-connection-warning is-hidden" id="chat-connection-warning">
+                  <span class="connection-warning-icon">
+                    <span data-icon="plug-zap"></span>
+                  </span>
+                  <p>还没有可用的 API 连接。</p>
+                  <button id="chat-open-settings" type="button">去设置</button>
+                </div>
+
+                <div class="chat-scroll" id="chat-scroll">
+                  <div class="chat-empty" id="chat-empty">
+                    <div class="chat-avatar chat-empty-avatar" id="chat-empty-avatar" aria-hidden="true"></div>
+                    <p class="eyebrow">A SMALL WORLD</p>
+                    <h2>和 <span id="chat-empty-name">小雾</span> 说句话</h2>
+                    <p id="chat-empty-description">角色会记住这段本地对话。</p>
+                  </div>
+                  <div class="message-list" id="chat-message-list" aria-live="polite"></div>
+                </div>
+
+                <form class="chat-composer" id="chat-form" novalidate>
+                  <div class="chat-composer-toolbar">
+                    <button
+                      class="batch-mode-toggle"
+                      id="toggle-batch-mode"
+                      type="button"
+                      aria-pressed="false"
+                    >
+                      <span data-icon="list-checks"></span>
+                      连续留言
+                    </button>
+                    <div class="chat-pending-actions is-hidden" id="chat-pending-actions">
+                      <span class="pending-reply-count" id="pending-reply-count">0 条待回复</span>
+                      <button class="batch-reply-button" id="reply-pending-batch" type="button">
+                        <span data-icon="messages-square"></span>
+                        <span id="batch-reply-label">统一回复</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="chat-input-row">
+                    <textarea
+                      id="chat-input"
+                      rows="1"
+                      maxlength="4000"
+                      placeholder="输入消息…"
+                      spellcheck="false"
+                      aria-label="消息内容"
+                    ></textarea>
+                    <button class="chat-send" id="send-chat" type="submit" aria-label="发送消息">
+                      <span data-icon="arrow-up"></span>
+                    </button>
+                  </div>
+                  <p class="chat-reply-status is-hidden" id="chat-reply-status" role="status">
+                    <span class="reply-pulse"></span>
+                    <span id="chat-reply-label">正在回复</span>
+                  </p>
+                </form>
+
+                <div class="character-modal is-hidden" id="character-modal" role="dialog" aria-modal="true" aria-labelledby="character-modal-title">
+                  <div class="character-modal-card">
+                    <div class="character-modal-header">
+                      <div>
+                        <p class="eyebrow">CHARACTER PROFILE</p>
+                        <h2 id="character-modal-title">编辑角色</h2>
+                      </div>
+                      <button class="round-icon-button modal-close-button" id="close-character-modal" type="button" aria-label="关闭角色编辑">
+                        <span data-icon="x"></span>
+                      </button>
+                    </div>
+
+                    <form id="character-form" novalidate>
+                      <div class="character-avatar-editor">
+                        <div class="chat-avatar character-avatar-preview" id="character-avatar-preview" aria-hidden="true"></div>
+                        <div class="character-avatar-actions">
+                          <label class="avatar-upload-button" for="avatar-file">
+                            <span data-icon="image-plus"></span>
+                            更换头像
+                          </label>
+                          <input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" />
+                          <button class="clear-avatar-button" id="clear-avatar" type="button">移除头像</button>
+                          <span class="field-help">支持 PNG、JPG 或 WebP，会自动压缩后保存在本机。</span>
+                        </div>
+                      </div>
+
+                      <label class="field">
+                        <span class="field-label">
+                          <span data-icon="user-round"></span>
+                          角色名字
+                        </span>
+                        <input id="character-name" type="text" maxlength="24" autocomplete="off" placeholder="例如：小雾" required />
+                        <span class="field-error" id="character-name-error"></span>
+                      </label>
+
+                      <label class="field">
+                        <span class="field-label">
+                          <span data-icon="scroll-text"></span>
+                          角色人设
+                        </span>
+                        <textarea id="character-persona" rows="6" maxlength="4000" placeholder="描述角色的身份、性格、说话方式和边界。" required></textarea>
+                        <span class="field-help">每次发送都会把这段人设作为系统提示交给模型。</span>
+                        <span class="field-error" id="character-persona-error"></span>
+                      </label>
+
+                      <div class="character-form-actions">
+                        <button class="secondary-button" id="cancel-character" type="button">取消</button>
+                        <button class="primary-button" id="save-character" type="submit">
+                          <span class="button-label">
+                            <span data-icon="check"></span>
+                            保存角色
+                          </span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </section>
+
+              <section class="view guide-view" id="guide-view" aria-label="使用说明">
+                <header class="app-header">
+                  <button class="back-button" id="guide-back" type="button" aria-label="返回主屏幕">
+                    <span data-icon="chevron-left"></span>
+                  </button>
+                  <div>
+                    <p class="eyebrow">QUICK START</p>
+                    <h1>使用说明</h1>
+                  </div>
+                  <button class="round-icon-button" id="guide-settings" type="button" aria-label="前往 API 设置">
+                    <span data-icon="settings"></span>
+                  </button>
+                </header>
+
+                <div class="guide-scroll">
+                  <section class="guide-hero">
+                    <span class="guide-number">01</span>
+                    <h2>先完成 API 接入</h2>
+                    <p>从服务商控制台复制接口地址、API Key 和模型 ID，填入设置页后运行连接测试。</p>
+                  </section>
+
+                  <ol class="guide-list">
+                    <li>
+                      <span class="guide-step-icon" data-icon="link-2"></span>
+                      <div>
+                        <strong>填写接口地址</strong>
+                        <p>优先填写文档里的 Base URL；如果文档直接给出完整地址，也可以原样粘贴。</p>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="guide-step-icon" data-icon="key-round"></span>
+                      <div>
+                        <strong>粘贴 API Key</strong>
+                        <p>Key 通常只显示一次。复制时不要带空格或多余引号。</p>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="guide-step-icon" data-icon="box"></span>
+                      <div>
+                        <strong>填写模型 ID</strong>
+                        <p>例如 <code>gpt-4.1-mini</code>。必须使用服务商实际提供的模型名称。</p>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="guide-step-icon" data-icon="plug-zap"></span>
+                      <div>
+                        <strong>运行连接测试</strong>
+                        <p>成功后可以继续使用小手机；失败时按结果区的“下一步”逐项检查。</p>
+                      </div>
+                    </li>
+                  </ol>
+
+                  <button class="primary-button guide-action" id="guide-go-settings" type="button">
+                    <span class="button-label">
+                      <span data-icon="arrow-right"></span>
+                      去填写 API 配置
+                    </span>
+                  </button>
+                </div>
+              </section>
+            </div>
+
+            <div class="toast" id="toast" role="status" aria-live="polite"></div>
+            <div class="home-indicator" aria-hidden="true"></div>
+          </div>
+        </div>
+        <p class="device-caption">
+          <span data-icon="mouse-pointer-2"></span>
+          点击手机里的设置开始配置
+        </p>
+      </section>
+    </main>
+
+    <script src="/js/settings-store.js?v=20261120-14" defer></script>
+    <script src="/js/media.js?v=20261120-14" defer></script>
+    <script src="/js/storage.js?v=20261120-14" defer></script>
+    <script src="/js/backup.js?v=20261120-14" defer></script>
+    <script src="/bootstrap.js?v=20261120-14" defer></script>
+    <script src="/app.js?v=20261120-14" defer></script>
+    <noscript>
+      <div class="bootstrap-status bootstrap-status-error">
+        <strong>浏览器没有启用 JavaScript</strong>
+        <span>请在 Safari 设置中允许 JavaScript，然后刷新页面。</span>
+      </div>
+    </noscript>
+  </body>
+</html>

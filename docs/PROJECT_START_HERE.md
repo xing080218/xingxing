@@ -46,7 +46,7 @@
 - GitHub `main` 和 `test` 已开启分支保护，必须通过合并请求更新；禁止直接推送、强推和删除，保护规则对管理员同样生效。
 - 正式网址固定记录在 README 的“正式发布”区域和本节，不在代码中虚构或反复更换项目域名。
 - `yingxingyu.com` 已在阿里云完成实名认证并接入 Vercel，当前续费日期约为 2027-11-20；请保持自动续费开启。
-- `test.yingxingyu.com` 已分配给 Vercel 的 `test` 分支；需在阿里云添加 Vercel 指定的 `test` CNAME 记录，DNS 生效后才能作为验收网址。
+- `test.yingxingyu.com` 已分配给 Vercel 的 `test` 分支；阿里云 `test` CNAME 已生效，并已用真实浏览器验证锁屏页面可正常加载。
 
 已确认但尚未实现：
 
@@ -210,7 +210,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 - Vercel Production Branch 必须设为 `main`，测试域名必须绑定 `test`，Git 集成必须保持启用。
 - GitHub `main` 和 `test` 用分支保护强制走合并请求；不要为了绕过保护而临时关闭规则。
 - 正式项目为 `xingxing`，正式网址为 `https://yingxingyu.com/`；项目保持公开访问，不启用 SSO 或密码保护，除非用户明确要求。
-- 测试网址为 `https://test.yingxingyu.com/`；在阿里云添加 Vercel 指定的 `test` CNAME 前，不把它标记为已可用。
+- 测试网址为 `https://test.yingxingyu.com/`；对应分支为 `test`，DNS 和 HTTPS 已启用。每次合并后先等待 Vercel 部署完成，再用真实浏览器分别检查电脑和手机尺寸。
+- 本机 PowerShell、Windows `curl` 或 Node 出现证书/Schannel 错误时，先改用无头 Chrome 访问测试网址；Chrome 能加载页面且后续改动会触发 Vercel 部署时，不为本机工具错误重配 DNS。
 - 自有域名的根域名使用阿里云 A 记录指向 Vercel，`www` 使用 CNAME；根域名是当前唯一正式入口，`www` 未完成稳定验证前不要发给用户。
 - 若中国大陆网络把 `vercel.app` 域名解析到异常地址，先确认 DNS 结果；`yingxingyu.com` 已作为长期入口，不能把错误 IP 写进代码。
 - `xingxing-tan.vercel.app` 超时但外部检查为 `Ready` 且健康接口返回 200 时，判断为用户网络到 `vercel.app` 的线路或域名拦截，不要反复重新部署；临时测试可用 Cloudflare Quick Tunnel 指向本机 `http://127.0.0.1:4176`，必须明确它依赖本机服务和隧道进程，永久访问使用 `https://yingxingyu.com/`。

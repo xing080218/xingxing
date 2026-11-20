@@ -2,9 +2,9 @@
   "name": "yingxingyu",
   "version": "1.0.0",
   "private": true,
-  "description": "濴星语 - browser-based virtual phone role chat",
+  "description": "Yingxingyu - browser-based virtual phone role chat",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "scripts": {
     "test": "node tests/vercel-provider.tests.js"

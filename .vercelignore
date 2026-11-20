@@ -2,6 +2,9 @@ work/
 outputs/
 tests/
 docs/
+.vercel/
+.env
+.env.*
 *.log
 *.pid
 *.tmp

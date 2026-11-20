@@ -38,11 +38,14 @@
 
 - 保留电脑本地入口 `http://127.0.0.1:4176/`，用于发布前回归。
 - 正式版本部署在 Vercel，正式网址为 https://yingxingyu.com/。
+- 测试版本部署在 Vercel，验收网址为 https://test.yingxingyu.com/。
 - `https://xingxing-tan.vercel.app/` 是 Vercel 自动生成的备用/诊断地址，不作为用户入口。
 - 正式仓库为 https://github.com/xing080218/xingxing ，Vercel 项目名为 `xingxing`。
-- GitHub `main` 分支连接 Vercel 自动发布；每次推送到 `main` 后必须检查 Deployment 状态和线上健康接口。
+- 仓库采用 `main`、`test`、`feature/*` 三层分支：`main` 只保存已经验收的生产版本，`test` 保存等待用户验收的版本，每一项改动先在功能小分支完成。
+- GitHub `main` 连接正式域名，`test` 连接测试域名；每次推送后必须检查对应 Deployment 状态和线上健康接口。
 - 正式网址固定记录在 README 的“正式发布”区域和本节，不在代码中虚构或反复更换项目域名。
 - `yingxingyu.com` 已在阿里云完成实名认证并接入 Vercel，当前续费日期约为 2027-11-20；请保持自动续费开启。
+- `test.yingxingyu.com` 已分配给 Vercel 的 `test` 分支；需在阿里云添加 Vercel 指定的 `test` CNAME 记录，DNS 生效后才能作为验收网址。
 
 已确认但尚未实现：
 
@@ -74,6 +77,7 @@
 ### 当前设备策略
 
 - 电脑和手机统一打开自有正式域名 `https://yingxingyu.com/`，不要求两台设备连接同一个 Wi-Fi。
+- 发布前验收统一打开 `https://test.yingxingyu.com/`；功能分支的 Vercel Preview 地址仅供开发检查，不要求用户使用。
 - `*.vercel.app` 不是正式入口；它只用于确认 Vercel 部署是否存在，遇到线路拦截时不要让用户改填这个地址。
 - 本地 `http://127.0.0.1:4176/` 和手机局域网入口只用于发布前回归或正式网址故障排查。
 - 保留现有响应式布局，同一套代码同时服务电脑和手机。
@@ -149,10 +153,11 @@
 
 ## 5. 修改与回归流程
 
-1. 保留用户已有改动，不回退与本任务无关的内容。
-2. 先做最小范围实现，再整理重复逻辑，避免顺手重构无关模块。
-3. 修改共享代码后，检查设置页、连接测试、聊天发送、连续回复、撤回、刷新恢复和失败重试。
-4. 至少运行：
+1. 从最新 `test` 创建 `feature/简短名称` 小分支；一项改动只在对应功能分支完成。
+2. 保留用户已有改动，不回退与本任务无关的内容。
+3. 先做最小范围实现，再整理重复逻辑，避免顺手重构无关模块。
+4. 修改共享代码后，检查设置页、连接测试、聊天发送、连续回复、撤回、刷新恢复和失败重试。
+5. 至少运行：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\api-client.tests.ps1
@@ -165,9 +170,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 
 两个浏览器回归脚本要求电脑入口已经在 `http://127.0.0.1:4176/` 运行；存储脚本使用独立临时浏览器配置，不会读取日常浏览器数据。
 
-5. 检查 JavaScript 和 PowerShell 语法；涉及页面时实际请求电脑入口和健康接口。
-6. 页面脚本或样式发生变化时更新统一的构建版本号，避免浏览器继续使用旧缓存。
-7. 完成后说明已验证什么、未验证什么以及剩余风险。
+6. 检查 JavaScript 和 PowerShell 语法；涉及页面时实际请求电脑入口和健康接口。
+7. 页面脚本或样式发生变化时更新统一的构建版本号，避免浏览器继续使用旧缓存。
+8. 功能分支完成后合并到 `test`，等 Vercel 测试部署完成，再请用户打开测试网址验收。
+9. 只有用户明确确认测试版本可以发布后，才合并到 `main`；正式部署完成后检查正式首页和 `/api/health`。
+10. 完成后说明已验证什么、未验证什么以及剩余风险。
 
 ## 6. 反复问题的简短规则
 
@@ -198,8 +205,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 
 ### Vercel 自动发布
 
-- GitHub `main` 是正式分支；Vercel Production Branch 必须设为 `main`，Git 集成必须保持启用。
+- 分支固定为 `feature/* -> test -> main`。功能分支只供开发检查，用户验收使用 `test`，用户明确确认后才允许进入 `main`。
+- Vercel Production Branch 必须设为 `main`，测试域名必须绑定 `test`，Git 集成必须保持启用。
 - 正式项目为 `xingxing`，正式网址为 `https://yingxingyu.com/`；项目保持公开访问，不启用 SSO 或密码保护，除非用户明确要求。
+- 测试网址为 `https://test.yingxingyu.com/`；在阿里云添加 Vercel 指定的 `test` CNAME 前，不把它标记为已可用。
 - 自有域名的根域名使用阿里云 A 记录指向 Vercel，`www` 使用 CNAME；根域名是当前唯一正式入口，`www` 未完成稳定验证前不要发给用户。
 - 若中国大陆网络把 `vercel.app` 域名解析到异常地址，先确认 DNS 结果；`yingxingyu.com` 已作为长期入口，不能把错误 IP 写进代码。
 - `xingxing-tan.vercel.app` 超时但外部检查为 `Ready` 且健康接口返回 200 时，判断为用户网络到 `vercel.app` 的线路或域名拦截，不要反复重新部署；临时测试可用 Cloudflare Quick Tunnel 指向本机 `http://127.0.0.1:4176`，必须明确它依赖本机服务和隧道进程，永久访问使用 `https://yingxingyu.com/`。

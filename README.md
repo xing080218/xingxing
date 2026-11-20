@@ -6,20 +6,39 @@
 
 ## 当前阶段
 
-- 支持本地运行，也支持部署到 Vercel，由电脑和手机直接打开正式网址。
+- 支持本地运行，也支持部署到 Vercel，由电脑和手机直接打开正式网址或测试网址。
 - 本地入口仍为 `http://127.0.0.1:4176/`，适合在发布前检查改动。
-- GitHub 的 `main` 分支是正式发布来源；推送到该分支后，Vercel 会自动重新发布。
+- 所有改动先进入 `feature/*` 功能分支，再合并到 `test` 验收；用户确认后才合并到 `main` 正式发布。
 
-## 正式发布
+## 分支与网址
+
+| 分支或环境 | 用途 | 网址 |
+| --- | --- | --- |
+| `feature/*` | 开发单个功能；Vercel Preview 仅供开发检查 | 预览地址不发给用户验收 |
+| `test` | 测试验收；合并功能后自动部署 | https://test.yingxingyu.com/ |
+| `main` | 正式生产；只接收用户已确认的测试版本 | https://yingxingyu.com/ |
+
+发布流程：
+
+1. 从最新 `test` 创建 `feature/简短名称` 分支并完成改动。
+2. 功能分支通过检查后合并到 `test`，等待 Vercel 部署完成。
+3. 用户在测试网址验收。测试期间发现问题就新建功能分支修复，不直接改 `main`。
+4. 用户明确确认测试版本可以发布后，才把 `test` 合并到 `main`。
+5. 正式站点部署完成后检查首页和 `/api/health`。
+
+## 发布配置
 
 - 正式网址：https://yingxingyu.com/
+- 测试网址：https://test.yingxingyu.com/
 - Vercel 备用地址：https://xingxing-tan.vercel.app/（只用于诊断 Vercel 部署，不作为正式入口）
 - GitHub 仓库：https://github.com/xing080218/xingxing
 - Vercel 项目：`xingxing`
 - Production Branch：`main`
+- 测试域名分支：`test`
 - 自有域名：`yingxingyu.com`，已在阿里云完成实名认证并接入 Vercel；请使用不带 `www` 的根域名。
+- 测试域名的阿里云 `test` CNAME 已生效并接入 Vercel；合并到 `test` 后可直接用测试网址验收。
 - 域名续费：约 2027-11-20，请保持自动续费开启。
-- 以后修改仓库 `main` 分支后，Vercel 会自动构建并发布新版本。
+- 推送到 `test` 后 Vercel 自动更新测试版本；推送到 `main` 后自动更新正式版本。
 
 ## 打开方式
 

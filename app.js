@@ -1,6 +1,21 @@
 const icons = {
   settings:
     '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  palette:
+    '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2a10 10 0 0 0 0 20 2.5 2.5 0 0 0 0-5 2.5 2.5 0 0 1 0-5h2a6 6 0 0 0 6-6c0-2.2-3.6-4-8-4Z"/>',
+  smartphone:
+    '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
+  type:
+    '<path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>',
+  'layout-grid':
+    '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+  'message-square-text':
+    '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 8h8"/><path d="M8 12h5"/>',
+  'swatch-book':
+    '<path d="M11 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2Z"/><path d="M17 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2Z"/><path d="M17 17a4 4 0 0 0 8 0V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2"/>',
+  sparkles:
+    '<path d="m12 3-1.9 5.1a2 2 0 0 1-1.2 1.2L4 11l4.9 1.7a2 2 0 0 1 1.2 1.2L12 19l1.9-5.1a2 2 0 0 1 1.2-1.2L20 11l-4.9-1.7a2 2 0 0 1-1.2-1.2Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>',
+  'chevron-up': '<path d="m18 15-6-6-6 6"/>',
   wifi:
     '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/>',
   'arrow-up': '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
@@ -67,7 +82,7 @@ const chatBatchLimits = {
 const apiRequestTimeoutMs = 140000;
 
 const state = {
-  activeView: "settings",
+  activeView: "home",
   connected: false,
   toastTimer: null,
   character: {
@@ -103,10 +118,17 @@ async function initializeApp() {
     bindEvents();
     await restoreSettings();
     await restoreChat();
+    await window.PocketLabBeautify.init({
+      onError: reportStorageError,
+      onSaved: updateStorageUsage,
+    });
+    window.PocketLabLockScreen.init({
+      backgroundUrl: window.PocketLabBeautify.getBackgroundUrl("lock"),
+    });
     updateClock();
     setInterval(updateClock, 1000);
     renderChat();
-    showView("settings", { initial: true });
+    showView("home", { initial: true });
     updateStorageUsage();
     hideBootstrapStatus();
   } catch (error) {
@@ -166,16 +188,17 @@ function cacheElements() {
     "home-view",
     "chat-view",
     "settings-view",
+    "beautify-view",
     "guide-view",
     "status-time",
     "home-date",
     "home-connection-label",
     "connection-orb",
+    "api-access-card",
     "summary-action",
     "header-status",
     "settings-back",
     "guide-back",
-    "guide-settings",
     "guide-go-settings",
     "chat-header-avatar",
     "chat-character-name",
@@ -246,25 +269,14 @@ function cacheElements() {
 }
 
 function bindEvents() {
-  document.getElementById("quick-settings").addEventListener("click", () => showView("settings"));
+  elements["api-access-card"].addEventListener("click", () => showView("settings"));
+  document.getElementById("open-beautify-app").addEventListener("click", () => showView("beautify"));
   document.getElementById("open-chat-app").addEventListener("click", () => showView("chat"));
-  document.getElementById("open-settings-app").addEventListener("click", () => showView("settings"));
-  document.getElementById("open-test-app").addEventListener("click", () => {
-    showView("settings");
-    window.setTimeout(() => elements["test-connection"].focus(), 230);
-  });
   document.getElementById("open-guide-app").addEventListener("click", () => showView("guide"));
-  document.getElementById("dock-chat").addEventListener("click", () => showView("chat"));
-  document.getElementById("dock-settings").addEventListener("click", () => showView("settings"));
-  document.getElementById("dock-test").addEventListener("click", () => {
-    showView("settings");
-    window.setTimeout(() => elements["test-connection"].focus(), 230);
-  });
-  document.getElementById("dock-guide").addEventListener("click", () => showView("guide"));
-  document.getElementById("summary-action").addEventListener("click", () => showView("settings"));
+  document.getElementById("open-settings-app").addEventListener("click", () => showView("settings"));
+  document.getElementById("beautify-back").addEventListener("click", () => showView("home"));
   elements["settings-back"].addEventListener("click", () => showView("home"));
   elements["guide-back"].addEventListener("click", () => showView("home"));
-  elements["guide-settings"].addEventListener("click", () => showView("settings"));
   elements["guide-go-settings"].addEventListener("click", () => showView("settings"));
   elements["chat-back"].addEventListener("click", () => showView("home"));
   elements["chat-open-settings"].addEventListener("click", () => showView("settings"));
@@ -335,6 +347,7 @@ function showView(viewName, options = {}) {
     home: elements["home-view"],
     chat: elements["chat-view"],
     settings: elements["settings-view"],
+    beautify: elements["beautify-view"],
     guide: elements["guide-view"],
   };
 
@@ -344,8 +357,14 @@ function showView(viewName, options = {}) {
   });
 
   if (!options.initial) {
-    const scrollArea = views[viewName].querySelector(".settings-scroll, .guide-scroll, .chat-scroll");
+    const scrollArea = views[viewName].querySelector(
+      ".settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll",
+    );
     if (scrollArea) scrollArea.scrollTop = 0;
+  }
+
+  if (viewName === "beautify" && window.PocketLabBeautify) {
+    window.PocketLabBeautify.refresh();
   }
 
   if (viewName === "chat") {
@@ -846,7 +865,7 @@ async function exportBackup() {
 
   let objectUrl = "";
   try {
-    await Promise.all([messageSaveChain, characterSaveChain]);
+    await waitForPendingLocalSaves();
     const json = await window.PocketLabBackup.createJson();
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     objectUrl = URL.createObjectURL(blob);
@@ -889,13 +908,14 @@ async function importBackupFile(event) {
   );
 
   try {
-    await Promise.all([messageSaveChain, characterSaveChain]);
+    await waitForPendingLocalSaves();
     const text =
       typeof file.text === "function"
         ? await file.text()
         : await readFileAsText(file);
     const result = await window.PocketLabBackup.importJson(text);
     await loadChatFromDatabase();
+    await window.PocketLabBeautify.reload();
     renderChat();
     await updateStorageUsage();
     setLocalDataStatus(
@@ -911,6 +931,14 @@ async function importBackupFile(event) {
     setBackupBusy(button, false);
     event.target.value = "";
   }
+}
+
+async function waitForPendingLocalSaves() {
+  const appearanceSave =
+    window.PocketLabBeautify && typeof window.PocketLabBeautify.flush === "function"
+      ? window.PocketLabBeautify.flush()
+      : Promise.resolve();
+  await Promise.all([messageSaveChain, characterSaveChain, appearanceSave]);
 }
 
 function readFileAsText(file) {
@@ -1938,7 +1966,7 @@ function updateConnectionUI() {
   elements["connection-orb"].classList.toggle("is-connected", state.connected);
   elements["summary-action"].innerHTML = state.connected
     ? '重新测试 <span data-icon="arrow-up-right"></span>'
-    : '去连接 <span data-icon="arrow-up-right"></span>';
+    : '去填写 <span data-icon="arrow-up-right"></span>';
   hydrateIcons();
 
   elements["header-status"].classList.toggle("is-connected", state.connected);

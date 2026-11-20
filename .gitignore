@@ -21,3 +21,6 @@ config.local.*
 # Operating-system metadata
 .DS_Store
 Thumbs.db
+
+# Vercel local metadata
+.vercel/

@@ -290,6 +290,8 @@ svg {
   border-radius: 38px;
   background: var(--paper);
   box-shadow: 0 32px 76px rgba(45, 74, 91, 0.24);
+  container-name: phone-screen;
+  container-type: size;
   isolation: isolate;
 }
 
@@ -395,6 +397,9 @@ svg {
   padding: 6px 19px 17px;
   color: #23465c;
   background: #d7edf9;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
 .home-wallpaper {
@@ -404,6 +409,9 @@ svg {
   background:
     linear-gradient(155deg, rgba(255, 255, 255, 0.5), transparent 46%),
     linear-gradient(180deg, #dceffb 0%, #d2eafa 56%, #c8e3f4 100%);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
   pointer-events: none;
 }
 
@@ -415,17 +423,19 @@ svg {
 }
 
 .line-one {
-  width: 380px;
-  height: 380px;
-  top: 42px;
-  right: -242px;
+  width: 92.68%;
+  max-width: 92.68cqh;
+  aspect-ratio: 1;
+  top: 5.29%;
+  right: -59.02%;
 }
 
 .line-two {
-  width: 270px;
-  height: 270px;
-  top: 96px;
-  right: -190px;
+  width: 65.85%;
+  max-width: 65.85cqh;
+  aspect-ratio: 1;
+  top: 12.09%;
+  right: -46.34%;
 }
 
 .wallpaper-tile {
@@ -437,19 +447,21 @@ svg {
 }
 
 .tile-one {
-  width: 118px;
-  height: 118px;
-  top: 245px;
-  right: -60px;
+  width: 28.78%;
+  max-width: 28.78cqh;
+  aspect-ratio: 1;
+  top: 30.86%;
+  right: -14.63%;
   border: 1px solid rgba(228, 151, 126, 0.24);
   background: rgba(255, 189, 165, 0.28);
 }
 
 .tile-two {
-  width: 62px;
-  height: 62px;
-  top: 320px;
-  right: 52px;
+  width: 15.12%;
+  max-width: 15.12cqh;
+  aspect-ratio: 1;
+  top: 40.30%;
+  right: 12.68%;
   border: 1px solid rgba(96, 169, 139, 0.2);
   background: rgba(189, 232, 211, 0.42);
 }
@@ -458,8 +470,7 @@ svg {
 .home-section-heading,
 .device-summary,
 .app-grid,
-.home-note,
-.dock {
+.home-note {
   position: relative;
   z-index: 2;
 }
@@ -520,18 +531,45 @@ svg {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.54);
+  color: inherit;
+  font: inherit;
+  text-align: left;
   box-shadow: 0 12px 30px rgba(60, 105, 130, 0.11);
   backdrop-filter: blur(16px);
+  appearance: none;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.device-summary:hover {
+  background: rgba(255, 255, 255, 0.72);
+  transform: translateY(-1px);
+}
+
+.device-summary:active {
+  transform: translateY(0);
+}
+
+.device-summary:focus-visible {
+  outline: 3px solid rgba(65, 139, 170, 0.36);
+  outline-offset: 2px;
 }
 
 .summary-heading {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+.summary-copy {
   min-width: 0;
 }
 
@@ -555,6 +593,7 @@ svg {
 }
 
 .summary-kicker {
+  display: block;
   margin: 0 0 3px;
   color: #668397;
   font-size: 10px;
@@ -580,7 +619,7 @@ svg {
   color: #315f78;
   font-size: 11px;
   font-weight: 700;
-  cursor: pointer;
+  pointer-events: none;
 }
 
 .text-link svg {
@@ -651,16 +690,6 @@ svg {
   height: 23px;
 }
 
-.app-settings {
-  background: #fff8eb;
-  color: #6d665b;
-}
-
-.app-test {
-  background: #ee9a82;
-  color: #67382d;
-}
-
 .app-guide {
   background: #a4d4c1;
   color: #265448;
@@ -669,6 +698,11 @@ svg {
 .app-chat {
   background: #f2d8a4;
   color: #584a2f;
+}
+
+.app-settings {
+  background: #efc2cc;
+  color: #6b3f49;
 }
 
 .soon-label {
@@ -706,37 +740,6 @@ svg {
   margin: 0;
   font-size: 9px;
   line-height: 1.55;
-}
-
-.dock {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  min-height: 65px;
-  padding: 7px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 12px 28px rgba(60, 105, 130, 0.1);
-  backdrop-filter: blur(18px);
-}
-
-.dock-app {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  padding: 0;
-  border: 0;
-  border-radius: 14px;
-  color: #365f76;
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: inset 0 0 0 1px rgba(74, 125, 154, 0.1);
-  cursor: pointer;
-}
-
-.dock-app:hover {
-  background: rgba(255, 255, 255, 0.88);
 }
 
 .settings-view,
@@ -1372,6 +1375,9 @@ svg {
   background:
     linear-gradient(180deg, rgba(255, 253, 248, 0.94), rgba(245, 242, 234, 0.98)),
     var(--paper);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
 .chat-header {
@@ -2894,16 +2900,6 @@ svg {
     display: none;
   }
 
-  .dock {
-    min-height: 52px;
-    margin-top: auto;
-    padding: 4px 10px;
-  }
-
-  .dock-app {
-    width: 40px;
-    height: 40px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

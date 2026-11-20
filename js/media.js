@@ -132,6 +132,66 @@
     });
   }
 
+  function resizeWallpaperToBlob(file, options = {}) {
+    const maxDimension = Number(options.maxDimension) || 1600;
+    const quality = Number(options.quality) || 0.82;
+
+    return new Promise((resolve, reject) => {
+      if (!isBlob(file)) {
+        reject(new Error("壁纸文件无法读取。"));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("壁纸读取失败。"));
+      reader.onload = () => {
+        const image = new Image();
+        image.onerror = () => reject(new Error("壁纸图片解析失败。"));
+        image.onload = () => {
+          const width = Number(image.naturalWidth);
+          const height = Number(image.naturalHeight);
+          if (!width || !height) {
+            reject(new Error("壁纸图片尺寸无效。"));
+            return;
+          }
+
+          const scale = Math.min(1, maxDimension / Math.max(width, height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(width * scale));
+          canvas.height = Math.max(1, Math.round(height * scale));
+          const context = canvas.getContext("2d");
+          if (!context) {
+            reject(new Error("浏览器无法处理壁纸图片。"));
+            return;
+          }
+          context.fillStyle = "#f5f2ea";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+          const finish = (blob) => {
+            if (!blob) {
+              reject(new Error("浏览器无法压缩壁纸图片。"));
+              return;
+            }
+            resolve(blob);
+          };
+
+          if (typeof canvas.toBlob === "function") {
+            canvas.toBlob(finish, "image/jpeg", quality);
+          } else {
+            try {
+              finish(dataUrlToBlob(canvas.toDataURL("image/jpeg", quality)));
+            } catch (error) {
+              reject(error);
+            }
+          }
+        };
+        image.src = String(reader.result || "");
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   window.PocketLabMedia = {
     isBlob,
     readAsDataUrl,
@@ -139,5 +199,6 @@
     createObjectUrl,
     revokeObjectUrl,
     resizeImageToBlob,
+    resizeWallpaperToBlob,
   };
 })();

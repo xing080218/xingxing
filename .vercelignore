@@ -1,0 +1,16 @@
+work/
+outputs/
+tests/
+docs/
+*.log
+*.pid
+*.tmp
+*.bak
+*.crdownload
+start.bat
+start.ps1
+enable-phone-access.bat
+enable-phone-access.ps1
+server.js
+server.ps1
+lib/api-client.ps1

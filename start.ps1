@@ -1,4 +1,4 @@
-param(
+﻿param(
   [switch]$NoOpen,
   [int]$WebPort = 4176,
   [int]$ApiPort = 4177

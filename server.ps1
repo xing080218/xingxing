@@ -1,4 +1,4 @@
-param(
+﻿param(
   [int]$Port = 4176,
   [switch]$LocalOnly,
   [int]$ProviderTimeoutSeconds = 0

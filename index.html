@@ -11,13 +11,13 @@
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <meta name="description" content="可在电脑和手机上使用的虚拟小手机与角色聊天网页。" />
-    <meta name="application-name" content="小手机" />
+    <meta name="description" content="濴星语：可在电脑和手机上使用的虚拟小手机与角色聊天网页。" />
+    <meta name="application-name" content="濴星语" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="小手机" />
-    <title>小手机 · 单角色对话</title>
+    <meta name="apple-mobile-web-app-title" content="濴星语" />
+    <title>濴星语 · 单角色对话</title>
     <style id="critical-bootstrap-style">
       html,
       body {
@@ -197,7 +197,8 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=20261120-14" />
+    <link rel="stylesheet" href="/styles.css?v=20261120-22" />
+    <link rel="stylesheet" href="/beautify.css?v=20261120-22" />
   </head>
   <body>
     <aside
@@ -211,14 +212,14 @@
       <div class="service-warning-copy">
         <strong>本地状态检查未完成</strong>
         <p id="service-warning-message">
-          页面和小手机已经启动，但本地状态检查没有及时完成。
+          页面和濴星语已经启动，但本地状态检查没有及时完成。
         </p>
         <p class="service-warning-next" id="service-warning-next">
           可以先继续使用；若反复出现，再打开连接检查页。
         </p>
         <div class="service-warning-actions">
           <button id="service-warning-retry" type="button">重新检查</button>
-          <a href="/mobile-check.html?v=20261120-14">连接检查页</a>
+          <a href="/mobile-check.html?v=20261120-22">连接检查页</a>
         </div>
       </div>
       <button
@@ -232,9 +233,9 @@
     </aside>
 
     <div class="bootstrap-status" id="bootstrap-status" role="status" aria-live="polite">
-      <strong id="bootstrap-title">正在打开小手机</strong>
+      <strong id="bootstrap-title">正在打开濴星语</strong>
       <span id="bootstrap-message">页面已开始加载，正在检查本地服务。</span>
-      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261120-14</span>
+      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261120-22</span>
       <ol class="bootstrap-steps" aria-label="启动检查">
         <li class="bootstrap-step" data-bootstrap-step="page" data-state="ok">
           <span class="bootstrap-step-marker" aria-hidden="true">1</span>
@@ -252,14 +253,14 @@
       <div class="bootstrap-actions">
         <button id="bootstrap-retry" type="button">重新加载</button>
         <button id="bootstrap-details-toggle" type="button" aria-expanded="false">显示诊断信息</button>
-        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261120-14">连接检查页</a>
-        <a href="/connect.html?v=20261120-14">电脑连接入口</a>
+        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261120-22">连接检查页</a>
+        <a href="/connect.html?v=20261120-22">电脑连接入口</a>
       </div>
       <pre class="bootstrap-details is-hidden" id="bootstrap-details" aria-label="启动诊断信息"></pre>
     </div>
 
     <main class="workspace">
-      <section class="phone" aria-label="虚拟小手机">
+      <section class="phone" aria-label="濴星语虚拟小手机">
         <div class="phone-frame">
           <div class="phone-screen">
             <div class="status-bar" aria-hidden="true">
@@ -275,8 +276,34 @@
               </div>
             </div>
 
+            <section
+              class="lock-screen"
+              id="lock-screen"
+              tabindex="0"
+              aria-label="锁屏，向上滑动解锁"
+            >
+              <div class="lock-screen-background" id="lock-screen-background" aria-hidden="true"></div>
+              <div class="lock-topline" aria-hidden="true">
+                <span>濴星语</span>
+                <span>本机私密空间</span>
+              </div>
+              <div class="lock-time-block">
+                <p class="lock-date" id="lock-date">11月20日 星期四</p>
+                <div class="lock-clock" id="lock-clock">09:41</div>
+                <p class="lock-greeting">把今天轻轻放在这里</p>
+              </div>
+              <div class="lock-decoration" aria-hidden="true">
+                <span></span>
+                <span></span>
+              </div>
+              <button class="lock-unlock-hint" id="lock-unlock-hint" type="button">
+                <span data-icon="chevron-up"></span>
+                <span>向上滑动解锁</span>
+              </button>
+            </section>
+
             <div class="screen-content">
-              <section class="view home-view" id="home-view" aria-label="手机主屏幕" aria-hidden="true">
+              <section class="view home-view is-active" id="home-view" aria-label="手机主屏幕" aria-hidden="false">
                 <div class="home-wallpaper" aria-hidden="true">
                   <span class="wallpaper-line line-one"></span>
                   <span class="wallpaper-line line-two"></span>
@@ -286,29 +313,26 @@
 
                 <div class="home-top">
                   <div>
-                    <p class="eyebrow">POCKET LAB</p>
-                    <h1>我的小手机</h1>
+                    <p class="eyebrow">YING XING YU</p>
+                    <h1>濴星语</h1>
                   </div>
-                  <button class="round-icon-button" id="quick-settings" type="button" aria-label="打开设置">
-                    <span data-icon="settings"></span>
-                  </button>
                 </div>
 
-                <div class="device-summary">
-                  <div class="summary-heading">
+                <button class="device-summary" id="api-access-card" type="button" aria-label="打开 API 设置并测试连接">
+                  <span class="summary-heading">
                     <span class="signal-orb" id="connection-orb">
                       <span data-icon="wifi"></span>
                     </span>
-                    <div>
-                      <p class="summary-kicker">API 状态</p>
+                    <span class="summary-copy">
+                      <span class="summary-kicker">API 状态</span>
                       <strong id="home-connection-label">等待配置</strong>
-                    </div>
-                  </div>
-                  <button class="text-link" id="summary-action" type="button">
-                    去连接
+                    </span>
+                  </span>
+                  <span class="text-link" id="summary-action">
+                    去填写
                     <span data-icon="arrow-up-right"></span>
-                  </button>
-                </div>
+                  </span>
+                </button>
 
                 <div class="home-section-heading">
                   <span>常用功能</span>
@@ -316,17 +340,11 @@
                 </div>
 
                 <div class="app-grid">
-                  <button class="app-icon-button" id="open-settings-app" type="button">
-                    <span class="app-icon app-settings">
-                      <span data-icon="settings"></span>
+                  <button class="app-icon-button" id="open-beautify-app" type="button">
+                    <span class="app-icon app-beautify">
+                      <span data-icon="palette"></span>
                     </span>
-                    <span>设置</span>
-                  </button>
-                  <button class="app-icon-button" id="open-test-app" type="button">
-                    <span class="app-icon app-test">
-                      <span data-icon="plug-zap"></span>
-                    </span>
-                    <span>连接测试</span>
+                    <span>美化</span>
                   </button>
                   <button class="app-icon-button" id="open-guide-app" type="button">
                     <span class="app-icon app-guide">
@@ -340,30 +358,21 @@
                     </span>
                     <span>对话</span>
                   </button>
+                  <button class="app-icon-button" id="open-settings-app" type="button">
+                    <span class="app-icon app-settings">
+                      <span data-icon="settings"></span>
+                    </span>
+                    <span>设置</span>
+                  </button>
                 </div>
 
                 <div class="home-note">
                   <span data-icon="shield-check"></span>
                   <p>API Key 只保留在当前浏览器会话，不写入项目文件或日志。</p>
                 </div>
-
-                <div class="dock" aria-label="快捷栏">
-                  <button class="dock-app" id="dock-chat" type="button" aria-label="对话">
-                    <span data-icon="message-circle"></span>
-                  </button>
-                  <button class="dock-app" id="dock-settings" type="button" aria-label="设置">
-                    <span data-icon="sliders-horizontal"></span>
-                  </button>
-                  <button class="dock-app" id="dock-test" type="button" aria-label="连接测试">
-                    <span data-icon="activity"></span>
-                  </button>
-                  <button class="dock-app" id="dock-guide" type="button" aria-label="使用说明">
-                    <span data-icon="circle-help"></span>
-                  </button>
-                </div>
               </section>
 
-              <section class="view settings-view is-active" id="settings-view" aria-label="API 设置" aria-hidden="false">
+              <section class="view settings-view" id="settings-view" aria-label="API 设置" aria-hidden="true">
                 <header class="app-header">
                   <button class="back-button" id="settings-back" type="button" aria-label="返回主屏幕">
                     <span data-icon="chevron-left"></span>
@@ -655,6 +664,301 @@
                 </div>
               </section>
 
+              <section class="view beautify-view" id="beautify-view" aria-label="美化">
+                <header class="app-header beautify-header">
+                  <button class="back-button" id="beautify-back" type="button" aria-label="返回主屏幕">
+                    <span data-icon="chevron-left"></span>
+                  </button>
+                  <div>
+                    <p class="eyebrow">APPEARANCE</p>
+                    <h1>美化</h1>
+                  </div>
+                  <span class="beautify-header-mark" aria-hidden="true">
+                    <span data-icon="sparkles"></span>
+                  </span>
+                </header>
+
+                <div class="beautify-scroll" id="beautify-scroll">
+                  <nav class="beautify-main-tabs" role="tablist" aria-label="美化分类">
+                    <button
+                      class="beautify-main-tab is-active"
+                      type="button"
+                      role="tab"
+                      aria-selected="true"
+                      data-beautify-main="phone"
+                    >
+                      <span data-icon="smartphone"></span>
+                      <span>整体手机</span>
+                    </button>
+                    <button
+                      class="beautify-main-tab"
+                      type="button"
+                      role="tab"
+                      aria-selected="false"
+                      data-beautify-main="layout"
+                    >
+                      <span data-icon="layout-grid"></span>
+                      <span>图标布局</span>
+                    </button>
+                    <button
+                      class="beautify-main-tab"
+                      type="button"
+                      role="tab"
+                      aria-selected="false"
+                      data-beautify-main="chat-style"
+                    >
+                      <span data-icon="message-square-text"></span>
+                      <span>聊天外观</span>
+                    </button>
+                  </nav>
+
+                  <div class="beautify-status" id="beautify-status" data-state="idle" role="status" aria-live="polite">
+                    <strong id="beautify-status-title">外观设置已就绪</strong>
+                    <p id="beautify-status-message">改动会立即预览，并自动保存在本机。</p>
+                  </div>
+
+                  <section class="beautify-panel" data-beautify-panel="phone">
+                    <div class="beautify-panel-heading">
+                      <div>
+                        <p class="eyebrow">WHOLE PHONE</p>
+                        <h2>整体手机</h2>
+                      </div>
+                      <p>调整背景和文字大小，让整部小手机更像你的私人空间。</p>
+                    </div>
+
+                    <nav class="beautify-phone-tabs" role="tablist" aria-label="整体手机设置">
+                      <button
+                        class="beautify-phone-tab is-active"
+                        type="button"
+                        role="tab"
+                        aria-selected="true"
+                        data-beautify-phone-tab="background"
+                      >
+                        <span data-icon="image-plus"></span>
+                        背景
+                      </button>
+                      <button
+                        class="beautify-phone-tab"
+                        type="button"
+                        role="tab"
+                        aria-selected="false"
+                        data-beautify-phone-tab="font"
+                      >
+                        <span data-icon="type"></span>
+                        字体
+                      </button>
+                    </nav>
+
+                    <div class="beautify-phone-panel" data-beautify-phone-panel="background">
+                      <div class="beautify-section-heading">
+                        <div>
+                          <h3>自定义背景</h3>
+                          <p>三处背景彼此独立。主屏幕也就是这里的全局背景。</p>
+                        </div>
+                        <span class="beautify-local-badge">
+                          <span data-icon="shield-check"></span>
+                          仅存本机
+                        </span>
+                      </div>
+
+                      <div class="wallpaper-options">
+                        <article class="wallpaper-option">
+                          <div class="wallpaper-preview wallpaper-preview-home" id="beautify-home-preview">
+                            <span>主屏幕</span>
+                          </div>
+                          <div class="wallpaper-copy">
+                            <div>
+                              <h4>全局背景</h4>
+                              <p>未选择图片时使用内置默认背景，不会覆盖其他页面。</p>
+                            </div>
+                            <div class="wallpaper-actions">
+                              <label class="wallpaper-upload" for="beautify-home-file">
+                                <span data-icon="image-plus"></span>
+                                选择图片
+                              </label>
+                              <input
+                                id="beautify-home-file"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                hidden
+                              />
+                              <button
+                                class="wallpaper-remove"
+                                id="beautify-home-remove"
+                                type="button"
+                                disabled
+                              >
+                                <span data-icon="trash-2"></span>
+                                移除
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+
+                        <article class="wallpaper-option">
+                          <div class="wallpaper-preview wallpaper-preview-lock" id="beautify-lock-preview">
+                            <span>锁屏</span>
+                          </div>
+                          <div class="wallpaper-copy">
+                            <div>
+                              <h4>锁屏背景</h4>
+                              <p>只在解锁页面显示；移除自定义图片后恢复内置背景。</p>
+                            </div>
+                            <div class="wallpaper-actions">
+                              <label class="wallpaper-upload" for="beautify-lock-file">
+                                <span data-icon="image-plus"></span>
+                                选择图片
+                              </label>
+                              <input
+                                id="beautify-lock-file"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                hidden
+                              />
+                              <button
+                                class="wallpaper-remove"
+                                id="beautify-lock-remove"
+                                type="button"
+                                disabled
+                              >
+                                <span data-icon="trash-2"></span>
+                                移除
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+
+                        <article class="wallpaper-option">
+                          <div class="wallpaper-preview wallpaper-preview-chat" id="beautify-chat-preview-wallpaper">
+                            <span>聊天</span>
+                          </div>
+                          <div class="wallpaper-copy">
+                            <div>
+                              <h4>聊天背景</h4>
+                              <p>用于角色对话页，聊天气泡仍保持清晰。</p>
+                            </div>
+                            <div class="wallpaper-actions">
+                              <label class="wallpaper-upload" for="beautify-chat-file">
+                                <span data-icon="image-plus"></span>
+                                选择图片
+                              </label>
+                              <input
+                                id="beautify-chat-file"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                hidden
+                              />
+                              <button
+                                class="wallpaper-remove"
+                                id="beautify-chat-remove"
+                                type="button"
+                                disabled
+                              >
+                                <span data-icon="trash-2"></span>
+                                移除
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      </div>
+
+                      <p class="beautify-tip">
+                        建议使用 JPG、PNG 或 WebP。图片会在本机压缩并保存，不会发给模型服务商。
+                      </p>
+                    </div>
+
+                    <div class="beautify-phone-panel" data-beautify-phone-panel="font" hidden>
+                      <div class="beautify-section-heading">
+                        <div>
+                          <h3>字体大小</h3>
+                          <p>两条滑块分别控制全局文字和聊天气泡，预览会同步变化。</p>
+                        </div>
+                      </div>
+
+                      <section class="font-control">
+                        <div class="font-control-heading">
+                          <div>
+                            <p class="eyebrow">GLOBAL TYPE</p>
+                            <h4>全局字体大小</h4>
+                          </div>
+                          <output id="beautify-global-size-value" for="beautify-global-size">14px</output>
+                        </div>
+                        <div class="font-preview font-preview-global" id="beautify-global-preview">
+                          濴星语会跟随你的设置改变界面文字大小。
+                        </div>
+                        <input
+                          class="font-range"
+                          id="beautify-global-size"
+                          type="range"
+                          min="12"
+                          max="20"
+                          step="1"
+                          value="14"
+                          aria-label="全局字体大小"
+                        />
+                        <div class="font-range-scale" aria-hidden="true">
+                          <span>12px</span>
+                          <span>20px</span>
+                        </div>
+                      </section>
+
+                      <section class="font-control">
+                        <div class="font-control-heading">
+                          <div>
+                            <p class="eyebrow">CHAT BUBBLE</p>
+                            <h4>聊天气泡字体大小</h4>
+                          </div>
+                          <output id="beautify-chat-size-value" for="beautify-chat-size">14px</output>
+                        </div>
+                        <div class="font-preview font-preview-chat">
+                          <div class="font-chat-sample">
+                            <span class="font-chat-avatar">雾</span>
+                            <p id="beautify-chat-preview">今晚也可以慢慢聊，我会认真听。</p>
+                          </div>
+                        </div>
+                        <input
+                          class="font-range"
+                          id="beautify-chat-size"
+                          type="range"
+                          min="11"
+                          max="24"
+                          step="1"
+                          value="14"
+                          aria-label="聊天气泡字体大小"
+                        />
+                        <div class="font-range-scale" aria-hidden="true">
+                          <span>11px</span>
+                          <span>24px</span>
+                        </div>
+                      </section>
+                    </div>
+
+                  </section>
+
+                  <section class="beautify-panel" data-beautify-panel="layout" hidden>
+                    <div class="beautify-coming-soon">
+                      <span class="beautify-coming-icon" aria-hidden="true">
+                        <span data-icon="layout-grid"></span>
+                      </span>
+                      <p class="eyebrow">ICONS & LAYOUT</p>
+                      <h2>图标布局等待后续</h2>
+                      <p>后续可在这里调整主屏幕图标大小、排列和快捷栏。</p>
+                    </div>
+                  </section>
+
+                  <section class="beautify-panel" data-beautify-panel="chat-style" hidden>
+                    <div class="beautify-coming-soon">
+                      <span class="beautify-coming-icon" aria-hidden="true">
+                        <span data-icon="message-square-text"></span>
+                      </span>
+                      <p class="eyebrow">CHAT APPEARANCE</p>
+                      <h2>聊天外观等待后续</h2>
+                      <p>后续可在这里扩展气泡颜色、圆角和头像样式。</p>
+                    </div>
+                  </section>
+                </div>
+              </section>
+
               <section class="view guide-view" id="guide-view" aria-label="使用说明">
                 <header class="app-header">
                   <button class="back-button" id="guide-back" type="button" aria-label="返回主屏幕">
@@ -664,9 +968,6 @@
                     <p class="eyebrow">QUICK START</p>
                     <h1>使用说明</h1>
                   </div>
-                  <button class="round-icon-button" id="guide-settings" type="button" aria-label="前往 API 设置">
-                    <span data-icon="settings"></span>
-                  </button>
                 </header>
 
                 <div class="guide-scroll">
@@ -702,7 +1003,7 @@
                       <span class="guide-step-icon" data-icon="plug-zap"></span>
                       <div>
                         <strong>运行连接测试</strong>
-                        <p>成功后可以继续使用小手机；失败时按结果区的“下一步”逐项检查。</p>
+                        <p>成功后可以继续使用濴星语；失败时按结果区的“下一步”逐项检查。</p>
                       </div>
                     </li>
                   </ol>
@@ -723,17 +1024,20 @@
         </div>
         <p class="device-caption">
           <span data-icon="mouse-pointer-2"></span>
-          点击手机里的设置开始配置
+          点击主屏幕的 API 状态卡开始配置
         </p>
       </section>
     </main>
 
-    <script src="/js/settings-store.js?v=20261120-14" defer></script>
-    <script src="/js/media.js?v=20261120-14" defer></script>
-    <script src="/js/storage.js?v=20261120-14" defer></script>
-    <script src="/js/backup.js?v=20261120-14" defer></script>
-    <script src="/bootstrap.js?v=20261120-14" defer></script>
-    <script src="/app.js?v=20261120-14" defer></script>
+    <script src="/js/settings-store.js?v=20261120-22" defer></script>
+    <script src="/js/media.js?v=20261120-22" defer></script>
+    <script src="/js/storage.js?v=20261120-22" defer></script>
+    <script src="/js/appearance-store.js?v=20261120-22" defer></script>
+    <script src="/js/backup.js?v=20261120-22" defer></script>
+    <script src="/bootstrap.js?v=20261120-22" defer></script>
+    <script src="/js/lock-screen.js?v=20261120-22" defer></script>
+    <script src="/js/beautify.js?v=20261120-22" defer></script>
+    <script src="/app.js?v=20261120-22" defer></script>
     <noscript>
       <div class="bootstrap-status bootstrap-status-error">
         <strong>浏览器没有启用 JavaScript</strong>

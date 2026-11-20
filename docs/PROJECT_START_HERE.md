@@ -37,10 +37,12 @@
 当前交付阶段：
 
 - 保留电脑本地入口 `http://127.0.0.1:4176/`，用于发布前回归。
-- 正式版本部署在 Vercel：https://xingxing-tan.vercel.app/
+- 正式版本部署在 Vercel，正式网址为 https://yingxingyu.com/。
+- `https://xingxing-tan.vercel.app/` 是 Vercel 自动生成的备用/诊断地址，不作为用户入口。
 - 正式仓库为 https://github.com/xing080218/xingxing ，Vercel 项目名为 `xingxing`。
 - GitHub `main` 分支连接 Vercel 自动发布；每次推送到 `main` 后必须检查 Deployment 状态和线上健康接口。
 - 正式网址固定记录在 README 的“正式发布”区域和本节，不在代码中虚构或反复更换项目域名。
+- `yingxingyu.com` 已在阿里云完成实名认证并接入 Vercel，当前续费日期约为 2027-11-20；请保持自动续费开启。
 
 已确认但尚未实现：
 
@@ -71,7 +73,8 @@
 
 ### 当前设备策略
 
-- 电脑和手机统一打开 Vercel 正式网址，不要求两台设备连接同一个 Wi-Fi。
+- 电脑和手机统一打开自有正式域名 `https://yingxingyu.com/`，不要求两台设备连接同一个 Wi-Fi。
+- `*.vercel.app` 不是正式入口；它只用于确认 Vercel 部署是否存在，遇到线路拦截时不要让用户改填这个地址。
 - 本地 `http://127.0.0.1:4176/` 和手机局域网入口只用于发布前回归或正式网址故障排查。
 - 保留现有响应式布局，同一套代码同时服务电脑和手机。
 - 除非用户明确要求，不停止、不重启当前正常运行的服务。
@@ -196,9 +199,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 ### Vercel 自动发布
 
 - GitHub `main` 是正式分支；Vercel Production Branch 必须设为 `main`，Git 集成必须保持启用。
-- 正式项目为 `xingxing`，正式网址为 `https://xingxing-tan.vercel.app/`；项目保持公开访问，不启用 SSO 或密码保护，除非用户明确要求。
-- 若中国大陆网络把 `vercel.app` 域名解析到异常地址，先确认 DNS 结果；需要长期稳定访问时绑定自有域名，不能把错误 IP 写进代码。
-- `xingxing-tan.vercel.app` 超时但外部检查为 `Ready` 且健康接口返回 200 时，判断为用户网络到 `vercel.app` 的线路或域名拦截，不要反复重新部署；临时测试可用 Cloudflare Quick Tunnel 指向本机 `http://127.0.0.1:4176`，必须明确它依赖本机服务和隧道进程，永久访问仍需自有域名或其他固定公网主机。
+- 正式项目为 `xingxing`，正式网址为 `https://yingxingyu.com/`；项目保持公开访问，不启用 SSO 或密码保护，除非用户明确要求。
+- 自有域名的根域名使用阿里云 A 记录指向 Vercel，`www` 使用 CNAME；根域名是当前唯一正式入口，`www` 未完成稳定验证前不要发给用户。
+- 若中国大陆网络把 `vercel.app` 域名解析到异常地址，先确认 DNS 结果；`yingxingyu.com` 已作为长期入口，不能把错误 IP 写进代码。
+- `xingxing-tan.vercel.app` 超时但外部检查为 `Ready` 且健康接口返回 200 时，判断为用户网络到 `vercel.app` 的线路或域名拦截，不要反复重新部署；临时测试可用 Cloudflare Quick Tunnel 指向本机 `http://127.0.0.1:4176`，必须明确它依赖本机服务和隧道进程，永久访问使用 `https://yingxingyu.com/`。
 - 云函数总等待时间受 Vercel 时限限制；模型请求最多等待 50 秒，接口函数上限设为 60 秒。
 - 线上失败先检查 `/api/health` 的 `mode` 是否为 `vercel`，再区分 Vercel 到模型服务商与用户浏览器到 Vercel 两段。
 - API Key 只随当前请求进入云函数内存；日志、GitHub、文档和测试只允许使用占位符。

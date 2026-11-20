@@ -12,10 +12,13 @@
 
 ## 正式发布
 
-- 正式网址：https://xingxing-tan.vercel.app/
+- 正式网址：https://yingxingyu.com/
+- Vercel 备用地址：https://xingxing-tan.vercel.app/（只用于诊断 Vercel 部署，不作为正式入口）
 - GitHub 仓库：https://github.com/xing080218/xingxing
 - Vercel 项目：`xingxing`
 - Production Branch：`main`
+- 自有域名：`yingxingyu.com`，已在阿里云完成实名认证并接入 Vercel；请使用不带 `www` 的根域名。
+- 域名续费：约 2027-11-20，请保持自动续费开启。
 - 以后修改仓库 `main` 分支后，Vercel 会自动构建并发布新版本。
 
 ## 打开方式
@@ -44,8 +47,9 @@ http://电脑局域网地址:4176/mobile-check.html?v=20261120-22
 
 ## 手机和电脑使用
 
-- 电脑和手机都直接打开正式网址：https://xingxing-tan.vercel.app/
+- 电脑和手机都直接打开正式网址：https://yingxingyu.com/
 - 手机和电脑不需要连接同一个 Wi-Fi；本地启动窗口关闭后，正式网址仍可继续使用。
+- `https://xingxing-tan.vercel.app/` 是 Vercel 自动生成的备用地址；遇到线路拦截时，请优先使用自有域名。
 - 如果正式网址打不开，再按上方局域网备用步骤检查本机页面和网络。
 - 手机页面会铺满屏幕，并适配触屏输入、手机安全区、底部键盘和刘海屏；电脑页面显示固定尺寸的手机外框。
 - 手机和电脑各自保存自己的聊天记录；聊天记录不会在不同设备之间自动同步。

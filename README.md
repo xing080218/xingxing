@@ -36,7 +36,7 @@
 - Production Branch：`main`
 - 测试域名分支：`test`
 - 自有域名：`yingxingyu.com`，已在阿里云完成实名认证并接入 Vercel；请使用不带 `www` 的根域名。
-- 测试域名需要阿里云 DNS 的 `test` CNAME 记录指向 Vercel 提供的目标；DNS 生效后测试网址才可访问。
+- 测试域名的阿里云 `test` CNAME 已生效并接入 Vercel；合并到 `test` 后可直接用测试网址验收。
 - 域名续费：约 2027-11-20，请保持自动续费开启。
 - 推送到 `test` 后 Vercel 自动更新测试版本；推送到 `main` 后自动更新正式版本。
 

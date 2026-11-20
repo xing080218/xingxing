@@ -191,6 +191,30 @@ function Send-Json {
   Send-Response -Stream $Stream -StatusCode $StatusCode -ContentType "application/json; charset=utf-8" -Body $bytes
 }
 
+function Get-RequestPropertyValue {
+  param(
+    [AllowNull()]
+    [object]$Request,
+    [string]$Name
+  )
+
+  if ($null -eq $Request) {
+    return $null
+  }
+  if ($Request -is [System.Collections.IDictionary]) {
+    if ($Request.Contains($Name)) {
+      return $Request[$Name]
+    }
+    return $null
+  }
+
+  $property = $Request.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $null
+  }
+  return $property.Value
+}
+
 function Handle-ApiTest {
   param(
     [System.Net.Sockets.NetworkStream]$Stream,
@@ -215,14 +239,14 @@ function Handle-ApiTest {
     return
   }
 
-  $apiUrl = [string]$request.apiUrl
-  $apiKey = [string]$request.apiKey
-  $modelName = [string]$request.modelName
+  $apiUrl = [string](Get-RequestPropertyValue -Request $request -Name "apiUrl")
+  $apiKey = [string](Get-RequestPropertyValue -Request $request -Name "apiKey")
+  $modelName = [string](Get-RequestPropertyValue -Request $request -Name "modelName")
 
   if ([string]::IsNullOrWhiteSpace($apiUrl) -or [string]::IsNullOrWhiteSpace($apiKey) -or [string]::IsNullOrWhiteSpace($modelName)) {
     Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
       ok = $false
-      error = New-ConnectionError -Title "配置不完整" -Message "接口地址、API Key 和模型名都必须填写。" -NextStep "补齐三个字段后再测试。"
+      error = New-ConnectionError -Title "配置不完整" -Message "接口地址、API Key 和模型名都必须填写。" -NextStep "补齐三个字段后再测试。" -Code "incomplete_config"
     })
     return
   }
@@ -271,17 +295,18 @@ function Handle-ApiChat {
     return
   }
 
-  $apiUrl = [string]$request.apiUrl
-  $apiKey = [string]$request.apiKey
-  $modelName = [string]$request.modelName
-  $characterName = [string]$request.characterName
-  $persona = [string]$request.persona
-  $incomingMessages = @(@($request.messages) | Where-Object { $null -ne $_ })
+  $apiUrl = [string](Get-RequestPropertyValue -Request $request -Name "apiUrl")
+  $apiKey = [string](Get-RequestPropertyValue -Request $request -Name "apiKey")
+  $modelName = [string](Get-RequestPropertyValue -Request $request -Name "modelName")
+  $characterName = [string](Get-RequestPropertyValue -Request $request -Name "characterName")
+  $persona = [string](Get-RequestPropertyValue -Request $request -Name "persona")
+  $requestMessages = Get-RequestPropertyValue -Request $request -Name "messages"
+  $incomingMessages = @($requestMessages | Where-Object { $null -ne $_ })
 
   if ([string]::IsNullOrWhiteSpace($apiUrl) -or [string]::IsNullOrWhiteSpace($apiKey) -or [string]::IsNullOrWhiteSpace($modelName)) {
     Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
       ok = $false
-      error = New-ConnectionError -Title "API 配置不完整" -Message "接口地址、API Key 和模型名都必须存在。" -NextStep "回到设置页完成配置并重新测试连接。"
+      error = New-ConnectionError -Title "API 配置不完整" -Message "接口地址、API Key 和模型名都必须存在。" -NextStep "回到设置页完成配置并重新测试连接。" -Code "incomplete_config"
     })
     return
   }

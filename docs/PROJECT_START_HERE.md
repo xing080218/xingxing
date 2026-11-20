@@ -153,6 +153,7 @@
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\api-client.tests.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\local-api-contract.tests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\node-transport.tests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\provider-timeout.tests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-storage-e2e.ps1
@@ -205,6 +206,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 
 - 本项目文件使用 UTF-8。用 PowerShell 查看中文文件时显式加 `-Encoding UTF8`，避免把正常中文误判成乱码。
 - Windows PowerShell 5.1 执行的含中文脚本应保存为“UTF-8 带 BOM”；无 BOM 时解析器可能按系统编码误读并报出与实际代码无关的语法错误。
+- PowerShell 严格模式下不能直接读取 `ConvertFrom-Json` 结果里的可选字段；统一通过 `PSObject.Properties` 安全读取，并用空配置回归测试确认返回 400 和检查建议。
 - 手工代码修改使用补丁工具；批量格式化或机械拆分后再运行语法检查。
 
 ## 7. 文档维护方式

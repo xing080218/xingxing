@@ -43,6 +43,7 @@
 - 正式仓库为 https://github.com/xing080218/xingxing ，Vercel 项目名为 `xingxing`。
 - 仓库采用 `main`、`test`、`feature/*` 三层分支：`main` 只保存已经验收的生产版本，`test` 保存等待用户验收的版本，每一项改动先在功能小分支完成。
 - GitHub `main` 连接正式域名，`test` 连接测试域名；每次推送后必须检查对应 Deployment 状态和线上健康接口。
+- GitHub `main` 和 `test` 已开启分支保护，必须通过合并请求更新；禁止直接推送、强推和删除，保护规则对管理员同样生效。
 - 正式网址固定记录在 README 的“正式发布”区域和本节，不在代码中虚构或反复更换项目域名。
 - `yingxingyu.com` 已在阿里云完成实名认证并接入 Vercel，当前续费日期约为 2027-11-20；请保持自动续费开启。
 - `test.yingxingyu.com` 已分配给 Vercel 的 `test` 分支；需在阿里云添加 Vercel 指定的 `test` CNAME 记录，DNS 生效后才能作为验收网址。
@@ -207,6 +208,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 
 - 分支固定为 `feature/* -> test -> main`。功能分支只供开发检查，用户验收使用 `test`，用户明确确认后才允许进入 `main`。
 - Vercel Production Branch 必须设为 `main`，测试域名必须绑定 `test`，Git 集成必须保持启用。
+- GitHub `main` 和 `test` 用分支保护强制走合并请求；不要为了绕过保护而临时关闭规则。
 - 正式项目为 `xingxing`，正式网址为 `https://yingxingyu.com/`；项目保持公开访问，不启用 SSO 或密码保护，除非用户明确要求。
 - 测试网址为 `https://test.yingxingyu.com/`；在阿里云添加 Vercel 指定的 `test` CNAME 前，不把它标记为已可用。
 - 自有域名的根域名使用阿里云 A 记录指向 Vercel，`www` 使用 CNAME；根域名是当前唯一正式入口，`www` 未完成稳定验证前不要发给用户。

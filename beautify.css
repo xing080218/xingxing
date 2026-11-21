@@ -1154,6 +1154,16 @@
   background-size: cover;
 }
 
+.chat-view.has-character-background {
+  background-color: var(--ice);
+  background-image:
+    linear-gradient(180deg, rgba(255, 250, 231, 0.3), rgba(28, 57, 69, 0.28)),
+    var(--character-chat-background-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
 .chat-view .chat-header {
   background: rgba(255, 253, 247, 0.9);
 }

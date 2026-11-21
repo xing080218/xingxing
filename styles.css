@@ -839,6 +839,203 @@ svg {
   padding: 19px 19px 26px;
 }
 
+.lock-password-panel {
+  margin: 0 0 20px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: rgba(255, 253, 248, 0.76);
+}
+
+.lock-password-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lock-password-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--jade-deep);
+  background: var(--jade-soft);
+}
+
+.lock-password-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lock-password-heading-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.lock-password-heading-copy .eyebrow {
+  margin-bottom: 3px;
+}
+
+.lock-password-heading-copy h2 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.settings-switch {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.settings-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.settings-switch-track {
+  position: relative;
+  display: block;
+  width: 42px;
+  height: 26px;
+  border: 1px solid #c8c1b2;
+  border-radius: 999px;
+  background: #d7d1c6;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.settings-switch-track span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fffdf8;
+  box-shadow: 0 1px 3px rgba(28, 35, 32, 0.2);
+  transition: transform 150ms ease;
+}
+
+.settings-switch input:checked + .settings-switch-track {
+  border-color: var(--jade);
+  background: var(--jade);
+}
+
+.settings-switch input:checked + .settings-switch-track span {
+  transform: translateX(16px);
+}
+
+.settings-switch input:focus-visible + .settings-switch-track {
+  outline: 3px solid rgba(28, 117, 97, 0.24);
+  outline-offset: 3px;
+}
+
+.settings-switch input:disabled + .settings-switch-track {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.lock-password-description {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.lock-password-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.lock-password-actions > span {
+  min-width: 0;
+  color: #5e6d66;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.lock-password-change-toggle {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 9px;
+}
+
+.lock-password-form {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.lock-password-form .field {
+  margin-bottom: 11px;
+}
+
+.lock-password-form .field-label {
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+
+.lock-password-form .field input {
+  height: 42px;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+}
+
+.lock-password-form-error {
+  min-height: 17px;
+  margin: 0 0 9px;
+  color: var(--danger);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.lock-password-form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  gap: 8px;
+}
+
+.lock-password-form-actions .secondary-button,
+.lock-password-form-actions .primary-button {
+  min-height: 42px;
+  font-size: 10px;
+}
+
+.lock-password-status {
+  min-height: 0;
+  margin: 10px 0 0;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.lock-password-status:empty {
+  display: none;
+}
+
+.lock-password-status.is-success {
+  color: var(--jade-deep);
+}
+
+.lock-password-status.is-error {
+  color: var(--danger);
+}
+
 .connection-intro {
   display: flex;
   align-items: flex-start;
@@ -2678,6 +2875,10 @@ svg {
 
   .field-help,
   .field-error,
+  .lock-password-description,
+  .lock-password-actions > span,
+  .lock-password-form-error,
+  .lock-password-status,
   .connection-intro p,
   .result-message,
   .next-step p,
@@ -2693,6 +2894,25 @@ svg {
   .secondary-button,
   .local-data-button {
     font-size: 14px;
+  }
+
+  .lock-password-heading-copy h2 {
+    font-size: 16px;
+  }
+
+  .lock-password-change-toggle {
+    min-height: 40px;
+    font-size: 12px;
+  }
+
+  .lock-password-form .field-label {
+    font-size: 13px;
+  }
+
+  .lock-password-form-actions .secondary-button,
+  .lock-password-form-actions .primary-button {
+    min-height: 46px;
+    font-size: 13px;
   }
 
   .local-data-status strong {
@@ -2801,6 +3021,19 @@ svg {
   .chat-scroll {
     padding-right: 15px;
     padding-left: 15px;
+  }
+
+  .lock-password-panel {
+    padding: 13px;
+  }
+
+  .lock-password-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .lock-password-change-toggle {
+    width: 100%;
   }
 
   .chat-header,

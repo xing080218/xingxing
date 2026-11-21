@@ -320,17 +320,17 @@ try {
             Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "重试成功。")
           }
           5 {
-            $json = '{"error":{"message":"模拟连续留言请求失败，请统一重试。"}}'
+            $json = '{"error":{"message":"模拟总结回复请求失败，请重试。"}}'
             Write-HttpResponse -Stream $stream -StatusCode 500 -Reason "Internal Server Error" -Body $json
           }
           6 {
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "第1条：第一条留言的答复`n第2条：第二条留言的答复")
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "今天的天气很适合散步。`n晚饭可以吃清淡一点。")
           }
           7 {
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "第1条：重新生成的第一条答复`n第2条：重新生成的第二条答复")
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "重新想过以后，我更想陪你慢慢走一走。`n晚饭就选你此刻最想吃的。")
           }
           8 {
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "第1条：整轮重新生成的第一条答复`n第2条：整轮重新生成的第二条答复")
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "这次我会把两件事一起考虑。`n散步和晚饭都按你的心情来安排。")
           }
           default {
             Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "OK")

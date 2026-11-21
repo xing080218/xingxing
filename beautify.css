@@ -6,7 +6,7 @@
   --beautify-ink: #243a45;
   --global-font-size: 14px;
   --chat-bubble-font-size: 14px;
-  --default-phone-wallpaper: url("/assets/backgrounds/star-ice-default.jpg");
+  --default-phone-wallpaper: url("/assets/backgrounds/star-cat-planet-default.jpg");
 }
 
 /* 奶黄与冰蓝主屏幕 */
@@ -323,7 +323,7 @@
     calc(18px + env(safe-area-inset-bottom, 0px))
     calc(22px + env(safe-area-inset-left, 0px));
   color: #213d49;
-  background: linear-gradient(180deg, rgba(217, 241, 255, 0.82), rgba(255, 244, 201, 0.78));
+  background: linear-gradient(180deg, rgba(244, 251, 255, 0.12), rgba(255, 250, 232, 0.18));
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -332,7 +332,8 @@
     opacity 180ms ease,
     visibility 180ms ease,
     transform 220ms ease;
-  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(1px) saturate(0.95);
+  backdrop-filter: blur(1px) saturate(0.95);
 }
 
 .lock-screen.is-pin-entry {
@@ -853,12 +854,13 @@
 }
 
 .wallpaper-preview-chat {
-  background:
-    linear-gradient(135deg, rgba(255, 244, 201, 0.8), rgba(217, 241, 255, 0.88)),
-    #edf8fc;
+  background-color: var(--ice);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(37, 87, 108, 0.08)),
+    var(--default-phone-wallpaper);
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 100% 100%;
+  background-size: cover;
 }
 
 .wallpaper-preview span {
@@ -1131,7 +1133,17 @@
   line-height: 1.65;
 }
 
-/* 自定义聊天背景 */
+/* 聊天背景：默认与自定义图片使用同一套铺满和可读性处理。 */
+.chat-view {
+  background-color: var(--ice);
+  background-image:
+    linear-gradient(180deg, rgba(255, 250, 231, 0.3), rgba(28, 57, 69, 0.28)),
+    var(--default-phone-wallpaper);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
 .chat-view.has-custom-background {
   background-color: var(--ice);
   background-image:
@@ -1142,15 +1154,15 @@
   background-size: cover;
 }
 
-.chat-view.has-custom-background .chat-header {
+.chat-view .chat-header {
   background: rgba(255, 253, 247, 0.9);
 }
 
-.chat-view.has-custom-background .chat-scroll {
+.chat-view .chat-scroll {
   background: rgba(235, 249, 255, 0.34);
 }
 
-.chat-view.has-custom-background .chat-composer {
+.chat-view .chat-composer {
   background: rgba(255, 253, 247, 0.93);
 }
 

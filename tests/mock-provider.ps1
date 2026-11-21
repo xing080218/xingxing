@@ -3,6 +3,7 @@
   [string]$ListenAddress = "127.0.0.1",
   [switch]$ForceBudgetError,
   [switch]$ChatSequence,
+  [switch]$PunctuationReply,
   [int]$ResetFirstRequests = 0,
   [int]$MaxConnections = 0,
   [int]$DelayMilliseconds = 0,
@@ -293,11 +294,21 @@ try {
 
       if ($ChatSequence) {
         $messages = @($bodyObject.messages)
+        $firstReply = if ($PunctuationReply) {
+          "今天先别急着赶路。要不要坐下来歇一会儿？晚饭想吃什么？"
+        } else {
+          "第一行`n`n第二行`n第三行"
+        }
         if ($requestNumber -eq 2) {
+          $expectedHistoryFragment = if ($PunctuationReply) {
+            "今天先别急着赶路"
+          } else {
+            "第一行"
+          }
           $hasPreviousTurn =
             $messages.Count -ge 4 -and
             [string]$messages[1].content -match "你好" -and
-            [string]$messages[2].content -match "第一行"
+            [string]$messages[2].content -match $expectedHistoryFragment
           if (-not $hasPreviousTurn) {
             $json = '{"error":{"message":"Mock provider did not receive the previous turn."}}'
             Write-HttpResponse -Stream $stream -StatusCode 400 -Reason "Bad Request" -Body $json
@@ -307,7 +318,7 @@ try {
 
         switch ($requestNumber) {
           1 {
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "第一行`n`n第二行`n第三行")
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content $firstReply)
           }
           2 {
             Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "收到，刚才你问了。")

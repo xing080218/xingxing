@@ -16,6 +16,10 @@ const icons = {
   sparkles:
     '<path d="m12 3-1.9 5.1a2 2 0 0 1-1.2 1.2L4 11l4.9 1.7a2 2 0 0 1 1.2 1.2L12 19l1.9-5.1a2 2 0 0 1 1.2-1.2L20 11l-4.9-1.7a2 2 0 0 1-1.2-1.2Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>',
   'chevron-up': '<path d="m18 15-6-6-6 6"/>',
+  'lock-keyhole':
+    '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/>',
+  delete:
+    '<path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><path d="m18 9-6 6"/><path d="m12 9 6 6"/>',
   wifi:
     '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/>',
   'arrow-up': '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
@@ -99,6 +103,7 @@ const state = {
     entranceIndex: -1,
   },
   isSavingCharacter: false,
+  isChangingLockPassword: false,
   avatarDraftBlob: null,
   avatarDraftUrl: "",
   avatarDraftOwnsUrl: false,
@@ -121,6 +126,7 @@ async function initializeApp() {
     cacheElements();
     bindEvents();
     await restoreSettings();
+    restoreLockPasswordSettings();
     await restoreChat();
     await window.PocketLabBeautify.init({
       onError: reportStorageError,
@@ -253,6 +259,18 @@ function cacheElements() {
     "api-url-error",
     "api-key-error",
     "model-name-error",
+    "lock-password-enabled",
+    "lock-password-description",
+    "lock-password-summary",
+    "open-password-change",
+    "password-change-form",
+    "current-lock-password",
+    "new-lock-password",
+    "confirm-lock-password",
+    "lock-password-form-error",
+    "cancel-password-change",
+    "save-lock-password",
+    "lock-password-status",
     "toggle-key",
     "test-connection",
     "test-result",
@@ -331,6 +349,20 @@ function bindEvents() {
   elements["api-url"].addEventListener("input", () => clearFieldError("api-url"));
   elements["api-key"].addEventListener("input", () => clearFieldError("api-key"));
   elements["model-name"].addEventListener("input", () => clearFieldError("model-name"));
+  elements["lock-password-enabled"].addEventListener("change", handleLockPasswordToggle);
+  elements["open-password-change"].addEventListener("click", openPasswordChangeForm);
+  elements["cancel-password-change"].addEventListener("click", () => closePasswordChangeForm());
+  elements["password-change-form"].addEventListener("submit", handlePasswordChange);
+  [
+    elements["current-lock-password"],
+    elements["new-lock-password"],
+    elements["confirm-lock-password"],
+  ].forEach((input) => {
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/\D/g, "").slice(0, 4);
+      clearPasswordFormError();
+    });
+  });
   elements["character-name"].addEventListener("input", () => {
     clearFieldError("character-name");
     applyAvatar(
@@ -400,6 +432,241 @@ async function restoreSettings() {
     window.PocketLabSettings.setConnected(false);
   }
   updateConnectionUI();
+}
+
+function restoreLockPasswordSettings() {
+  const store = window.PocketLabLockPassword;
+  if (!store) {
+    elements["lock-password-enabled"].disabled = true;
+    elements["open-password-change"].disabled = true;
+    elements["lock-password-summary"].textContent = "密码组件未加载。";
+    setLockPasswordStatus(
+      "锁屏密码设置无法读取。下一步：刷新页面；仍然失败时请检查浏览器是否拦截了项目脚本。",
+      "error",
+    );
+    return;
+  }
+
+  try {
+    updateLockPasswordUi(store.isEnabled(), store.hasCustomPassword());
+    setLockPasswordStatus("");
+  } catch (error) {
+    elements["lock-password-enabled"].disabled = true;
+    elements["open-password-change"].disabled = true;
+    setLockPasswordStatus(
+      describeLockPasswordError(error, "读取锁屏密码设置"),
+      "error",
+    );
+  }
+}
+
+function updateLockPasswordUi(enabled, hasCustomPassword) {
+  elements["lock-password-enabled"].checked = enabled;
+  elements["lock-password-description"].textContent = enabled
+    ? "开启后，向上滑动需要输入四位密码才能进入主屏幕。"
+    : "已关闭密码验证，向上滑动后直接进入主屏幕。";
+
+  if (enabled) {
+    elements["lock-password-summary"].textContent = hasCustomPassword
+      ? "已开启，当前使用自定义四位密码。"
+      : "已开启，当前使用初始密码 1234。";
+    return;
+  }
+
+  elements["lock-password-summary"].textContent = hasCustomPassword
+    ? "已关闭；重新开启后继续使用原来的四位密码。"
+    : "已关闭；重新开启后使用初始密码 1234。";
+}
+
+function handleLockPasswordToggle() {
+  const store = window.PocketLabLockPassword;
+  const toggle = elements["lock-password-enabled"];
+  if (!store || toggle.disabled) return;
+
+  const nextEnabled = toggle.checked;
+  const saveError = store.setEnabled(nextEnabled);
+  if (saveError) {
+    toggle.checked = !nextEnabled;
+    setLockPasswordStatus(
+      describeLockPasswordError(saveError, "保存锁屏密码开关"),
+      "error",
+    );
+    return;
+  }
+
+  updateLockPasswordUi(nextEnabled, store.hasCustomPassword());
+  setLockPasswordStatus(
+    nextEnabled
+      ? "锁屏密码已开启。下次解锁需要输入四位密码。"
+      : "锁屏密码已关闭。下次向上滑动会直接进入主屏幕。",
+    "success",
+  );
+  closePasswordChangeForm(false);
+}
+
+function openPasswordChangeForm() {
+  const form = elements["password-change-form"];
+  if (!form || !form.classList.contains("is-hidden") || state.isChangingLockPassword) return;
+
+  form.classList.remove("is-hidden");
+  elements["open-password-change"].setAttribute("aria-expanded", "true");
+  clearPasswordFormError();
+  elements["lock-password-status"].textContent = "";
+  elements["lock-password-status"].className = "lock-password-status";
+  window.setTimeout(() => elements["current-lock-password"].focus(), 0);
+}
+
+function closePasswordChangeForm(shouldFocus = true) {
+  const form = elements["password-change-form"];
+  if (!form || state.isChangingLockPassword) return;
+
+  form.classList.add("is-hidden");
+  elements["open-password-change"].setAttribute("aria-expanded", "false");
+  [
+    elements["current-lock-password"],
+    elements["new-lock-password"],
+    elements["confirm-lock-password"],
+  ].forEach((input) => {
+    input.value = "";
+  });
+  clearPasswordFormError();
+  if (shouldFocus) elements["open-password-change"].focus();
+}
+
+function clearPasswordFormError() {
+  [
+    elements["current-lock-password"],
+    elements["new-lock-password"],
+    elements["confirm-lock-password"],
+  ].forEach((input) => {
+    const field = input.closest(".field");
+    if (field) field.classList.remove("has-error");
+  });
+  elements["lock-password-form-error"].textContent = "";
+}
+
+function showPasswordFormError(message, input) {
+  clearPasswordFormError();
+  elements["lock-password-form-error"].textContent = message;
+  if (input) {
+    const field = input.closest(".field");
+    if (field) field.classList.add("has-error");
+    input.focus();
+  }
+}
+
+function setPasswordChangeBusy(isBusy) {
+  state.isChangingLockPassword = isBusy;
+  const form = elements["password-change-form"];
+  const saveButton = elements["save-lock-password"];
+  form.setAttribute("aria-busy", String(isBusy));
+  form.querySelectorAll("input, button").forEach((control) => {
+    control.disabled = isBusy;
+  });
+  saveButton.classList.toggle("is-loading", isBusy);
+}
+
+function describeLockPasswordError(error, action) {
+  const detail =
+    error && typeof error.message === "string" && error.message.trim()
+      ? ` 浏览器返回：${error.message.trim().slice(0, 180)}`
+      : "";
+  return `${action}失败，可能是站点存储权限被限制或浏览器空间不足。${detail} 下一步：允许此网站保存本地数据，退出无痕模式并刷新后重试。`;
+}
+
+function setLockPasswordStatus(message, kind = "") {
+  const status = elements["lock-password-status"];
+  if (!status) return;
+  status.textContent = message;
+  status.className = "lock-password-status";
+  if (kind) status.classList.add(`is-${kind}`);
+}
+
+async function handlePasswordChange(event) {
+  event.preventDefault();
+  if (state.isChangingLockPassword) return;
+
+  const store = window.PocketLabLockPassword;
+  const currentInput = elements["current-lock-password"];
+  const newInput = elements["new-lock-password"];
+  const confirmInput = elements["confirm-lock-password"];
+  const currentPassword = currentInput.value;
+  const newPassword = newInput.value;
+  const confirmPassword = confirmInput.value;
+
+  clearPasswordFormError();
+  if (!store) {
+    showPasswordFormError("密码组件未加载，请刷新页面后再试。");
+    return;
+  }
+  if (!/^\d{4}$/.test(currentPassword)) {
+    showPasswordFormError("请输入当前的四位数字密码。", currentInput);
+    return;
+  }
+  if (!/^\d{4}$/.test(newPassword)) {
+    showPasswordFormError("新密码必须是四位数字。", newInput);
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    showPasswordFormError("两次输入的新密码不一致，请重新确认。", confirmInput);
+    return;
+  }
+
+  let focusAfterSave = currentInput;
+  let closeFormAfterSave = false;
+  setPasswordChangeBusy(true);
+  try {
+    let currentIsValid = false;
+    try {
+      currentIsValid = await store.verifyPassword(currentPassword);
+    } catch (error) {
+      showPasswordFormError(
+        describeLockPasswordError(error, "验证当前密码"),
+        currentInput,
+      );
+      return;
+    }
+
+    if (!currentIsValid) {
+      showPasswordFormError("当前密码不正确，请重新输入。", currentInput);
+      return;
+    }
+
+    let saveError = null;
+    try {
+      saveError = await store.setPassword(newPassword);
+    } catch (error) {
+      saveError = error;
+    }
+    if (saveError) {
+      focusAfterSave = newInput;
+      showPasswordFormError(
+        describeLockPasswordError(saveError, "保存新密码"),
+        newInput,
+      );
+      return;
+    }
+
+    updateLockPasswordUi(store.isEnabled(), true);
+    setLockPasswordStatus(
+      "新密码已保存。下次解锁请使用新的四位数字密码。",
+      "success",
+    );
+    showToast("锁屏密码已更新。");
+    focusAfterSave = null;
+    closeFormAfterSave = true;
+  } finally {
+    setPasswordChangeBusy(false);
+    if (closeFormAfterSave) {
+      closePasswordChangeForm(false);
+    }
+    if (
+      focusAfterSave &&
+      !elements["password-change-form"].classList.contains("is-hidden")
+    ) {
+      focusAfterSave.focus();
+    }
+  }
 }
 
 function saveSettings() {

@@ -271,28 +271,31 @@
 }
 
 .lock-unlock-hint {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  min-width: 164px;
-  min-height: 62px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
   margin-top: auto;
-  padding: 8px 18px;
-  border: 1px solid rgba(39, 85, 103, 0.16);
-  border-radius: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   color: #31515f;
-  background: rgba(255, 255, 255, 0.35);
-  font-size: 11px;
-  font-weight: 750;
+  background: transparent;
+  box-shadow: none;
   cursor: pointer;
-  backdrop-filter: blur(12px);
 }
 
 .lock-unlock-hint svg {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   animation: lock-hint-rise 1.7s ease-in-out infinite;
+}
+
+.lock-unlock-hint:focus-visible {
+  outline: 3px solid rgba(49, 81, 95, 0.28);
+  outline-offset: 4px;
 }
 
 @keyframes lock-hint-rise {
@@ -302,6 +305,248 @@
   }
   50% {
     transform: translateY(-3px);
+  }
+}
+
+/* 锁屏密码页 */
+.lock-pin-layer {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  padding:
+    calc(28px + env(safe-area-inset-top, 0px))
+    calc(22px + env(safe-area-inset-right, 0px))
+    calc(18px + env(safe-area-inset-bottom, 0px))
+    calc(22px + env(safe-area-inset-left, 0px));
+  color: #213d49;
+  background: linear-gradient(180deg, rgba(217, 241, 255, 0.82), rgba(255, 244, 201, 0.78));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition:
+    opacity 180ms ease,
+    visibility 180ms ease,
+    transform 220ms ease;
+  backdrop-filter: blur(14px);
+}
+
+.lock-screen.is-pin-entry {
+  cursor: default;
+  touch-action: manipulation;
+}
+
+.lock-screen.is-pin-entry .lock-topline,
+.lock-screen.is-pin-entry .lock-time-block,
+.lock-screen.is-pin-entry .lock-decoration,
+.lock-screen.is-pin-entry .lock-unlock-hint {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lock-screen.is-pin-entry .lock-pin-layer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.lock-pin-back {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  left: calc(16px + env(safe-area-inset-left, 0px));
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(49, 81, 95, 0.14);
+  border-radius: 50%;
+  color: #31515f;
+  background: rgba(255, 255, 255, 0.34);
+  cursor: pointer;
+}
+
+.lock-pin-back:hover {
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.lock-pin-back svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lock-pin-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 280px);
+  min-height: 0;
+  margin: auto;
+  text-align: center;
+}
+
+.lock-pin-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(49, 81, 95, 0.14);
+  border-radius: 50%;
+  color: #31515f;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.lock-pin-mark svg {
+  width: 22px;
+  height: 22px;
+}
+
+.lock-pin-kicker {
+  margin: 0 0 5px;
+  color: #577786;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.lock-pin-content h2 {
+  margin: 0;
+  color: #1f3e4b;
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.lock-pin-message {
+  min-height: 17px;
+  margin: 6px 0 12px;
+  color: #5b7783;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.lock-pin-message.is-error {
+  color: #a34f42;
+}
+
+.lock-pin-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 14px;
+  margin-bottom: 5px;
+}
+
+.lock-pin-dots span {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(49, 81, 95, 0.66);
+  border-radius: 50%;
+  background: transparent;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.lock-pin-dots span.is-filled {
+  background: #31515f;
+  transform: scale(1.08);
+}
+
+.lock-pin-error {
+  min-height: 18px;
+  margin: 0 0 8px;
+  color: #a34f42;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.lock-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: min(100%, 250px);
+}
+
+.lock-key {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 54px;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid rgba(49, 81, 95, 0.13);
+  border-radius: 50%;
+  color: #274652;
+  background: rgba(255, 255, 255, 0.42);
+  font-family: var(--sans);
+  font-size: 21px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.lock-key:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.lock-key:active {
+  transform: scale(0.94);
+}
+
+.lock-key:disabled {
+  cursor: wait;
+  opacity: 0.56;
+}
+
+.lock-key-spacer {
+  display: block;
+}
+
+.lock-key-delete {
+  border-color: transparent;
+  background: transparent;
+}
+
+.lock-key-delete:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.lock-key-delete svg {
+  width: 21px;
+  height: 21px;
+}
+
+.lock-screen.is-rejected .lock-pin-content {
+  animation: lock-pin-shake 360ms ease;
+}
+
+@keyframes lock-pin-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-7px);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+  75% {
+    transform: translateX(-3px);
   }
 }
 
@@ -961,6 +1206,48 @@
   .lock-clock {
     font-size: 64px;
   }
+
+  .lock-pin-layer {
+    padding:
+      calc(18px + env(safe-area-inset-top, 0px))
+      calc(14px + env(safe-area-inset-right, 0px))
+      calc(12px + env(safe-area-inset-bottom, 0px))
+      calc(14px + env(safe-area-inset-left, 0px));
+  }
+
+  .lock-pin-back {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    width: 32px;
+    height: 32px;
+  }
+
+  .lock-pin-content {
+    width: min(100%, 250px);
+  }
+
+  .lock-pin-mark {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 8px;
+  }
+
+  .lock-pin-content h2 {
+    font-size: 18px;
+  }
+
+  .lock-pin-message {
+    margin-bottom: 8px;
+  }
+
+  .lock-keypad {
+    gap: 5px;
+  }
+
+  .lock-key {
+    height: 48px;
+    font-size: 18px;
+  }
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
@@ -984,9 +1271,94 @@
   }
 
   .lock-unlock-hint {
-    min-height: 48px;
-    flex-direction: row;
-    gap: 8px;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .lock-unlock-hint svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .lock-pin-layer {
+    padding:
+      calc(12px + env(safe-area-inset-top, 0px))
+      calc(34px + env(safe-area-inset-right, 0px))
+      calc(10px + env(safe-area-inset-bottom, 0px))
+      calc(34px + env(safe-area-inset-left, 0px));
+  }
+
+  .lock-pin-back {
+    top: calc(9px + env(safe-area-inset-top, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
+    width: 32px;
+    height: 32px;
+  }
+
+  .lock-pin-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 250px);
+    grid-template-areas:
+      "mark keypad"
+      "kicker keypad"
+      "title keypad"
+      "message keypad"
+      "dots keypad"
+      "error keypad";
+    align-content: center;
+    align-items: center;
+    column-gap: clamp(20px, 5vw, 48px);
+    width: min(100%, 620px);
+    min-height: 0;
+    margin: auto;
+  }
+
+  .lock-pin-mark {
+    grid-area: mark;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 3px;
+  }
+
+  .lock-pin-kicker {
+    grid-area: kicker;
+    margin-bottom: 3px;
+  }
+
+  .lock-pin-content h2 {
+    grid-area: title;
+    font-size: 18px;
+  }
+
+  .lock-pin-message {
+    grid-area: message;
+    min-height: 14px;
+    margin: 3px 0 0;
+  }
+
+  .lock-pin-dots {
+    grid-area: dots;
+    margin: 8px 0 0;
+  }
+
+  .lock-pin-error {
+    grid-area: error;
+    min-height: 15px;
+    margin: 5px 0 0;
+  }
+
+  .lock-keypad {
+    grid-area: keypad;
+    align-self: center;
+    gap: 5px;
+    width: min(100%, 240px);
+  }
+
+  .lock-key {
+    height: 42px;
+    font-size: 18px;
   }
 
   .beautify-scroll {

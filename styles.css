@@ -1679,6 +1679,11 @@ svg {
   border-bottom-left-radius: 9px;
 }
 
+.assistant-bubble.is-entering {
+  animation: assistant-bubble-arrive 280ms cubic-bezier(0.2, 0.75, 0.28, 1) both;
+  transform-origin: bottom left;
+}
+
 .message-meta {
   display: flex;
   align-items: center;
@@ -1988,62 +1993,13 @@ svg {
   backdrop-filter: blur(16px);
 }
 
-.chat-composer-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 28px;
-  margin-bottom: 7px;
-}
-
-.batch-mode-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex: 0 0 auto;
-  min-height: 28px;
-  padding: 5px 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--ink-soft);
-  background: rgba(255, 253, 248, 0.72);
-  font-size: 8px;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    color 150ms ease,
-    border-color 150ms ease,
-    background 150ms ease;
-}
-
-.batch-mode-toggle svg {
-  width: 13px;
-  height: 13px;
-}
-
-.batch-mode-toggle:hover:not(:disabled) {
-  border-color: #9dbdaf;
-  color: var(--jade-deep);
-}
-
-.batch-mode-toggle.is-active {
-  border-color: #8cb8a8;
-  color: var(--jade-deep);
-  background: var(--jade-soft);
-  box-shadow: inset 0 0 0 1px rgba(28, 117, 97, 0.06);
-}
-
-.batch-mode-toggle:disabled {
-  opacity: 0.56;
-  cursor: wait;
-}
-
 .chat-pending-actions {
   display: flex;
   align-items: center;
-  gap: 7px;
-  min-width: 0;
-  margin-left: auto;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 28px;
+  margin-bottom: 7px;
 }
 
 .pending-reply-count {
@@ -2054,7 +2010,7 @@ svg {
   white-space: nowrap;
 }
 
-.batch-reply-button {
+.summary-reply-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2072,16 +2028,16 @@ svg {
   cursor: pointer;
 }
 
-.batch-reply-button svg {
+.summary-reply-button svg {
   width: 13px;
   height: 13px;
 }
 
-.batch-reply-button:hover:not(:disabled) {
+.summary-reply-button:hover:not(:disabled) {
   background: #0d493a;
 }
 
-.batch-reply-button:disabled {
+.summary-reply-button:disabled {
   color: #a7aaa3;
   background: #e4e0d7;
   box-shadow: none;
@@ -2562,6 +2518,17 @@ svg {
   }
 }
 
+@keyframes assistant-bubble-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes reply-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(43, 155, 121, 0.32);
@@ -2746,8 +2713,7 @@ svg {
     font-size: 12px;
   }
 
-  .batch-mode-toggle,
-  .batch-reply-button {
+  .summary-reply-button {
     min-height: 38px;
     padding: 7px 10px;
     font-size: 11px;

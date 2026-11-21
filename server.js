@@ -14,7 +14,7 @@ const DEFAULT_PORT = 4176;
 const DEFAULT_API_PORT = 4177;
 const MAX_BODY_BYTES = 512 * 1024;
 const API_PROXY_TIMEOUT_MS = 130000;
-const BUILD = "20261120-22";
+const BUILD = "20261121-04";
 
 function parseArgs(argv) {
   const result = {
@@ -134,6 +134,8 @@ function contentType(filePath) {
       return "text/javascript; charset=utf-8";
     case ".json":
       return "application/json; charset=utf-8";
+    case ".webmanifest":
+      return "application/manifest+json; charset=utf-8";
     case ".png":
       return "image/png";
     case ".jpg":

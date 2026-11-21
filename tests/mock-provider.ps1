@@ -3,6 +3,7 @@
   [string]$ListenAddress = "127.0.0.1",
   [switch]$ForceBudgetError,
   [switch]$ChatSequence,
+  [switch]$PunctuationReply,
   [int]$ResetFirstRequests = 0,
   [int]$MaxConnections = 0,
   [int]$DelayMilliseconds = 0,
@@ -293,11 +294,21 @@ try {
 
       if ($ChatSequence) {
         $messages = @($bodyObject.messages)
+        $firstReply = if ($PunctuationReply) {
+          "今天先别急着赶路。要不要坐下来歇一会儿？晚饭想吃什么？"
+        } else {
+          "第一行`n`n第二行`n第三行"
+        }
         if ($requestNumber -eq 2) {
+          $expectedHistoryFragment = if ($PunctuationReply) {
+            "今天先别急着赶路"
+          } else {
+            "第一行"
+          }
           $hasPreviousTurn =
             $messages.Count -ge 4 -and
             [string]$messages[1].content -match "你好" -and
-            [string]$messages[2].content -match "第一行"
+            [string]$messages[2].content -match $expectedHistoryFragment
           if (-not $hasPreviousTurn) {
             $json = '{"error":{"message":"Mock provider did not receive the previous turn."}}'
             Write-HttpResponse -Stream $stream -StatusCode 400 -Reason "Bad Request" -Body $json
@@ -307,7 +318,7 @@ try {
 
         switch ($requestNumber) {
           1 {
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "第一行`n`n第二行`n第三行")
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content $firstReply)
           }
           2 {
             Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "收到，刚才你问了。")
@@ -320,17 +331,17 @@ try {
             Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "重试成功。")
           }
           5 {
-            $json = '{"error":{"message":"模拟连续留言请求失败，请统一重试。"}}'
+            $json = '{"error":{"message":"模拟总结回复请求失败，请重试。"}}'
             Write-HttpResponse -Stream $stream -StatusCode 500 -Reason "Internal Server Error" -Body $json
           }
           6 {
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "第1条：第一条留言的答复`n第2条：第二条留言的答复")
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "今天的天气很适合散步。`n晚饭可以吃清淡一点。")
           }
           7 {
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "第1条：重新生成的第一条答复`n第2条：重新生成的第二条答复")
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "重新想过以后，我更想陪你慢慢走一走。`n晚饭就选你此刻最想吃的。")
           }
           8 {
-            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "第1条：整轮重新生成的第一条答复`n第2条：整轮重新生成的第二条答复")
+            Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "这次我会把两件事一起考虑。`n散步和晚饭都按你的心情来安排。")
           }
           default {
             Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "OK")

@@ -486,25 +486,51 @@
   height: 54px;
   min-width: 0;
   padding: 0;
-  border: 1px solid rgba(49, 81, 95, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 50%;
   color: #274652;
-  background: rgba(255, 255, 255, 0.42);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.58),
+      rgba(255, 255, 255, 0.2)
+    );
+  box-shadow:
+    0 7px 20px rgba(53, 83, 91, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(18px) saturate(1.28);
+  backdrop-filter: blur(18px) saturate(1.28);
   font-family: var(--sans);
   font-size: 21px;
   font-weight: 500;
   cursor: pointer;
   transition:
     background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
     transform 120ms ease;
 }
 
 .lock-key:hover {
-  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(255, 255, 255, 0.84);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.7),
+      rgba(255, 255, 255, 0.3)
+    );
+  box-shadow:
+    0 9px 24px rgba(53, 83, 91, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .lock-key:active {
   transform: scale(0.94);
+  box-shadow:
+    0 4px 12px rgba(53, 83, 91, 0.08),
+    inset 0 2px 5px rgba(53, 83, 91, 0.08);
 }
 
 .lock-key:disabled {
@@ -519,10 +545,14 @@
 .lock-key-delete {
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .lock-key-delete:hover {
   background: rgba(255, 255, 255, 0.38);
+  box-shadow: none;
 }
 
 .lock-key-delete svg {

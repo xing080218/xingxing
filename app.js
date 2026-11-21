@@ -97,7 +97,6 @@ const state = {
   avatarDraftBlob: null,
   avatarDraftUrl: "",
   avatarDraftOwnsUrl: false,
-  batchMode: false,
   localDataStatusKind: "idle",
   localDataErrorSource: "",
 };
@@ -215,7 +214,6 @@ function cacheElements() {
     "chat-form",
     "chat-input",
     "send-chat",
-    "toggle-batch-mode",
     "chat-pending-actions",
     "pending-reply-count",
     "reply-pending-batch",
@@ -296,7 +294,6 @@ function bindEvents() {
   elements["backup-file"].addEventListener("change", importBackupFile);
   elements["chat-form"].addEventListener("submit", handleChatSubmit);
   elements["chat-message-list"].addEventListener("click", handleChatMessageAction);
-  elements["toggle-batch-mode"].addEventListener("click", toggleBatchMode);
   elements["reply-pending-batch"].addEventListener("click", handleReplyPendingBatch);
   elements["chat-input"].addEventListener("input", () => {
     resizeChatInput();
@@ -483,7 +480,6 @@ async function restoreChat() {
     releaseCharacterAvatar();
     state.character = createDefaultCharacter();
     state.messages = [];
-    state.batchMode = false;
   }
 
   if (migrationError) {
@@ -578,9 +574,6 @@ async function loadChatFromDatabase() {
     )
     .slice(-300);
   ensureMessageTurns();
-  state.batchMode = state.messages.some(
-    (message) => message.pendingReply && !message.retracted,
-  );
 }
 
 function createDefaultCharacter() {
@@ -982,29 +975,18 @@ function getPendingMessages(batchId = "") {
 }
 
 function updateBatchControls() {
-  if (!elements["toggle-batch-mode"]) return;
-
   const pendingMessages = getPendingMessages();
   const hasPending = pendingMessages.length > 0;
-  const hasFailedBatch = pendingMessages.some((message) => message.failed);
+  const hasFailedGroup = pendingMessages.some((message) => message.failed);
 
-  if (hasPending) state.batchMode = true;
-
-  elements["toggle-batch-mode"].classList.toggle("is-active", state.batchMode);
-  elements["toggle-batch-mode"].setAttribute("aria-pressed", String(state.batchMode));
-  elements["toggle-batch-mode"].setAttribute(
-    "aria-label",
-    state.batchMode ? "关闭连续留言" : "开启连续留言",
-  );
-  elements["toggle-batch-mode"].disabled = state.isReplying;
   elements["chat-pending-actions"].classList.toggle("is-hidden", !hasPending);
-  elements["pending-reply-count"].textContent = `${pendingMessages.length} 条待回复`;
+  elements["pending-reply-count"].textContent = `${pendingMessages.length} 条消息待总结`;
   elements["reply-pending-batch"].disabled = state.isReplying || !state.connected;
   elements["batch-reply-label"].textContent = state.isReplying
-    ? "正在统一回复"
-    : hasFailedBatch
-      ? "重新统一回复"
-      : "统一回复";
+    ? "正在总结并回复"
+    : hasFailedGroup
+      ? "重新总结并回复"
+      : "总结并回复";
 }
 
 function updateChatConnectionUI() {
@@ -1040,9 +1022,7 @@ function renderChat() {
   });
   elements["chat-empty"].classList.toggle("is-hidden", state.messages.length > 0);
   elements["chat-reply-status"].classList.toggle("is-hidden", !state.isReplying);
-  elements["chat-reply-label"].textContent = getPendingMessages().length
-    ? "正在统一回复"
-    : "正在回复";
+  elements["chat-reply-label"].textContent = "正在总结并回复";
   updateBatchControls();
   updateSendButton();
   hydrateIcons();
@@ -1061,16 +1041,12 @@ function buildMessageHtml(message) {
   const menuHtml = buildMessageMenuHtml(message, canEdit);
 
   if (isUser) {
-    const batchMeta =
-      message.batchIndex > 0
-        ? `第${message.batchIndex}条${message.pendingReply ? " · 待回复" : ""} · `
-        : "";
     return `
       <div class="message-row message-row-user" data-message-id="${escapeHtml(message.id)}" data-turn-id="${escapeHtml(turnId)}">
         <div class="message-body">
           <div class="message-bubble user-bubble">${escapeHtml(message.content)}</div>
           <div class="message-meta">
-            <span class="message-time">${escapeHtml(batchMeta + time)}</span>
+            <span class="message-time">${escapeHtml(time)}</span>
             ${menuHtml}
           </div>
         </div>
@@ -1183,7 +1159,7 @@ function buildRetractionNoticeHtml(turnId, retraction) {
 
 function buildMessageFailureHtml(message) {
   if (!message.failed || !message.error) return "";
-  const isBatchFailure = Boolean(message.batchId && message.pendingReply);
+  const isSummaryFailure = Boolean(message.batchId && message.pendingReply);
   return `
     <div class="message-failure">
       <div class="failure-copy">
@@ -1193,7 +1169,7 @@ function buildMessageFailureHtml(message) {
       </div>
       <button class="retry-button" type="button" data-retry-message-id="${escapeHtml(message.id)}">
         <span data-icon="rotate-ccw"></span>
-        ${isBatchFailure ? "统一重试" : "重试"}
+        ${isSummaryFailure ? "重试总结" : "重试"}
       </button>
     </div>
   `;
@@ -1228,21 +1204,14 @@ function updateSendButton() {
   if (!elements["send-chat"]) return;
   const hasText = Boolean(elements["chat-input"].value.trim());
   const pendingMessages = getPendingMessages();
-  const batchIsFull =
-    state.batchMode && pendingMessages.length >= chatBatchLimits.maxMessages;
-  const disabled = !state.connected || state.isReplying || !hasText || batchIsFull;
+  const groupIsFull = pendingMessages.length >= chatBatchLimits.maxMessages;
+  const disabled = !state.connected || state.isReplying || !hasText || groupIsFull;
   elements["send-chat"].disabled = disabled;
   elements["chat-input"].disabled = state.isReplying;
   elements["send-chat"].classList.toggle("is-loading", state.isReplying);
   elements["send-chat"].setAttribute(
     "aria-label",
-    state.isReplying
-      ? pendingMessages.length
-        ? "正在统一回复"
-        : "正在回复"
-      : state.batchMode
-        ? "添加连续留言"
-        : "发送消息",
+    state.isReplying ? "正在总结并回复" : "发送消息",
   );
   const iconName = state.isReplying ? "loader" : "arrow-up";
   if (elements["send-chat"].dataset.iconState !== iconName) {
@@ -1462,20 +1431,6 @@ function ensureConnectedForChat() {
   return null;
 }
 
-function toggleBatchMode() {
-  if (state.isReplying) return;
-
-  if (getPendingMessages().length > 0) {
-    showToast("请先统一回复这组留言，再切换聊天方式。");
-    return;
-  }
-
-  state.batchMode = !state.batchMode;
-  updateBatchControls();
-  updateSendButton();
-  elements["chat-input"].focus();
-}
-
 function discardPendingRetractionsBeforeNewTurn() {
   const retractedTurnIds = new Set(
     state.messages
@@ -1492,7 +1447,7 @@ function discardPendingRetractionsBeforeNewTurn() {
   return true;
 }
 
-async function handleChatSubmit(event) {
+function handleChatSubmit(event) {
   event.preventDefault();
   if (state.isReplying) return;
 
@@ -1503,38 +1458,33 @@ async function handleChatSubmit(event) {
   if (!config) return;
 
   const pendingMessages = getPendingMessages();
-  const shouldQueueForBatch = state.batchMode || pendingMessages.length > 0;
   const nextBatchIndex = pendingMessages.length + 1;
 
-  if (shouldQueueForBatch && nextBatchIndex > chatBatchLimits.maxMessages) {
-    showToast(`这一组最多 ${chatBatchLimits.maxMessages} 条，请先统一回复后再继续。`);
+  if (nextBatchIndex > chatBatchLimits.maxMessages) {
+    showToast(`这一组最多 ${chatBatchLimits.maxMessages} 条，请先点击“总结并回复”。`);
     return;
   }
 
+  const nextContent = content.slice(0, 4000);
   const message = {
     id: createId(),
     role: "user",
-    content: content.slice(0, 4000),
+    content: nextContent,
     createdAt: Date.now(),
-    turnId: shouldQueueForBatch
-      ? (pendingMessages[0] && pendingMessages[0].turnId) || `turn-${createId()}`
-      : `turn-${createId()}`,
+    turnId: (pendingMessages[0] && pendingMessages[0].turnId) || `turn-${createId()}`,
     failed: false,
     retracted: false,
     retractedMode: "",
-    pendingReply: shouldQueueForBatch,
-    batchId: shouldQueueForBatch
-      ? (pendingMessages[0] && pendingMessages[0].batchId) || `batch-${createId()}`
-      : "",
-    batchIndex: shouldQueueForBatch ? nextBatchIndex : 0,
+    pendingReply: true,
+    batchId: (pendingMessages[0] && pendingMessages[0].batchId) || `batch-${createId()}`,
+    batchIndex: nextBatchIndex,
   };
 
   if (
-    shouldQueueForBatch &&
-    buildBatchPrompt([...pendingMessages, message]).length >
+    window.PocketLabChatSummary.buildPrompt([...pendingMessages, message]).length >
       chatBatchLimits.maxPromptCharacters
   ) {
-    showToast("这一组留言总字数过长，请先统一回复，再开始下一组。");
+    showToast("这一组消息总字数过长，请先点击“总结并回复”。");
     return;
   }
 
@@ -1544,28 +1494,7 @@ async function handleChatSubmit(event) {
   resizeChatInput();
   persistMessages();
   renderChat();
-
-  if (shouldQueueForBatch) {
-    window.setTimeout(() => elements["chat-input"].focus(), 40);
-    return;
-  }
-
-  await requestAssistantReply(message, config);
-}
-
-function buildBatchPrompt(messages) {
-  const entries = messages
-    .map((message, index) => `第${index + 1}条：${message.content}`)
-    .join("\n");
-  return [
-    `下面是我连续发送的 ${messages.length} 条留言：`,
-    "",
-    entries,
-    "",
-    `请严格按照相同顺序逐条回答，共回答 ${messages.length} 条。`,
-    `每条回答只占一行，并以“第1条：”“第2条：”这样的编号开头。`,
-    "不要合并，不要遗漏；每条留言都必须有对应的回答。",
-  ].join("\n");
+  window.setTimeout(() => elements["chat-input"].focus(), 40);
 }
 
 function buildProviderMessages(requestInput) {
@@ -1589,12 +1518,14 @@ function buildProviderMessages(requestInput) {
       content: message.content,
     }));
 
-  const isBatch = currentMessages.some((message) => Boolean(message.batchId));
+  const summaryPrompt = window.PocketLabChatSummary.buildPrompt(currentMessages);
+  if (!summaryPrompt) return [];
+
   return [
     ...recentHistory,
     {
       role: "user",
-      content: isBatch ? buildBatchPrompt(currentMessages) : firstMessage.content,
+      content: summaryPrompt,
     },
   ];
 }
@@ -1606,7 +1537,7 @@ function handleReplyPendingBatch() {
   if (!pendingMessages.length) return;
 
   const config = ensureConnectedForChat();
-  if (config) requestBatchReply(pendingMessages, config);
+  if (config) requestSummaryReply(pendingMessages, config);
 }
 
 function handleChatMessageAction(event) {
@@ -1624,15 +1555,10 @@ function handleChatMessageAction(event) {
     const config = ensureConnectedForChat();
     if (!config) return;
 
-    const batchMessages = message.batchId
+    const groupMessages = message.batchId
       ? getPendingMessages(message.batchId)
-      : [];
-    if (batchMessages.length) {
-      requestBatchReply(batchMessages, config);
-      return;
-    }
-
-    requestAssistantReply(message, config);
+      : [message];
+    requestSummaryReply(groupMessages.length ? groupMessages : [message], config);
     return;
   }
 
@@ -1741,77 +1667,10 @@ async function regenerateTurn(turnId) {
   );
   persistMessages();
 
-  const isBatch = userMessages.some((message) => Boolean(message.batchId));
-  await requestRepliesForMessages(userMessages, config, isBatch);
+  await requestSummaryReply(userMessages, config);
 }
 
-function requestAssistantReply(message, config) {
-  return requestRepliesForMessages([message], config, false);
-}
-
-function requestBatchReply(messages, config) {
-  const selectedIds = new Set(messages.map((message) => message.id));
-  const pendingMessages = state.messages.filter(
-    (message) =>
-      selectedIds.has(message.id) &&
-      message.pendingReply &&
-      !message.retracted,
-  );
-  if (!pendingMessages.length) return;
-  return requestRepliesForMessages(pendingMessages, config, true);
-}
-
-function normalizeBatchReply(reply, expectedCount) {
-  const lines = splitReplyLines(reply);
-  const answers = new Map();
-
-  lines.forEach((line) => {
-    const match = line.match(/^(?:第\s*)?(\d{1,2})\s*(?:条)?\s*[：:.)、]\s*(.+)$/);
-    if (!match) return;
-    const index = Number(match[1]);
-    const answer = match[2].trim();
-    if (index >= 1 && index <= expectedCount && answer && !answers.has(index)) {
-      answers.set(index, answer);
-    }
-  });
-
-  if (answers.size === expectedCount) {
-    return {
-      ok: true,
-      content: Array.from(
-        { length: expectedCount },
-        (_, index) => `第${index + 1}条：${answers.get(index + 1)}`,
-      ).join("\n"),
-    };
-  }
-
-  if (lines.length === expectedCount) {
-    return {
-      ok: true,
-      content: lines
-        .map((line, index) => {
-          const answer = line
-            .replace(/^(?:第\s*)?\d{1,2}\s*(?:条)?\s*[：:.)、]\s*/, "")
-            .trim();
-          return `第${index + 1}条：${answer}`;
-        })
-        .join("\n"),
-    };
-  }
-
-  const missing = Array.from({ length: expectedCount }, (_, index) => index + 1).filter(
-    (index) => !answers.has(index),
-  );
-  return {
-    ok: false,
-    reason:
-      answers.size > 0
-        ? `模型没有完整回答第 ${missing.join("、")} 条留言。`
-        : `模型没有按 ${expectedCount} 条编号返回完整回答。`,
-  };
-}
-
-async function requestRepliesForMessages(messages, config, isBatch) {
+async function requestSummaryReply(messages, config) {
   if (state.isReplying) return;
 
   const requestMessages = messages.filter(
@@ -1827,7 +1686,7 @@ async function requestRepliesForMessages(messages, config, isBatch) {
   requestMessages.forEach((message) => {
     message.failed = false;
     message.error = null;
-    if (isBatch) message.pendingReply = true;
+    message.pendingReply = true;
   });
   persistMessages();
   renderChat();
@@ -1861,39 +1720,27 @@ async function requestRepliesForMessages(messages, config, isBatch) {
       failure = normalizeChatError(payload.error, response.status);
     } else {
       const reply = String(payload.reply || "").trim();
-      if (!splitReplyLines(reply).length) {
+      const normalizedReply = window.PocketLabChatSummary.normalizeReply(reply);
+      if (!splitReplyLines(normalizedReply).length) {
         failure = {
           title: "模型没有返回文字",
           message: "服务商完成了请求，但回复内容为空。",
-          nextStep: isBatch
-            ? "点击“统一回复”再试；如果连续出现，换用普通对话模型。"
-            : "检查模型是否支持 chat/completions，或换用普通对话模型后重试。",
+          nextStep:
+            "点击“重试总结”再试；如果连续出现，换用普通对话模型。",
           status: Number(payload.status) || 0,
         };
-      } else if (isBatch) {
-        const normalizedBatchReply = normalizeBatchReply(reply, requestMessages.length);
-        if (normalizedBatchReply.ok) {
-          assistantReply = normalizedBatchReply.content;
-        } else {
-          failure = {
-            title: "逐条回复不完整",
-            message: normalizedBatchReply.reason,
-            nextStep: "点击“统一重试”再请求一次；如果反复出现，换用指令遵循能力更好的模型。",
-            status: Number(payload.status) || 0,
-          };
-        }
       } else {
-        assistantReply = reply;
+        assistantReply = normalizedReply;
       }
     }
   } catch (error) {
     if (error.name === "AbortError") {
       failure = {
         title: "回复超时",
-        message: "本地服务等待模型服务商超过约 120 秒，没有返回完整回复。",
-        nextStep: isBatch
-          ? "先检查网络和服务商状态，然后点击“统一重试”。"
-          : "先检查网络和服务商状态，然后点击这条消息下方的“重试”。",
+        message: `本地服务等待模型服务商超过约 ${Math.round(
+          apiRequestTimeoutMs / 1000,
+        )} 秒，没有返回完整回复。`,
+        nextStep: "先检查网络和服务商状态，然后点击“重试总结”。",
         status: 0,
       };
     } else {
@@ -1909,13 +1756,11 @@ async function requestRepliesForMessages(messages, config, isBatch) {
   }
 
   if (assistantReply) {
-    if (isBatch) {
-      requestMessages.forEach((message) => {
-        message.pendingReply = false;
-        message.failed = false;
-        message.error = null;
-      });
-    }
+    requestMessages.forEach((message) => {
+      message.pendingReply = false;
+      message.failed = false;
+      message.error = null;
+    });
     state.messages.push({
       id: createId(),
       role: "assistant",
@@ -1931,7 +1776,7 @@ async function requestRepliesForMessages(messages, config, isBatch) {
     requestMessages.forEach((message) => {
       message.failed = false;
       message.error = null;
-      if (isBatch) message.pendingReply = true;
+      message.pendingReply = true;
     });
     failedMessage.failed = true;
     failedMessage.error = failure || normalizeChatError(

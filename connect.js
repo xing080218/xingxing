@@ -1,7 +1,7 @@
 "use strict";
 
 (() => {
-  const BUILD = "20261121-05";
+  const BUILD = "20261122-01";
   const status = document.getElementById("connection-status");
   const phoneMainAddress = document.getElementById("phone-main-address");
   const phoneCheckAddress = document.getElementById("phone-check-address");

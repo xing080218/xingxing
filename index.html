@@ -17,21 +17,21 @@
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/assets/icons/favicon-32.png?v=20261121-05"
+      href="/assets/icons/favicon-32.png?v=20261122-01"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="64x64"
-      href="/assets/icons/favicon-64.png?v=20261121-05"
+      href="/assets/icons/favicon-64.png?v=20261122-01"
     />
     <link
       rel="apple-touch-icon"
       type="image/png"
       sizes="180x180"
-      href="/assets/icons/apple-touch-icon.png?v=20261121-05"
+      href="/assets/icons/apple-touch-icon.png?v=20261122-01"
     />
-    <link rel="manifest" href="/site.webmanifest?v=20261121-05" />
+    <link rel="manifest" href="/site.webmanifest?v=20261122-01" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -216,8 +216,8 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=20261121-05" />
-    <link rel="stylesheet" href="/beautify.css?v=20261121-05" />
+    <link rel="stylesheet" href="/styles.css?v=20261122-01" />
+    <link rel="stylesheet" href="/beautify.css?v=20261122-01" />
   </head>
   <body>
     <aside
@@ -238,7 +238,7 @@
         </p>
         <div class="service-warning-actions">
           <button id="service-warning-retry" type="button">重新检查</button>
-          <a href="/mobile-check.html?v=20261121-05">连接检查页</a>
+          <a href="/mobile-check.html?v=20261122-01">连接检查页</a>
         </div>
       </div>
       <button
@@ -254,7 +254,7 @@
     <div class="bootstrap-status" id="bootstrap-status" role="status" aria-live="polite">
       <strong id="bootstrap-title">正在打开濴星语</strong>
       <span id="bootstrap-message">页面已开始加载，正在检查本地服务。</span>
-      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261121-05</span>
+      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261122-01</span>
       <ol class="bootstrap-steps" aria-label="启动检查">
         <li class="bootstrap-step" data-bootstrap-step="page" data-state="ok">
           <span class="bootstrap-step-marker" aria-hidden="true">1</span>
@@ -272,8 +272,8 @@
       <div class="bootstrap-actions">
         <button id="bootstrap-retry" type="button">重新加载</button>
         <button id="bootstrap-details-toggle" type="button" aria-expanded="false">显示诊断信息</button>
-        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261121-05">连接检查页</a>
-        <a href="/connect.html?v=20261121-05">电脑连接入口</a>
+        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261122-01">连接检查页</a>
+        <a href="/connect.html?v=20261122-01">电脑连接入口</a>
       </div>
       <pre class="bootstrap-details is-hidden" id="bootstrap-details" aria-label="启动诊断信息"></pre>
     </div>
@@ -315,10 +315,51 @@
                 <span></span>
                 <span></span>
               </div>
-              <button class="lock-unlock-hint" id="lock-unlock-hint" type="button">
+              <button class="lock-unlock-hint" id="lock-unlock-hint" type="button" aria-label="向上滑动或点击解锁">
                 <span data-icon="chevron-up"></span>
-                <span>向上滑动解锁</span>
               </button>
+              <div class="lock-pin-layer" id="lock-pin-layer" aria-hidden="true">
+                <button class="lock-pin-back" id="lock-pin-back" type="button" aria-label="返回锁屏">
+                  <span data-icon="chevron-left"></span>
+                </button>
+                <div class="lock-pin-content">
+                  <span class="lock-pin-mark" aria-hidden="true">
+                    <span data-icon="lock-keyhole"></span>
+                  </span>
+                  <p class="lock-pin-kicker">濴星语已锁定</p>
+                  <h2 id="lock-pin-title">输入锁屏密码</h2>
+                  <p class="lock-pin-message" id="lock-pin-message">请输入四位数字密码</p>
+                  <div
+                    class="lock-pin-dots"
+                    id="lock-pin-dots"
+                    role="status"
+                    aria-live="polite"
+                    aria-label="已输入零位密码"
+                  >
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <p class="lock-pin-error" id="lock-pin-error" role="alert"></p>
+                  <div class="lock-keypad" id="lock-keypad" role="group" aria-label="锁屏数字键盘">
+                    <button class="lock-key" type="button" data-pin-key="1">1</button>
+                    <button class="lock-key" type="button" data-pin-key="2">2</button>
+                    <button class="lock-key" type="button" data-pin-key="3">3</button>
+                    <button class="lock-key" type="button" data-pin-key="4">4</button>
+                    <button class="lock-key" type="button" data-pin-key="5">5</button>
+                    <button class="lock-key" type="button" data-pin-key="6">6</button>
+                    <button class="lock-key" type="button" data-pin-key="7">7</button>
+                    <button class="lock-key" type="button" data-pin-key="8">8</button>
+                    <button class="lock-key" type="button" data-pin-key="9">9</button>
+                    <span class="lock-key-spacer" aria-hidden="true"></span>
+                    <button class="lock-key" type="button" data-pin-key="0">0</button>
+                    <button class="lock-key lock-key-delete" id="lock-pin-delete" type="button" aria-label="删除一位密码">
+                      <span data-icon="delete"></span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </section>
 
             <div class="screen-content">
@@ -391,14 +432,14 @@
                 </div>
               </section>
 
-              <section class="view settings-view" id="settings-view" aria-label="API 设置" aria-hidden="true">
+              <section class="view settings-view" id="settings-view" aria-label="设置" aria-hidden="true">
                 <header class="app-header">
                   <button class="back-button" id="settings-back" type="button" aria-label="返回主屏幕">
                     <span data-icon="chevron-left"></span>
                   </button>
                   <div>
-                    <p class="eyebrow">CONNECTIONS</p>
-                    <h1>API 接入</h1>
+                    <p class="eyebrow">SETTINGS</p>
+                    <h1>设置</h1>
                   </div>
                   <span class="header-status" id="header-status">
                     <span class="status-dot"></span>
@@ -407,6 +448,86 @@
                 </header>
 
                 <div class="settings-scroll">
+                  <section class="lock-password-panel" aria-labelledby="lock-password-title">
+                    <div class="lock-password-heading">
+                      <span class="lock-password-icon" aria-hidden="true">
+                        <span data-icon="lock-keyhole"></span>
+                      </span>
+                      <div class="lock-password-heading-copy">
+                        <p class="eyebrow">LOCK SCREEN</p>
+                        <h2 id="lock-password-title">锁屏密码</h2>
+                      </div>
+                      <label class="settings-switch" aria-label="开启锁屏密码">
+                        <input id="lock-password-enabled" type="checkbox" role="switch" />
+                        <span class="settings-switch-track" aria-hidden="true">
+                          <span></span>
+                        </span>
+                      </label>
+                    </div>
+                    <p class="lock-password-description" id="lock-password-description">
+                      开启后，向上滑动需要输入四位密码才能进入主屏幕。
+                    </p>
+                    <div class="lock-password-actions">
+                      <span id="lock-password-summary">当前使用初始密码 1234。</span>
+                      <button
+                        class="secondary-button lock-password-change-toggle"
+                        id="open-password-change"
+                        type="button"
+                        aria-expanded="false"
+                        aria-controls="password-change-form"
+                      >
+                        更改密码
+                      </button>
+                    </div>
+                    <form class="lock-password-form is-hidden" id="password-change-form" novalidate>
+                      <label class="field">
+                        <span class="field-label">当前密码</span>
+                        <input
+                          id="current-lock-password"
+                          type="password"
+                          inputmode="numeric"
+                          pattern="[0-9]{4}"
+                          maxlength="4"
+                          autocomplete="current-password"
+                          placeholder="输入当前四位密码"
+                        />
+                      </label>
+                      <label class="field">
+                        <span class="field-label">新密码</span>
+                        <input
+                          id="new-lock-password"
+                          type="password"
+                          inputmode="numeric"
+                          pattern="[0-9]{4}"
+                          maxlength="4"
+                          autocomplete="new-password"
+                          placeholder="输入新的四位数字"
+                        />
+                      </label>
+                      <label class="field">
+                        <span class="field-label">确认新密码</span>
+                        <input
+                          id="confirm-lock-password"
+                          type="password"
+                          inputmode="numeric"
+                          pattern="[0-9]{4}"
+                          maxlength="4"
+                          autocomplete="new-password"
+                          placeholder="再次输入新密码"
+                        />
+                      </label>
+                      <p class="lock-password-form-error" id="lock-password-form-error" role="alert"></p>
+                      <div class="lock-password-form-actions">
+                        <button class="secondary-button" id="cancel-password-change" type="button">取消</button>
+                        <button class="primary-button" id="save-lock-password" type="submit">
+                          <span class="button-label">保存新密码</span>
+                          <span class="button-spinner" aria-hidden="true"></span>
+                        </button>
+                      </div>
+                    </form>
+                    <p class="lock-password-status" id="lock-password-status" role="status" aria-live="polite"></p>
+                  </section>
+
                   <section class="connection-intro">
                     <div class="intro-icon">
                       <span data-icon="server-cog"></span>
@@ -1037,17 +1158,18 @@
       </section>
     </main>
 
-    <script src="/js/settings-store.js?v=20261121-05" defer></script>
-    <script src="/js/media.js?v=20261121-05" defer></script>
-    <script src="/js/storage.js?v=20261121-05" defer></script>
-    <script src="/js/appearance-store.js?v=20261121-05" defer></script>
-    <script src="/js/backup.js?v=20261121-05" defer></script>
-    <script src="/bootstrap.js?v=20261121-05" defer></script>
-    <script src="/js/lock-screen.js?v=20261121-05" defer></script>
-    <script src="/js/beautify.js?v=20261121-05" defer></script>
-    <script src="/js/chat-summary-mode.js?v=20261121-05" defer></script>
-    <script src="/js/reply-reveal.js?v=20261121-05" defer></script>
-    <script src="/app.js?v=20261121-05" defer></script>
+    <script src="/js/settings-store.js?v=20261122-01" defer></script>
+    <script src="/js/media.js?v=20261122-01" defer></script>
+    <script src="/js/storage.js?v=20261122-01" defer></script>
+    <script src="/js/appearance-store.js?v=20261122-01" defer></script>
+    <script src="/js/backup.js?v=20261122-01" defer></script>
+    <script src="/bootstrap.js?v=20261122-01" defer></script>
+    <script src="/js/lock-password-store.js?v=20261122-01" defer></script>
+    <script src="/js/lock-screen.js?v=20261122-01" defer></script>
+    <script src="/js/beautify.js?v=20261122-01" defer></script>
+    <script src="/js/chat-summary-mode.js?v=20261122-01" defer></script>
+    <script src="/js/reply-reveal.js?v=20261122-01" defer></script>
+    <script src="/app.js?v=20261122-01" defer></script>
     <noscript>
       <div class="bootstrap-status bootstrap-status-error">
         <strong>浏览器没有启用 JavaScript</strong>

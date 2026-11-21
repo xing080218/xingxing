@@ -1679,6 +1679,11 @@ svg {
   border-bottom-left-radius: 9px;
 }
 
+.assistant-bubble.is-entering {
+  animation: assistant-bubble-arrive 280ms cubic-bezier(0.2, 0.75, 0.28, 1) both;
+  transform-origin: bottom left;
+}
+
 .message-meta {
   display: flex;
   align-items: center;
@@ -2510,6 +2515,17 @@ svg {
   30% {
     opacity: 1;
     transform: translateY(-3px);
+  }
+}
+
+@keyframes assistant-bubble-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

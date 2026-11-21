@@ -1,6 +1,24 @@
 "use strict";
 
 (() => {
+  const terminalPunctuation = new Set(["。", "．", "！", "？", "!", "?", "…"]);
+  const closingPunctuation = new Set([
+    "\"",
+    "'",
+    "”",
+    "’",
+    "」",
+    "』",
+    "）",
+    ")",
+    "】",
+    "》",
+    "〉",
+    "〕",
+    "］",
+    "}",
+  ]);
+
   function getMessageContents(messages) {
     return (Array.isArray(messages) ? messages : [])
       .map((message) =>
@@ -18,25 +36,93 @@
       "",
       contents.join("\n\n---\n\n"),
       "",
+      "只输出角色要发来的消息。",
+      "请像日常聊天一样，每条消息单独一行，按内容自然分条；句号、问号、感叹号等句末标点后换行。",
+      "不要输出动作、神态、旁白、心理描写、角色名、说话人标签、编号、标题、括号说明、总结、分析或格式提示。",
       "不要逐条编号回答，也不要把这些话当成彼此独立的任务。",
-      "如果其中有多个需要回应的点，请把它们融进一条自然、连贯的回复中，并完整覆盖重点。",
+      "要完整回应这一轮表达的重点，但不要把每个输入机械地对应成一条回复。",
     ].join("\n");
   }
 
-  function normalizeReply(reply) {
-    return String(reply || "")
-      .replace(/\r\n?/g, "\n")
-      .split("\n")
-      .map((line) =>
-        line.replace(/^\s*(?:第\s*)?\d{1,2}\s*条\s*[：:]\s*/u, "").trimEnd(),
+  function stripReplyDecoration(line) {
+    return line
+      .replace(/^\s*(?:[-*•]\s+)/u, "")
+      .replace(
+        /^\s*(?:第\s*\d{1,2}\s*条\s*[：:、.)）]?|\d{1,2}\s*[：:、.)）])\s*/u,
+        "",
       )
-      .join("\n")
+      .replace(/^\s*(?:角色|助手|AI|assistant)\s*[：:]\s*/iu, "")
       .trim();
+  }
+
+  function isTerminalPunctuation(text, index) {
+    const character = text[index];
+    if (character === "." || character === "．") {
+      const previous = text[index - 1] || "";
+      const next = text[index + 1] || "";
+      if (/\d/u.test(previous) && /\d/u.test(next)) return false;
+      if (/[A-Za-z]/u.test(previous) && /[A-Za-z]/u.test(next)) return false;
+      return true;
+    }
+    return terminalPunctuation.has(character);
+  }
+
+  function splitLine(line) {
+    const text = line.trim();
+    if (!text) return [];
+
+    const messages = [];
+    let start = 0;
+    let cursor = 0;
+
+    while (cursor < text.length) {
+      if (!isTerminalPunctuation(text, cursor)) {
+        cursor += 1;
+        continue;
+      }
+
+      let end = cursor + 1;
+      while (end < text.length && isTerminalPunctuation(text, end)) {
+        end += 1;
+      }
+      while (end < text.length && closingPunctuation.has(text[end])) {
+        end += 1;
+      }
+
+      const message = text.slice(start, end).trim();
+      if (message) messages.push(message);
+      start = end;
+      cursor = end;
+    }
+
+    const remainder = text.slice(start).trim();
+    if (remainder) messages.push(remainder);
+    return messages.length ? messages : [text];
+  }
+
+  function splitMessages(content) {
+    const lines = String(content || "")
+      .replace(/\r\n?/g, "\n")
+      .split("\n");
+    const messages = [];
+
+    lines.forEach((line) => {
+      const cleaned = stripReplyDecoration(line);
+      if (!cleaned || /^```/u.test(cleaned)) return;
+      messages.push(...splitLine(cleaned));
+    });
+
+    return messages;
+  }
+
+  function normalizeReply(reply) {
+    return splitMessages(reply).join("\n");
   }
 
   const api = Object.freeze({
     buildPrompt,
     normalizeReply,
+    splitMessages,
   });
 
   if (typeof window !== "undefined") {

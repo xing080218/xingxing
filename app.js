@@ -1176,10 +1176,7 @@ function buildMessageFailureHtml(message) {
 }
 
 function splitReplyLines(content) {
-  return String(content)
-    .split(/\r\n|\n|\r/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  return window.PocketLabChatSummary.splitMessages(content);
 }
 
 function formatMessageTime(timestamp) {

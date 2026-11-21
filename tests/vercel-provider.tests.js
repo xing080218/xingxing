@@ -97,6 +97,9 @@ async function run() {
   assert.equal(built.ok, true);
   assert.equal(built.messages[0].role, "system");
   assert.match(built.messages[0].content, /占位角色/);
+  assert.match(built.messages[0].content, /只以角色身份输出要发来的消息/);
+  assert.match(built.messages[0].content, /每条消息单独一行/);
+  assert.match(built.messages[0].content, /不要输出动作、神态、旁白/);
   assert.equal(parseReplyText({
     choices: [{ message: { content: "第一行\n\n第二行" } }],
   }), "第一行\n\n第二行");

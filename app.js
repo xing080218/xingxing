@@ -93,6 +93,11 @@ const state = {
   },
   messages: [],
   isReplying: false,
+  replyReveal: {
+    messageId: "",
+    visibleCount: 0,
+    entranceIndex: -1,
+  },
   isSavingCharacter: false,
   avatarDraftBlob: null,
   avatarDraftUrl: "",
@@ -1022,7 +1027,9 @@ function renderChat() {
   });
   elements["chat-empty"].classList.toggle("is-hidden", state.messages.length > 0);
   elements["chat-reply-status"].classList.toggle("is-hidden", !state.isReplying);
-  elements["chat-reply-label"].textContent = "正在总结并回复";
+  elements["chat-reply-label"].textContent = state.replyReveal.messageId
+    ? "正在回复"
+    : "正在总结并回复";
   updateBatchControls();
   updateSendButton();
   hydrateIcons();
@@ -1055,19 +1062,32 @@ function buildMessageHtml(message) {
     `;
   }
 
-  const bubbles = splitReplyLines(message.content)
-    .map((line) => `<div class="message-bubble assistant-bubble">${escapeHtml(line)}</div>`)
+  const reveal = state.replyReveal;
+  const isRevealing = reveal.messageId === message.id;
+  const allLines = splitReplyLines(message.content);
+  const visibleLines = isRevealing ? allLines.slice(0, reveal.visibleCount) : allLines;
+  const bubbles = visibleLines
+    .map((line, index) => {
+      const enteringClass =
+        isRevealing && index === reveal.entranceIndex ? " is-entering" : "";
+      return `<div class="message-bubble assistant-bubble${enteringClass}">${escapeHtml(line)}</div>`;
+    })
     .join("");
+  const metaHtml = isRevealing
+    ? ""
+    : `
+        <div class="message-meta">
+          <span class="message-time">${escapeHtml(time)}</span>
+          ${menuHtml}
+        </div>
+      `;
 
   return `
     <div class="message-row message-row-assistant" data-message-id="${escapeHtml(message.id)}" data-turn-id="${escapeHtml(turnId)}">
       <div class="message-avatar" data-assistant-avatar></div>
       <div class="message-body">
         <div class="assistant-bubbles">${bubbles}</div>
-        <div class="message-meta">
-          <span class="message-time">${escapeHtml(time)}</span>
-          ${menuHtml}
-        </div>
+        ${metaHtml}
       </div>
     </div>
   `;
@@ -1177,6 +1197,30 @@ function buildMessageFailureHtml(message) {
 
 function splitReplyLines(content) {
   return window.PocketLabChatSummary.splitMessages(content);
+}
+
+async function revealAssistantReply(message, lines) {
+  if (!message || !Array.isArray(lines) || !lines.length) return;
+
+  const messageId = message.id;
+  await window.PocketLabReplyReveal.runSequentially(lines, {
+    onShow(_line, index) {
+      state.replyReveal = {
+        messageId,
+        visibleCount: index + 1,
+        entranceIndex: index,
+      };
+      renderChat();
+    },
+    onComplete() {
+      if (state.replyReveal.messageId !== messageId) return;
+      state.replyReveal = {
+        messageId: "",
+        visibleCount: 0,
+        entranceIndex: -1,
+      };
+    },
+  });
 }
 
 function formatMessageTime(timestamp) {
@@ -1691,6 +1735,7 @@ async function requestSummaryReply(messages, config) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), apiRequestTimeoutMs);
   let assistantReply = "";
+  let assistantMessage = null;
   let failure = null;
 
   try {
@@ -1758,7 +1803,7 @@ async function requestSummaryReply(messages, config) {
       message.failed = false;
       message.error = null;
     });
-    state.messages.push({
+    assistantMessage = {
       id: createId(),
       role: "assistant",
       content: assistantReply,
@@ -1767,7 +1812,9 @@ async function requestSummaryReply(messages, config) {
       failed: false,
       retracted: false,
       retractedMode: "",
-    });
+    };
+    state.messages.push(assistantMessage);
+    persistMessages();
   } else {
     const failedMessage = requestMessages[requestMessages.length - 1];
     requestMessages.forEach((message) => {
@@ -1784,6 +1831,10 @@ async function requestSummaryReply(messages, config) {
       },
       0,
     );
+  }
+
+  if (assistantMessage) {
+    await revealAssistantReply(assistantMessage, splitReplyLines(assistantMessage.content));
   }
 
   state.isReplying = false;

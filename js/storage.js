@@ -2,7 +2,7 @@
 
 (() => {
   const DB_NAME = String(window.POCKET_LAB_DB_NAME || "pocket-lab");
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORES = Object.freeze({
     characters: "characters",
     messages: "messages",
@@ -70,14 +70,29 @@
     }
   }
 
-  function createStores(database) {
+  function ensureMessageIndexes(store) {
+    if (!store.indexNames.contains("by-order")) {
+      store.createIndex("by-order", "order", { unique: false });
+    }
+    if (!store.indexNames.contains("by-turn")) {
+      store.createIndex("by-turn", "turnId", { unique: false });
+    }
+    if (!store.indexNames.contains("by-character")) {
+      store.createIndex("by-character", "characterId", { unique: false });
+    }
+  }
+
+  function createStores(database, transaction, oldVersion) {
     if (!database.objectStoreNames.contains(STORES.characters)) {
       database.createObjectStore(STORES.characters, { keyPath: "id" });
     }
+    let messageStore;
     if (!database.objectStoreNames.contains(STORES.messages)) {
-      const store = database.createObjectStore(STORES.messages, { keyPath: "id" });
-      store.createIndex("by-order", "order", { unique: false });
-      store.createIndex("by-turn", "turnId", { unique: false });
+      messageStore = database.createObjectStore(STORES.messages, { keyPath: "id" });
+      ensureMessageIndexes(messageStore);
+    } else if (transaction) {
+      messageStore = transaction.objectStore(STORES.messages);
+      ensureMessageIndexes(messageStore);
     }
     if (!database.objectStoreNames.contains(STORES.memories)) {
       database.createObjectStore(STORES.memories, { keyPath: "id" });
@@ -90,6 +105,21 @@
     }
     if (!database.objectStoreNames.contains(STORES.meta)) {
       database.createObjectStore(STORES.meta, { keyPath: "key" });
+    }
+
+    if (messageStore && Number(oldVersion) < 2) {
+      messageStore.openCursor().onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (!cursor) return;
+        const record = cursor.value;
+        if (!record.characterId) {
+          cursor.update({
+            ...record,
+            characterId: PRIMARY_CHARACTER_ID,
+          });
+        }
+        cursor.continue();
+      };
     }
   }
 
@@ -110,7 +140,8 @@
         return;
       }
 
-      request.onupgradeneeded = () => createStores(request.result);
+      request.onupgradeneeded = (event) =>
+        createStores(request.result, request.transaction, event.oldVersion);
       request.onsuccess = () => {
         const database = request.result;
         database.onversionchange = () => {
@@ -197,51 +228,132 @@
     await deleteOne(STORES.images, imageId);
   }
 
+  function valueReferencesImage(value, imageId, depth = 0) {
+    if (depth > 8 || value === null || value === undefined) return false;
+    if (typeof value === "string") return value === imageId;
+    if (Array.isArray(value)) {
+      return value.some((item) => valueReferencesImage(item, imageId, depth + 1));
+    }
+    if (typeof value !== "object" || value instanceof Blob) return false;
+    return Object.values(value).some((item) =>
+      valueReferencesImage(item, imageId, depth + 1),
+    );
+  }
+
+  async function deleteImageIfUnused(imageId) {
+    const id = typeof imageId === "string" ? imageId.trim() : "";
+    if (!id) return false;
+
+    const [characters, appDataRecords] = await Promise.all([
+      readAll(STORES.characters),
+      readAll(STORES.appData),
+    ]);
+    const usedByCharacter = characters.some(
+      (character) =>
+        character.avatarId === id || character.chatBackgroundImageId === id,
+    );
+    const usedByApp = appDataRecords.some((record) =>
+      valueReferencesImage(record.data, id),
+    );
+    if (usedByCharacter || usedByApp) return false;
+
+    await deleteImage(id);
+    return true;
+  }
+
   async function getCharacter(characterId = PRIMARY_CHARACTER_ID) {
     return readOne(STORES.characters, characterId);
   }
 
-  function persistentCharacterRecord(source, id, avatarId, updatedAt) {
+  async function listCharacters() {
+    const characters = await readAll(STORES.characters);
+    return characters.sort((left, right) => {
+      if (left.id === PRIMARY_CHARACTER_ID) return -1;
+      if (right.id === PRIMARY_CHARACTER_ID) return 1;
+      return (
+        Number(left.createdAt || 0) - Number(right.createdAt || 0) ||
+        String(left.name || "").localeCompare(String(right.name || ""), "zh-CN")
+      );
+    });
+  }
+
+  function persistentCharacterRecord(
+    source,
+    id,
+    avatarId,
+    chatBackgroundImageId,
+    updatedAt,
+  ) {
     const record = { ...source };
-    ["avatarUrl", "avatar", "avatarData", "dataUrl"].forEach((key) => {
+    [
+      "avatarUrl",
+      "avatar",
+      "avatarData",
+      "dataUrl",
+      "chatBackgroundUrl",
+      "chatBackgroundData",
+    ].forEach((key) => {
       delete record[key];
     });
     return {
       ...record,
       id,
       avatarId,
+      chatBackgroundImageId,
       updatedAt,
     };
   }
 
-  async function saveCharacter(record, avatarBlob = null) {
+  async function saveCharacter(
+    record,
+    avatarBlob = null,
+    chatBackgroundBlob = null,
+  ) {
     const source = record && typeof record === "object" ? record : {};
-    const imageRecord = avatarBlob ? makeImageRecord(avatarBlob) : null;
+    const avatarImageRecord = avatarBlob ? makeImageRecord(avatarBlob) : null;
+    const chatBackgroundImageRecord = chatBackgroundBlob
+      ? makeImageRecord(chatBackgroundBlob)
+      : null;
     const id = requireStableId(source.id || PRIMARY_CHARACTER_ID, "角色");
-    const avatarId = imageRecord
-      ? imageRecord.id
+    const avatarId = avatarImageRecord
+      ? avatarImageRecord.id
       : typeof source.avatarId === "string"
         ? source.avatarId.trim()
+        : "";
+    const chatBackgroundImageId = chatBackgroundImageRecord
+      ? chatBackgroundImageRecord.id
+      : typeof source.chatBackgroundImageId === "string"
+        ? source.chatBackgroundImageId.trim()
         : "";
     const saved = persistentCharacterRecord(
       source,
       id,
       avatarId,
+      chatBackgroundImageId,
       Date.now(),
     );
 
-    if (avatarId && !imageRecord) {
+    if (avatarId && !avatarImageRecord) {
       const existingImage = await getImage(avatarId);
       if (!existingImage) {
         throw new Error("角色头像引用不存在，未保存角色资料。");
+      }
+    }
+    if (chatBackgroundImageId && !chatBackgroundImageRecord) {
+      const existingImage = await getImage(chatBackgroundImageId);
+      if (!existingImage) {
+        throw new Error("角色聊天背景引用不存在，未保存角色资料。");
       }
     }
 
     await runWriteTransaction(
       [STORES.characters, STORES.images],
       (transaction) => {
-        if (imageRecord) {
-          transaction.objectStore(STORES.images).put(imageRecord);
+        if (avatarImageRecord) {
+          transaction.objectStore(STORES.images).put(avatarImageRecord);
+        }
+        if (chatBackgroundImageRecord) {
+          transaction.objectStore(STORES.images).put(chatBackgroundImageRecord);
         }
         transaction.objectStore(STORES.characters).put(saved);
       },
@@ -258,7 +370,12 @@
   }
 
   async function saveMessages(messages) {
-    const records = normalizeMessageOrder(Array.isArray(messages) ? messages : []);
+    const records = normalizeMessageOrder(Array.isArray(messages) ? messages : []).map(
+      (message) => ({
+        ...message,
+        characterId: message.characterId || PRIMARY_CHARACTER_ID,
+      }),
+    );
     const ids = new Set();
     records.forEach((message) => {
       const id = requireStableId(message.id, "聊天记录");
@@ -279,8 +396,59 @@
     return records;
   }
 
-  async function getMessages() {
-    const messages = await readAll(STORES.messages);
+  async function saveMessagesForCharacter(characterId, messages) {
+    const safeCharacterId = requireStableId(characterId, "角色");
+    const records = normalizeMessageOrder(Array.isArray(messages) ? messages : []).map(
+      (message) => ({
+        ...message,
+        characterId: safeCharacterId,
+      }),
+    );
+    const ids = new Set();
+    records.forEach((message) => {
+      const id = requireStableId(message.id, "聊天记录");
+      if (ids.has(id)) throw new Error(`聊天记录编号重复：${id}`);
+      if (message.role !== "user" && message.role !== "assistant") {
+        throw new Error(`聊天记录 ${id} 的角色无效。`);
+      }
+      if (typeof message.content !== "string" || !message.content.trim()) {
+        throw new Error(`聊天记录 ${id} 的内容为空或格式不正确。`);
+      }
+      ids.add(id);
+    });
+
+    await runWriteTransaction(STORES.messages, (transaction) => {
+      const store = transaction.objectStore(STORES.messages);
+      const index = store.index("by-character");
+      const cursorRequest = index.openKeyCursor(
+        IDBKeyRange.only(safeCharacterId),
+      );
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (cursor) {
+          store.delete(cursor.primaryKey);
+          cursor.continue();
+          return;
+        }
+        records.forEach((message) => store.put(message));
+      };
+    });
+    return records;
+  }
+
+  async function getMessages(characterId = "") {
+    const messages = characterId
+      ? await (async () => {
+          const database = await open();
+          const transaction = database.transaction(STORES.messages, "readonly");
+          return requestToPromise(
+            transaction
+              .objectStore(STORES.messages)
+              .index("by-character")
+              .getAll(characterId),
+          );
+        })()
+      : await readAll(STORES.messages);
     return messages.sort((left, right) => {
       const orderDifference = Number(left.order || 0) - Number(right.order || 0);
       if (orderDifference) return orderDifference;
@@ -409,29 +577,40 @@
   }
 
   function prepareImportedCharacters(records, imageIds) {
-    assertUniqueRecords(records, "id", "角色");
-    return records.map((record) => {
+    const characterIds = assertUniqueRecords(records, "id", "角色");
+    const characters = records.map((record) => {
       if (!record || typeof record !== "object") {
         throw new Error("备份中的角色记录格式不正确。");
       }
       const id = record.id.trim();
       const avatarId =
         typeof record.avatarId === "string" ? record.avatarId.trim() : "";
+      const chatBackgroundImageId =
+        typeof record.chatBackgroundImageId === "string"
+          ? record.chatBackgroundImageId.trim()
+          : "";
       if (avatarId && !imageIds.has(avatarId)) {
         throw new Error(`角色 ${id} 引用了备份中不存在的头像 ${avatarId}。`);
+      }
+      if (chatBackgroundImageId && !imageIds.has(chatBackgroundImageId)) {
+        throw new Error(
+          `角色 ${id} 引用了备份中不存在的聊天背景 ${chatBackgroundImageId}。`,
+        );
       }
       return persistentCharacterRecord(
         record,
         id,
         avatarId,
+        chatBackgroundImageId,
         Number(record.updatedAt) || Date.now(),
       );
     });
+    return { characters, characterIds };
   }
 
-  function prepareImportedMessages(records) {
-    assertUniqueRecords(records, "id", "聊天记录");
-    return records.map((record) => {
+  function prepareImportedMessages(records, characterIds) {
+    const messageIds = assertUniqueRecords(records, "id", "聊天记录");
+    const messages = records.map((record) => {
       if (!record || typeof record !== "object") {
         throw new Error("备份中的聊天记录格式不正确。");
       }
@@ -441,8 +620,16 @@
       if (typeof record.content !== "string" || !record.content.trim()) {
         throw new Error(`聊天记录 ${record.id} 的内容为空或格式不正确。`);
       }
-      return { ...record, id: record.id.trim() };
+      const characterId =
+        typeof record.characterId === "string" && record.characterId.trim()
+          ? record.characterId.trim()
+          : PRIMARY_CHARACTER_ID;
+      if (!characterIds.has(characterId)) {
+        throw new Error(`聊天记录 ${record.id} 引用了备份中不存在的角色 ${characterId}。`);
+      }
+      return { ...record, id: record.id.trim(), characterId };
     });
+    return { messages, messageIds };
   }
 
   function prepareImportedMemories(records) {
@@ -473,13 +660,45 @@
     const rawAppData = requireRecordArray(source.appData, "App 存档");
     const rawImages = requireRecordArray(source.images, "图片");
     const preparedImages = prepareImportedImages(rawImages);
-    const preparedCharacters = prepareImportedCharacters(
+    let preparedCharacters = prepareImportedCharacters(
       rawCharacters,
       preparedImages.imageIds,
     );
+    const needsPrimaryCharacter = rawMessages.some(
+      (record) =>
+        !record ||
+        typeof record.characterId !== "string" ||
+        !record.characterId.trim() ||
+        record.characterId.trim() === PRIMARY_CHARACTER_ID,
+    );
+    if (needsPrimaryCharacter && !preparedCharacters.characterIds.has(PRIMARY_CHARACTER_ID)) {
+      const profile = window.PocketLabCharacterProfile;
+      const fallback = profile
+        ? profile.normalizeCharacter({
+            id: PRIMARY_CHARACTER_ID,
+            ...profile.defaultCharacter,
+          })
+        : {
+            id: PRIMARY_CHARACTER_ID,
+            name: "小雾",
+            persona:
+              "你是小雾，一个住在虚拟小手机里的陪伴角色。请用自然、简洁的中文和对方聊天，保持角色设定，不要替对方说话。",
+            avatarId: "",
+            chatBackgroundImageId: "",
+            maxConsecutiveMessages: 3,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+      preparedCharacters.characters.unshift(fallback);
+      preparedCharacters.characterIds.add(PRIMARY_CHARACTER_ID);
+    }
+    const preparedMessages = prepareImportedMessages(
+      rawMessages,
+      preparedCharacters.characterIds,
+    );
     return {
-      characters: preparedCharacters,
-      messages: prepareImportedMessages(rawMessages),
+      characters: preparedCharacters.characters,
+      messages: preparedMessages.messages,
       memories: prepareImportedMemories(rawMemories),
       appData: prepareImportedAppData(rawAppData),
       images: preparedImages.images,
@@ -543,7 +762,7 @@
 
     const [currentCharacter, currentMessages] = await Promise.all([
       getCharacter(PRIMARY_CHARACTER_ID),
-      getMessages(),
+      getMessages(PRIMARY_CHARACTER_ID),
     ]);
     const existingMessageIds = new Set(currentMessages.map((message) => message.id));
     let expectedCharacter = null;
@@ -555,13 +774,24 @@
         -1,
       ) + 1;
 
-    if (!currentCharacter && legacyCharacter) {
+    const isUntouchedPlaceholder =
+      Boolean(currentCharacter) &&
+      currentMessages.length === 0 &&
+      !currentCharacter.avatarId &&
+      !currentCharacter.chatBackgroundImageId;
+
+    if (legacyCharacter && (!currentCharacter || isUntouchedPlaceholder)) {
       imageRecord = avatarBlob ? makeImageRecord(avatarBlob) : null;
       expectedAvatarId = imageRecord ? imageRecord.id : "";
       expectedCharacter = persistentCharacterRecord(
-        legacyCharacter,
+        {
+          ...(currentCharacter || {}),
+          name: legacyCharacter.name,
+          persona: legacyCharacter.persona,
+        },
         PRIMARY_CHARACTER_ID,
         expectedAvatarId,
+        "",
         Date.now(),
       );
     } else if (currentCharacter && !currentCharacter.avatarId && avatarBlob) {
@@ -571,6 +801,7 @@
         currentCharacter,
         PRIMARY_CHARACTER_ID,
         expectedAvatarId,
+        currentCharacter.chatBackgroundImageId || "",
         Date.now(),
       );
     }
@@ -594,6 +825,7 @@
       messagesToWrite.push({
         ...message,
         id,
+        characterId: PRIMARY_CHARACTER_ID,
         order: nextOrder,
         updatedAt: Date.now(),
       });
@@ -617,7 +849,7 @@
 
     const [verifiedCharacter, verifiedMessages] = await Promise.all([
       getCharacter(PRIMARY_CHARACTER_ID),
-      getMessages(),
+      getMessages(PRIMARY_CHARACTER_ID),
     ]);
     if (expectedCharacter) {
       if (
@@ -747,9 +979,11 @@
     createId,
     readAll,
     getCharacter,
+    listCharacters,
     saveCharacter,
     getMessages,
     saveMessages,
+    saveMessagesForCharacter,
     getMemories,
     saveMemories,
     getAppData,
@@ -759,6 +993,7 @@
     getImageBlob,
     saveImage,
     deleteImage,
+    deleteImageIfUnused,
     getMeta,
     setMeta,
     readAllData,

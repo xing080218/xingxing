@@ -16,6 +16,7 @@ function runTests() {
     avatarId: "image-avatar",
     chatBackgroundImageId: "image-background",
     worldBookId: "world-book-example",
+    selfProfileId: "self-profile-example",
     maxConsecutiveMessages: 7,
   });
   assert.equal(character.id, "character-example");
@@ -24,7 +25,9 @@ function runTests() {
   assert.equal(character.avatarId, "image-avatar");
   assert.equal(character.chatBackgroundImageId, "image-background");
   assert.equal(character.worldBookId, "world-book-example");
+  assert.equal(character.selfProfileId, "self-profile-example");
   assert.equal(character.maxConsecutiveMessages, 7);
+  assert.equal("userProfile" in character, false);
 
   const fallbackCharacter = profile.normalizeCharacter({}, {
     defaultId: profile.PRIMARY_CHARACTER_ID,
@@ -33,6 +36,14 @@ function runTests() {
   assert.equal(fallbackCharacter.name, profile.defaultCharacter.name);
   assert.equal(fallbackCharacter.maxConsecutiveMessages, 3);
   assert.equal(fallbackCharacter.worldBookId, "");
+  assert.equal(fallbackCharacter.selfProfileId, "");
+  assert.equal(
+    profile.normalizeCharacter({
+      selfProfileId: "x".repeat(201),
+      userProfile: { name: "不应被保存", persona: "不应被复制" },
+    }).selfProfileId,
+    "",
+  );
 
   assert.equal(profile.normalizeMessageCharacterId(""), profile.PRIMARY_CHARACTER_ID);
   assert.equal(

@@ -90,6 +90,15 @@
     );
   }
 
+  function getProfiles() {
+    return state.store.profiles.map((profile) => ({ ...profile }));
+  }
+
+  function getProfileById(profileId) {
+    const profile = getProfile(profileId);
+    return profile ? { ...profile } : null;
+  }
+
   function setFeedback(kind, title, message, nextStep = "") {
     const feedback = elements["self-profile-feedback"];
     feedback.dataset.state = kind;
@@ -182,8 +191,8 @@
     }
     const meta = document.createElement("p");
     meta.textContent = isActive
-      ? "下一次聊天会使用这份本人设定"
-      : "未被当前对话使用";
+      ? "当前资料：未指定人设的角色默认使用"
+      : "角色可在编辑页单独选择这份资料";
     titleGroup.append(nameRow, meta);
     heading.append(avatar, titleGroup);
 
@@ -388,7 +397,7 @@
         existing ? "本人资料已更新" : "本人资料已添加",
         existing
           ? `“${validation.value.name}”已保存在本机。`
-          : `“${validation.value.name}”已保存在本机，并设为当前聊天使用的本人设定。`,
+          : `“${validation.value.name}”已保存在本机，并设为未指定人设角色的默认资料。`,
       );
       dispatchChanged();
     } catch (error) {
@@ -490,5 +499,7 @@
     init,
     refresh,
     getActiveProfile,
+    getProfiles,
+    getProfileById,
   });
 })();

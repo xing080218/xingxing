@@ -215,6 +215,22 @@ function Get-RequestPropertyValue {
   return $property.Value
 }
 
+function Test-RequestPropertyExists {
+  param(
+    [AllowNull()]
+    [object]$Request,
+    [string]$Name
+  )
+
+  if ($null -eq $Request) {
+    return $false
+  }
+  if ($Request -is [System.Collections.IDictionary]) {
+    return $Request.Contains($Name)
+  }
+  return $null -ne $Request.PSObject.Properties[$Name]
+}
+
 function Handle-ApiTest {
   param(
     [System.Net.Sockets.NetworkStream]$Stream,
@@ -300,6 +316,8 @@ function Handle-ApiChat {
   $modelName = [string](Get-RequestPropertyValue -Request $request -Name "modelName")
   $characterName = [string](Get-RequestPropertyValue -Request $request -Name "characterName")
   $persona = [string](Get-RequestPropertyValue -Request $request -Name "persona")
+  $worldBookSupplied = Test-RequestPropertyExists -Request $request -Name "worldBook"
+  $worldBook = Get-RequestPropertyValue -Request $request -Name "worldBook"
   $requestMessages = Get-RequestPropertyValue -Request $request -Name "messages"
   $incomingMessages = @($requestMessages | Where-Object { $null -ne $_ })
 
@@ -343,6 +361,76 @@ function Handle-ApiChat {
     return
   }
 
+  if ($worldBookSupplied) {
+    $isWorldBookObject = (
+      $null -ne $worldBook -and
+      (
+        $worldBook -is [System.Collections.IDictionary] -or
+        $worldBook -is [System.Management.Automation.PSCustomObject]
+      )
+    )
+    if (-not $isWorldBookObject) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "世界书格式不正确" -Message "聊天请求里的世界书必须是包含名称和内容的记录。" -NextStep "重新从角色编辑中选择一本世界书，然后重新发送消息。" -Code "invalid_world_book"
+      })
+      return
+    }
+
+    $worldBookNameValue = Get-RequestPropertyValue -Request $worldBook -Name "name"
+    $worldBookContentValue = Get-RequestPropertyValue -Request $worldBook -Name "content"
+    if (
+      $null -eq $worldBookNameValue -or
+      -not ($worldBookNameValue -is [string])
+    ) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "世界书名称为空" -Message "角色绑定的世界书没有名称。" -NextStep "打开角色编辑，重新选择或创建一本世界书后再发送。" -Code "missing_world_book_name"
+      })
+      return
+    }
+    $worldBookName = ([string]$worldBookNameValue).Trim()
+    if ([string]::IsNullOrWhiteSpace($worldBookName)) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "世界书名称为空" -Message "角色绑定的世界书没有名称。" -NextStep "打开角色编辑，重新选择或创建一本世界书后再发送。" -Code "missing_world_book_name"
+      })
+      return
+    }
+    if ($worldBookName.Length -gt 80) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "世界书名称过长" -Message "世界书名称不能超过 80 个字符。" -NextStep "缩短世界书名称后保存，再重新发送消息。" -Code "world_book_name_too_long"
+      })
+      return
+    }
+    if (
+      $null -eq $worldBookContentValue -or
+      -not ($worldBookContentValue -is [string])
+    ) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "世界书内容为空" -Message "角色绑定的世界书没有可发送的内容。" -NextStep "打开角色编辑，重新选择一本有内容的世界书后再发送。" -Code "missing_world_book_content"
+      })
+      return
+    }
+    $worldBookContent = ([string]$worldBookContentValue).Trim()
+    if ([string]::IsNullOrWhiteSpace($worldBookContent)) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "世界书内容为空" -Message "角色绑定的世界书没有可发送的内容。" -NextStep "打开角色编辑，重新选择一本有内容的世界书后再发送。" -Code "missing_world_book_content"
+      })
+      return
+    }
+    if ($worldBookContent.Length -gt 12000) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "世界书内容过长" -Message "世界书内容不能超过 12000 个字符。" -NextStep "精简世界书内容后保存，再重新发送消息。" -Code "world_book_content_too_long"
+      })
+      return
+    }
+  }
+
   if ($incomingMessages.Count -eq 0 -or $incomingMessages.Count -gt 21) {
     Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
       ok = $false
@@ -351,10 +439,16 @@ function Handle-ApiChat {
     return
   }
 
+  $systemContent = "角色名字：$($characterName.Trim())`n$($persona.Trim())"
+  if ($worldBookSupplied) {
+    $systemContent += "`n`n世界书名称：$worldBookName`n世界书内容：$worldBookContent"
+  }
+  $systemContent += "`n`n输出要求：`n只以角色身份输出要发来的消息。`n每条消息单独一行；遇到句号、问号、感叹号等句末标点后换行。`n不要输出动作、神态、旁白、心理描写、角色名、说话人标签、编号、总结、分析或格式提示。"
+
   $providerMessages = [System.Collections.Generic.List[object]]::new()
   $providerMessages.Add([ordered]@{
     role = "system"
-    content = "角色名字：$($characterName.Trim())`n$($persona.Trim())"
+    content = $systemContent
   }) | Out-Null
 
   $hasUserMessage = $false

@@ -644,8 +644,8 @@ svg {
 
 .app-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 17px 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 17px 6px;
 }
 
 .app-icon-button {
@@ -698,6 +698,11 @@ svg {
 .app-chat {
   background: #f2d8a4;
   color: #584a2f;
+}
+
+.app-world-book {
+  background: #c9d9ef;
+  color: #334f78;
 }
 
 .app-settings {

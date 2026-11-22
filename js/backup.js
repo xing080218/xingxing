@@ -2,7 +2,7 @@
 
 (() => {
   const FORMAT = "pocket-lab-backup";
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
 
   function isObject(value) {
     return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -59,6 +59,7 @@
       characters: prepared.characters.map((record) => cloneJson(record)),
       messages: prepared.messages.map((record) => cloneJson(record)),
       memories: prepared.memories.map((record) => cloneJson(record)),
+      worldBooks: prepared.worldBooks.map((record) => cloneJson(record)),
       appData: prepared.appData.map((record) => cloneJson(record)),
       images,
     };
@@ -67,7 +68,8 @@
   function validateAndPrepare(input) {
     if (!isObject(input)) throw new Error("备份文件不是有效的 JSON 对象。");
     if (input.format !== FORMAT) throw new Error("这不是小手机生成的备份文件。");
-    if (Number(input.schemaVersion) !== SCHEMA_VERSION) {
+    const schemaVersion = Number(input.schemaVersion);
+    if (schemaVersion !== 1 && schemaVersion !== SCHEMA_VERSION) {
       throw new Error(`备份版本 ${input.schemaVersion || "未知"} 不受支持。`);
     }
 
@@ -80,10 +82,28 @@
               throw new Error("备份中的图片必须是列表。");
             })();
 
+    const characters =
+      schemaVersion === 1 && Array.isArray(input.characters)
+        ? input.characters.map((record) =>
+            isObject(record) ? { ...record, worldBookId: "" } : record,
+          )
+        : input.characters;
+    const worldBooks =
+      schemaVersion === 1
+        ? []
+        : input.worldBooks === undefined
+          ? []
+          : Array.isArray(input.worldBooks)
+            ? input.worldBooks
+            : (() => {
+                throw new Error("备份中的世界书必须是列表。");
+              })();
+
     return window.PocketLabStorage.prepareImportRecords({
-      characters: input.characters,
+      characters,
       messages: input.messages,
       memories: input.memories,
+      worldBooks,
       appData: input.appData,
       images,
     });

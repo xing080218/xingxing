@@ -2,11 +2,12 @@
 
 (() => {
   const DB_NAME = String(window.POCKET_LAB_DB_NAME || "pocket-lab");
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const STORES = Object.freeze({
     characters: "characters",
     messages: "messages",
     memories: "memories",
+    worldBooks: "worldBooks",
     appData: "appData",
     images: "images",
     meta: "meta",
@@ -15,6 +16,7 @@
     STORES.characters,
     STORES.messages,
     STORES.memories,
+    STORES.worldBooks,
     STORES.appData,
     STORES.images,
   ]);
@@ -96,6 +98,9 @@
     }
     if (!database.objectStoreNames.contains(STORES.memories)) {
       database.createObjectStore(STORES.memories, { keyPath: "id" });
+    }
+    if (!database.objectStoreNames.contains(STORES.worldBooks)) {
+      database.createObjectStore(STORES.worldBooks, { keyPath: "id" });
     }
     if (!database.objectStoreNames.contains(STORES.appData)) {
       database.createObjectStore(STORES.appData, { keyPath: "appId" });
@@ -277,6 +282,97 @@
     });
   }
 
+  function normalizeWorldBookRecord(value) {
+    const model = window.PocketLabWorldBookModel;
+    if (model && typeof model.normalizeWorldBook === "function") {
+      return model.normalizeWorldBook(value);
+    }
+
+    const source = value && typeof value === "object" ? value : {};
+    const now = Date.now();
+    return {
+      id: typeof source.id === "string" ? source.id.trim() : "",
+      name: typeof source.name === "string" ? source.name.trim().slice(0, 80) : "",
+      category:
+        typeof source.category === "string" && source.category.trim()
+          ? source.category.trim().slice(0, 40)
+          : "未分类",
+      content:
+        typeof source.content === "string"
+          ? source.content.trim().slice(0, 12000)
+          : "",
+      createdAt: Number.isFinite(Number(source.createdAt))
+        ? Number(source.createdAt)
+        : now,
+      updatedAt: Number.isFinite(Number(source.updatedAt))
+        ? Number(source.updatedAt)
+        : now,
+    };
+  }
+
+  function validateWorldBookRecord(value, label = "世界书") {
+    const model = window.PocketLabWorldBookModel;
+    const validation =
+      model && typeof model.validateWorldBook === "function"
+        ? model.validateWorldBook(value)
+        : { ok: Boolean(normalizeWorldBookRecord(value).name && normalizeWorldBookRecord(value).content) };
+    if (!validation.ok) {
+      const firstError =
+        Object.values(validation.errors || {}).find(Boolean) ||
+        `${label}内容不完整。`;
+      throw new Error(firstError);
+    }
+    return normalizeWorldBookRecord(value);
+  }
+
+  async function getWorldBook(worldBookId) {
+    if (!worldBookId) return null;
+    return readOne(STORES.worldBooks, String(worldBookId).trim());
+  }
+
+  async function listWorldBooks() {
+    const records = await readAll(STORES.worldBooks);
+    const normalized = records.map((record) => normalizeWorldBookRecord(record));
+    const model = window.PocketLabWorldBookModel;
+    return model && typeof model.sortWorldBooks === "function"
+      ? model.sortWorldBooks(normalized)
+      : normalized;
+  }
+
+  async function saveWorldBook(record) {
+    const validation = validateWorldBookRecord(record);
+    const id = requireStableId(validation.id || record?.id, "世界书");
+    const saved = {
+      ...validation,
+      id,
+      updatedAt: Date.now(),
+      createdAt: Number(validation.createdAt) || Date.now(),
+    };
+    await putOne(STORES.worldBooks, saved);
+    return saved;
+  }
+
+  async function listCharactersUsingWorldBook(worldBookId) {
+    const id = typeof worldBookId === "string" ? worldBookId.trim() : "";
+    if (!id) return [];
+    return (await listCharacters()).filter(
+      (character) => String(character.worldBookId || "").trim() === id,
+    );
+  }
+
+  async function deleteWorldBook(worldBookId) {
+    const id = requireStableId(worldBookId, "世界书");
+    const users = await listCharactersUsingWorldBook(id);
+    if (users.length) {
+      const names = users
+        .map((character) => String(character.name || "未命名角色"))
+        .join("、");
+      throw new Error(`世界书仍绑定角色：${names}。请先在角色编辑中解除绑定。`);
+    }
+    await deleteOne(STORES.worldBooks, id);
+    return true;
+  }
+
   function persistentCharacterRecord(
     source,
     id,
@@ -300,6 +396,11 @@
       id,
       avatarId,
       chatBackgroundImageId,
+      worldBookId:
+        typeof source.worldBookId === "string" &&
+        source.worldBookId.trim().length <= 200
+          ? source.worldBookId.trim()
+          : "",
       updatedAt,
     };
   }
@@ -325,6 +426,8 @@
       : typeof source.chatBackgroundImageId === "string"
         ? source.chatBackgroundImageId.trim()
         : "";
+    const worldBookId =
+      typeof source.worldBookId === "string" ? source.worldBookId.trim() : "";
     const saved = persistentCharacterRecord(
       source,
       id,
@@ -343,6 +446,12 @@
       const existingImage = await getImage(chatBackgroundImageId);
       if (!existingImage) {
         throw new Error("角色聊天背景引用不存在，未保存角色资料。");
+      }
+    }
+    if (worldBookId) {
+      const existingWorldBook = await getWorldBook(worldBookId);
+      if (!existingWorldBook) {
+        throw new Error("角色绑定的世界书不存在，未保存角色资料。");
       }
     }
 
@@ -576,7 +685,24 @@
     return { images, imageIds };
   }
 
-  function prepareImportedCharacters(records, imageIds) {
+  function prepareImportedWorldBooks(records) {
+    const worldBookIds = assertUniqueRecords(records, "id", "世界书");
+    const worldBooks = records.map((record) => {
+      if (!record || typeof record !== "object") {
+        throw new Error("备份中的世界书记录格式不正确。");
+      }
+      const validation = validateWorldBookRecord(record);
+      return {
+        ...validation,
+        id: record.id.trim(),
+        createdAt: Number(validation.createdAt) || Date.now(),
+        updatedAt: Number(validation.updatedAt) || Date.now(),
+      };
+    });
+    return { worldBooks, worldBookIds };
+  }
+
+  function prepareImportedCharacters(records, imageIds, worldBookIds) {
     const characterIds = assertUniqueRecords(records, "id", "角色");
     const characters = records.map((record) => {
       if (!record || typeof record !== "object") {
@@ -589,6 +715,8 @@
         typeof record.chatBackgroundImageId === "string"
           ? record.chatBackgroundImageId.trim()
           : "";
+      const worldBookId =
+        typeof record.worldBookId === "string" ? record.worldBookId.trim() : "";
       if (avatarId && !imageIds.has(avatarId)) {
         throw new Error(`角色 ${id} 引用了备份中不存在的头像 ${avatarId}。`);
       }
@@ -597,8 +725,13 @@
           `角色 ${id} 引用了备份中不存在的聊天背景 ${chatBackgroundImageId}。`,
         );
       }
+      if (worldBookId && !worldBookIds.has(worldBookId)) {
+        throw new Error(
+          `角色 ${id} 引用了备份中不存在的世界书 ${worldBookId}。`,
+        );
+      }
       return persistentCharacterRecord(
-        record,
+        { ...record, worldBookId },
         id,
         avatarId,
         chatBackgroundImageId,
@@ -657,12 +790,15 @@
     const rawCharacters = requireRecordArray(source.characters, "角色");
     const rawMessages = requireRecordArray(source.messages, "聊天记录");
     const rawMemories = requireRecordArray(source.memories, "记忆");
+    const rawWorldBooks = requireRecordArray(source.worldBooks, "世界书");
     const rawAppData = requireRecordArray(source.appData, "App 存档");
     const rawImages = requireRecordArray(source.images, "图片");
     const preparedImages = prepareImportedImages(rawImages);
+    const preparedWorldBooks = prepareImportedWorldBooks(rawWorldBooks);
     let preparedCharacters = prepareImportedCharacters(
       rawCharacters,
       preparedImages.imageIds,
+      preparedWorldBooks.worldBookIds,
     );
     const needsPrimaryCharacter = rawMessages.some(
       (record) =>
@@ -700,6 +836,7 @@
       characters: preparedCharacters.characters,
       messages: preparedMessages.messages,
       memories: prepareImportedMemories(rawMemories),
+      worldBooks: preparedWorldBooks.worldBooks,
       appData: prepareImportedAppData(rawAppData),
       images: preparedImages.images,
     };
@@ -720,6 +857,9 @@
       records.memories.forEach((record) => {
         transaction.objectStore(STORES.memories).put(record);
       });
+      records.worldBooks.forEach((record) => {
+        transaction.objectStore(STORES.worldBooks).put(record);
+      });
       records.appData.forEach((record) => {
         transaction.objectStore(STORES.appData).put(record);
       });
@@ -732,20 +872,23 @@
       characters: records.characters.length,
       messages: records.messages.length,
       memories: records.memories.length,
+      worldBooks: records.worldBooks.length,
       appData: records.appData.length,
       images: records.images.length,
     };
   }
 
   async function readAllData() {
-    const [characters, messages, memories, appData, images] = await Promise.all([
+    const [characters, messages, memories, worldBooks, appData, images] =
+      await Promise.all([
       readAll(STORES.characters),
       getMessages(),
       readAll(STORES.memories),
+      readAll(STORES.worldBooks),
       readAll(STORES.appData),
       readAll(STORES.images),
-    ]);
-    return { characters, messages, memories, appData, images };
+      ]);
+    return { characters, messages, memories, worldBooks, appData, images };
   }
 
   async function migrateLegacyData(input) {
@@ -981,6 +1124,11 @@
     getCharacter,
     listCharacters,
     saveCharacter,
+    getWorldBook,
+    listWorldBooks,
+    saveWorldBook,
+    deleteWorldBook,
+    listCharactersUsingWorldBook,
     getMessages,
     saveMessages,
     saveMessagesForCharacter,

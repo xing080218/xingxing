@@ -24,6 +24,7 @@
       "你是小雾，一个住在虚拟小手机里的陪伴角色。请用自然、简洁的中文和对方聊天，保持角色设定，不要替对方说话。",
     avatarId: "",
     chatBackgroundImageId: "",
+    worldBookId: "",
     maxConsecutiveMessages: DEFAULT_MAX_CONSECUTIVE_MESSAGES,
   });
 
@@ -68,6 +69,10 @@
         : fallback.persona;
     const avatarId = normalizeStableId(source.avatarId);
     const chatBackgroundImageId = normalizeStableId(source.chatBackgroundImageId);
+    const worldBookId = normalizeStableId(
+      source.worldBookId,
+      normalizeStableId(fallback.worldBookId),
+    );
     const now = Date.now();
 
     return {
@@ -76,6 +81,7 @@
       persona,
       avatarId,
       chatBackgroundImageId,
+      worldBookId,
       maxConsecutiveMessages: normalizeMaxConsecutiveMessages(
         source.maxConsecutiveMessages,
         fallback.maxConsecutiveMessages,

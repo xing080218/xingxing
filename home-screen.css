@@ -24,7 +24,63 @@
   outline-offset: 3px;
 }
 
-.home-view.is-editing .app-grid {
+.home-app-dock {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 1.4cqw, 8px);
+  width: 100%;
+  min-height: 92px;
+  margin-top: auto;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 29px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.14)),
+    rgba(214, 239, 250, 0.28);
+  box-shadow:
+    0 14px 34px rgba(43, 82, 103, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  backdrop-filter: blur(22px) saturate(145%);
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.home-app-dock .home-app-tile {
+  flex: 0 1 62px;
+  width: 62px;
+  min-height: 72px;
+  gap: 6px;
+}
+
+.home-app-dock .home-app-tile > span:last-child {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-app-dock .home-app-tile .app-icon {
+  flex-basis: clamp(48px, 14.2cqw, 56px);
+  width: clamp(48px, 14.2cqw, 56px);
+  height: clamp(48px, 14.2cqw, 56px);
+}
+
+.home-app-dock.is-drop-target {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.24)),
+    rgba(188, 231, 247, 0.5);
+  box-shadow:
+    0 16px 38px rgba(43, 82, 103, 0.2),
+    inset 0 0 0 2px rgba(65, 139, 170, 0.28);
+}
+
+.home-view.is-editing .app-grid,
+.home-view.is-editing .home-app-dock {
   cursor: grabbing;
 }
 
@@ -48,8 +104,7 @@
   transform: none;
 }
 
-.home-view.is-editing .device-summary,
-.home-view.is-editing .home-self-profile-card {
+.home-view.is-editing .device-summary {
   pointer-events: none;
 }
 
@@ -137,6 +192,18 @@
     column-gap: 6px;
   }
 
+  .home-app-dock {
+    min-height: 86px;
+    padding: 9px 6px;
+    border-radius: 25px;
+  }
+
+  .home-app-dock .home-app-tile {
+    flex-basis: 56px;
+    width: 56px;
+    min-height: 68px;
+  }
+
   .home-app-tile {
     min-height: 76px;
     gap: 7px;
@@ -151,6 +218,26 @@
   .app-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px 12px;
+  }
+
+  .home-app-dock {
+    min-height: 72px;
+    margin-bottom: 0;
+    padding: 7px;
+    border-radius: 23px;
+  }
+
+  .home-app-dock .home-app-tile {
+    flex-basis: 52px;
+    width: 52px;
+    min-height: 58px;
+    gap: 4px;
+  }
+
+  .home-app-dock .home-app-tile .app-icon {
+    flex-basis: 46px;
+    width: 46px;
+    height: 46px;
   }
 
   .home-app-tile {

@@ -6,6 +6,7 @@
     modelName: "pocket-lab-model-name",
     apiKey: "pocket-lab-api-key",
     connected: "pocket-lab-connected",
+    activeCharacterId: "pocket-lab-active-character-id",
   });
 
   const legacyKeys = Object.freeze({
@@ -72,6 +73,18 @@
       return connected
         ? write(window.sessionStorage, keys.connected, "true")
         : remove(window.sessionStorage, keys.connected);
+    },
+
+    readActiveCharacterId() {
+      return read(window.localStorage, keys.activeCharacterId).trim();
+    },
+
+    saveActiveCharacterId(characterId) {
+      return write(
+        window.localStorage,
+        keys.activeCharacterId,
+        String(characterId || "").trim(),
+      );
     },
 
     readLegacyValue(key) {

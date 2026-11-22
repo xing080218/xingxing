@@ -17,26 +17,26 @@
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/assets/icons/favicon-32.png?v=20261122-05"
+      href="/assets/icons/favicon-32.png?v=20261122-08"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="64x64"
-      href="/assets/icons/favicon-64.png?v=20261122-05"
+      href="/assets/icons/favicon-64.png?v=20261122-08"
     />
     <link
       rel="apple-touch-icon"
       type="image/png"
       sizes="180x180"
-      href="/assets/icons/apple-touch-icon.png?v=20261122-05"
+      href="/assets/icons/apple-touch-icon.png?v=20261122-08"
     />
-    <link rel="manifest" href="/site.webmanifest?v=20261122-05" />
+    <link rel="manifest" href="/site.webmanifest?v=20261122-08" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="濴星语" />
-    <title>濴星语 · 单角色对话</title>
+    <title>濴星语 · 多角色对话</title>
     <style id="critical-bootstrap-style">
       html,
       body {
@@ -216,8 +216,8 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=20261122-05" />
-    <link rel="stylesheet" href="/beautify.css?v=20261122-05" />
+    <link rel="stylesheet" href="/styles.css?v=20261122-08" />
+    <link rel="stylesheet" href="/beautify.css?v=20261122-08" />
   </head>
   <body>
     <aside
@@ -238,7 +238,7 @@
         </p>
         <div class="service-warning-actions">
           <button id="service-warning-retry" type="button">重新检查</button>
-          <a href="/mobile-check.html?v=20261122-05">连接检查页</a>
+          <a href="/mobile-check.html?v=20261122-08">连接检查页</a>
         </div>
       </div>
       <button
@@ -254,7 +254,7 @@
     <div class="bootstrap-status" id="bootstrap-status" role="status" aria-live="polite">
       <strong id="bootstrap-title">正在打开濴星语</strong>
       <span id="bootstrap-message">页面已开始加载，正在检查本地服务。</span>
-      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261122-05</span>
+      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261122-08</span>
       <ol class="bootstrap-steps" aria-label="启动检查">
         <li class="bootstrap-step" data-bootstrap-step="page" data-state="ok">
           <span class="bootstrap-step-marker" aria-hidden="true">1</span>
@@ -272,8 +272,8 @@
       <div class="bootstrap-actions">
         <button id="bootstrap-retry" type="button">重新加载</button>
         <button id="bootstrap-details-toggle" type="button" aria-expanded="false">显示诊断信息</button>
-        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261122-05">连接检查页</a>
-        <a href="/connect.html?v=20261122-05">电脑连接入口</a>
+        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261122-08">连接检查页</a>
+        <a href="/connect.html?v=20261122-08">电脑连接入口</a>
       </div>
       <pre class="bootstrap-details is-hidden" id="bootstrap-details" aria-label="启动诊断信息"></pre>
     </div>
@@ -664,9 +664,35 @@
                 </div>
               </section>
 
-              <section class="view chat-view" id="chat-view" aria-label="单角色聊天">
+              <section class="view character-list-view" id="character-list-view" aria-label="人物列表">
+                <header class="app-header character-list-header">
+                  <button class="back-button" id="character-list-back" type="button" aria-label="返回主屏幕">
+                    <span data-icon="chevron-left"></span>
+                  </button>
+                  <div>
+                    <p class="eyebrow">CHARACTERS</p>
+                    <h1>人物列表</h1>
+                  </div>
+                  <button
+                    class="character-add-button"
+                    id="add-character-from-list"
+                    type="button"
+                    aria-label="添加新角色"
+                    title="添加新角色"
+                  >
+                    <span data-icon="plus"></span>
+                  </button>
+                </header>
+
+                <div class="character-list-scroll" id="character-list-scroll">
+                  <p class="character-list-description">选择一个角色开始聊天。每个角色的人设、聊天记录和聊天背景彼此独立。</p>
+                  <div class="character-list" id="character-list" role="list"></div>
+                </div>
+              </section>
+
+              <section class="view chat-view" id="chat-view" aria-label="角色聊天">
                 <header class="chat-header">
-                  <button class="back-button" id="chat-back" type="button" aria-label="返回主屏幕">
+                  <button class="back-button" id="chat-back" type="button" aria-label="返回人物列表">
                     <span data-icon="chevron-left"></span>
                   </button>
                   <div class="chat-contact">
@@ -680,9 +706,11 @@
                       </span>
                     </div>
                   </div>
-                  <button class="chat-edit-button" id="edit-character-button" type="button" aria-label="编辑角色">
-                    <span data-icon="pen-line"></span>
-                  </button>
+                  <div class="chat-header-actions">
+                    <button class="chat-edit-button" id="edit-character-button" type="button" aria-label="编辑当前角色" title="编辑角色">
+                      <span data-icon="pen-line"></span>
+                    </button>
+                  </div>
                 </header>
 
                 <div class="chat-connection-warning is-hidden" id="chat-connection-warning">
@@ -730,63 +758,6 @@
                   </p>
                 </form>
 
-                <div class="character-modal is-hidden" id="character-modal" role="dialog" aria-modal="true" aria-labelledby="character-modal-title">
-                  <div class="character-modal-card">
-                    <div class="character-modal-header">
-                      <div>
-                        <p class="eyebrow">CHARACTER PROFILE</p>
-                        <h2 id="character-modal-title">编辑角色</h2>
-                      </div>
-                      <button class="round-icon-button modal-close-button" id="close-character-modal" type="button" aria-label="关闭角色编辑">
-                        <span data-icon="x"></span>
-                      </button>
-                    </div>
-
-                    <form id="character-form" novalidate>
-                      <div class="character-avatar-editor">
-                        <div class="chat-avatar character-avatar-preview" id="character-avatar-preview" aria-hidden="true"></div>
-                        <div class="character-avatar-actions">
-                          <label class="avatar-upload-button" for="avatar-file">
-                            <span data-icon="image-plus"></span>
-                            更换头像
-                          </label>
-                          <input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" />
-                          <button class="clear-avatar-button" id="clear-avatar" type="button">移除头像</button>
-                          <span class="field-help">支持 PNG、JPG 或 WebP，会自动压缩后保存在本机。</span>
-                        </div>
-                      </div>
-
-                      <label class="field">
-                        <span class="field-label">
-                          <span data-icon="user-round"></span>
-                          角色名字
-                        </span>
-                        <input id="character-name" type="text" maxlength="24" autocomplete="off" placeholder="例如：小雾" required />
-                        <span class="field-error" id="character-name-error"></span>
-                      </label>
-
-                      <label class="field">
-                        <span class="field-label">
-                          <span data-icon="scroll-text"></span>
-                          角色人设
-                        </span>
-                        <textarea id="character-persona" rows="6" maxlength="4000" placeholder="描述角色的身份、性格、说话方式和边界。" required></textarea>
-                        <span class="field-help">每次发送都会把这段人设作为系统提示交给模型。</span>
-                        <span class="field-error" id="character-persona-error"></span>
-                      </label>
-
-                      <div class="character-form-actions">
-                        <button class="secondary-button" id="cancel-character" type="button">取消</button>
-                        <button class="primary-button" id="save-character" type="submit">
-                          <span class="button-label">
-                            <span data-icon="check"></span>
-                            保存角色
-                          </span>
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
               </section>
 
               <section class="view beautify-view" id="beautify-view" aria-label="美化">
@@ -1141,6 +1112,105 @@
                   </button>
                 </div>
               </section>
+
+              <div class="character-modal is-hidden" id="character-modal" role="dialog" aria-modal="true" aria-labelledby="character-modal-title">
+                <div class="character-modal-card">
+                  <div class="character-modal-header">
+                    <div>
+                      <p class="eyebrow">CHARACTER PROFILE</p>
+                      <h2 id="character-modal-title">编辑角色</h2>
+                    </div>
+                    <button class="round-icon-button modal-close-button" id="close-character-modal" type="button" aria-label="关闭角色编辑">
+                      <span data-icon="x"></span>
+                    </button>
+                  </div>
+
+                  <form id="character-form" novalidate>
+                    <div class="character-avatar-editor">
+                      <div class="chat-avatar character-avatar-preview" id="character-avatar-preview" aria-hidden="true"></div>
+                      <div class="character-avatar-actions">
+                        <label class="avatar-upload-button" for="avatar-file">
+                          <span data-icon="image-plus"></span>
+                          更换头像
+                        </label>
+                        <input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" />
+                        <button class="clear-avatar-button" id="clear-avatar" type="button">移除头像</button>
+                        <span class="field-help">支持 PNG、JPG 或 WebP，会自动压缩后保存在本机。</span>
+                      </div>
+                    </div>
+
+                    <label class="field">
+                      <span class="field-label">
+                        <span data-icon="user-round"></span>
+                        角色名字
+                      </span>
+                      <input id="character-name" type="text" maxlength="24" autocomplete="off" placeholder="例如：小雾" required />
+                      <span class="field-error" id="character-name-error"></span>
+                    </label>
+
+                    <label class="field">
+                      <span class="field-label">
+                        <span data-icon="scroll-text"></span>
+                        角色人设
+                      </span>
+                      <textarea id="character-persona" rows="6" maxlength="4000" placeholder="描述角色的身份、性格、说话方式和边界。" required></textarea>
+                      <span class="field-help">每次发送都会把这段人设作为系统提示交给模型。</span>
+                      <span class="field-error" id="character-persona-error"></span>
+                    </label>
+
+                    <label class="field character-range-field">
+                      <span class="field-label">
+                        <span data-icon="messages-square"></span>
+                        最大连发消息数
+                        <output id="character-max-messages-value" for="character-max-messages">3 条</output>
+                      </span>
+                      <input
+                        id="character-max-messages"
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value="3"
+                        aria-describedby="character-max-messages-help"
+                      />
+                      <span class="range-scale" aria-hidden="true">
+                        <span>1 条</span>
+                        <span>10 条</span>
+                      </span>
+                      <span class="field-help" id="character-max-messages-help">角色每次回复最多拆成几条连续消息，超出内容会自然合并到最后一条。</span>
+                    </label>
+
+                    <div class="field character-background-field">
+                      <span class="field-label">
+                        <span data-icon="image-plus"></span>
+                        当前角色的聊天背景
+                      </span>
+                      <div class="character-background-preview" id="character-background-preview">
+                        <span>使用全局聊天背景</span>
+                      </div>
+                      <div class="character-background-actions">
+                        <label class="avatar-upload-button" for="character-chat-background-file">
+                          <span data-icon="image-plus"></span>
+                          选择背景图片
+                        </label>
+                        <input id="character-chat-background-file" type="file" accept="image/png,image/jpeg,image/webp" />
+                        <button class="clear-avatar-button" id="clear-character-background" type="button">恢复全局背景</button>
+                      </div>
+                      <span class="field-help">支持 PNG、JPG 或 WebP，最大 16 MB；只作用于当前角色。</span>
+                    </div>
+
+                    <div class="character-form-actions">
+                      <button class="secondary-button" id="cancel-character" type="button">取消</button>
+                      <button class="primary-button" id="save-character" type="submit">
+                        <span class="button-label">
+                          <span data-icon="check"></span>
+                          <span id="save-character-label">保存角色</span>
+                        </span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
 
             <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1154,18 +1224,19 @@
       </section>
     </main>
 
-    <script src="/js/settings-store.js?v=20261122-05" defer></script>
-    <script src="/js/media.js?v=20261122-05" defer></script>
-    <script src="/js/storage.js?v=20261122-05" defer></script>
-    <script src="/js/appearance-store.js?v=20261122-05" defer></script>
-    <script src="/js/backup.js?v=20261122-05" defer></script>
-    <script src="/bootstrap.js?v=20261122-05" defer></script>
-    <script src="/js/lock-password-store.js?v=20261122-05" defer></script>
-    <script src="/js/lock-screen.js?v=20261122-05" defer></script>
-    <script src="/js/beautify.js?v=20261122-05" defer></script>
-    <script src="/js/chat-summary-mode.js?v=20261122-05" defer></script>
-    <script src="/js/reply-reveal.js?v=20261122-05" defer></script>
-    <script src="/app.js?v=20261122-05" defer></script>
+    <script src="/js/character-profile.js?v=20261122-08" defer></script>
+    <script src="/js/settings-store.js?v=20261122-08" defer></script>
+    <script src="/js/media.js?v=20261122-08" defer></script>
+    <script src="/js/storage.js?v=20261122-08" defer></script>
+    <script src="/js/appearance-store.js?v=20261122-08" defer></script>
+    <script src="/js/backup.js?v=20261122-08" defer></script>
+    <script src="/bootstrap.js?v=20261122-08" defer></script>
+    <script src="/js/lock-password-store.js?v=20261122-08" defer></script>
+    <script src="/js/lock-screen.js?v=20261122-08" defer></script>
+    <script src="/js/beautify.js?v=20261122-08" defer></script>
+    <script src="/js/chat-summary-mode.js?v=20261122-08" defer></script>
+    <script src="/js/reply-reveal.js?v=20261122-08" defer></script>
+    <script src="/app.js?v=20261122-08" defer></script>
     <noscript>
       <div class="bootstrap-status bootstrap-status-error">
         <strong>浏览器没有启用 JavaScript</strong>

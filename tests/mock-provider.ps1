@@ -7,6 +7,8 @@
   [int]$ResetFirstRequests = 0,
   [int]$MaxConnections = 0,
   [int]$DelayMilliseconds = 0,
+  [switch]$RepeatReplies,
+  [int]$MaxRequests = 8,
   [string]$RecordPath = ""
 )
 
@@ -219,7 +221,10 @@ try {
     if ($MaxConnections -gt 0 -and $connectionNumber -ge $MaxConnections) {
       break
     }
-    if (-not $ChatSequence -and $requestNumber -ge 1) {
+    if ($RepeatReplies -and $requestNumber -ge $MaxRequests) {
+      break
+    }
+    if (-not $ChatSequence -and -not $RepeatReplies -and $requestNumber -ge 1) {
       break
     }
     if ($ChatSequence -and $requestNumber -ge 8) {
@@ -292,7 +297,9 @@ try {
         Start-Sleep -Milliseconds $DelayMilliseconds
       }
 
-      if ($ChatSequence) {
+      if ($RepeatReplies) {
+        Write-HttpResponse -Stream $stream -StatusCode 200 -Reason "OK" -Body (New-ReplyJson -Content "Test reply $requestNumber.")
+      } elseif ($ChatSequence) {
         $messages = @($bodyObject.messages)
         $firstReply = if ($PunctuationReply) {
           "今天先别急着赶路。要不要坐下来歇一会儿？晚饭想吃什么？"

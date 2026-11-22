@@ -1,0 +1,170 @@
+.app-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 19px 8px;
+  align-items: start;
+}
+
+.home-app-tile {
+  min-height: 82px;
+  justify-content: flex-start;
+  gap: 8px;
+  border-radius: 17px;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+}
+
+.home-app-tile .app-icon {
+  flex: 0 0 56px;
+}
+
+.home-app-tile:focus-visible {
+  outline: 3px solid rgba(65, 139, 170, 0.36);
+  outline-offset: 3px;
+}
+
+.home-view.is-editing .app-grid {
+  cursor: grabbing;
+}
+
+.home-view.is-editing .home-app-tile {
+  touch-action: none;
+}
+
+.home-view.is-editing .home-app-tile .app-icon {
+  animation: home-app-jiggle 420ms ease-in-out infinite alternate;
+}
+
+.home-view.is-editing .home-app-tile:nth-child(2n) .app-icon {
+  animation-delay: -130ms;
+}
+
+.home-view.is-editing .home-app-tile:nth-child(3n) .app-icon {
+  animation-delay: -260ms;
+}
+
+.home-view.is-editing .home-app-tile:hover .app-icon {
+  transform: none;
+}
+
+.home-view.is-editing .device-summary,
+.home-view.is-editing .home-self-profile-card {
+  pointer-events: none;
+}
+
+.home-app-tile.is-drag-source {
+  opacity: 0.2;
+}
+
+.home-app-tile.is-drag-source .app-icon {
+  animation-play-state: paused;
+}
+
+.home-app-drag-ghost {
+  position: fixed;
+  z-index: 90;
+  margin: 0;
+  pointer-events: none;
+  opacity: 0.96;
+  filter: drop-shadow(0 18px 18px rgba(42, 77, 96, 0.2));
+  will-change: transform;
+}
+
+.home-app-drag-ghost .app-icon {
+  animation: none;
+}
+
+.home-edit-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  color: #2d5d77;
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 7px 16px rgba(52, 91, 112, 0.1);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.home-edit-done[hidden],
+.date-label[hidden] {
+  display: none;
+}
+
+.home-edit-done svg {
+  width: 13px;
+  height: 13px;
+}
+
+.home-edit-done:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
+.home-screen-edit-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes home-app-jiggle {
+  0% {
+    transform: rotate(-1.35deg) translateY(-0.5px);
+  }
+
+  100% {
+    transform: rotate(1.35deg) translateY(0.5px);
+  }
+}
+
+@media (max-width: 360px) {
+  .app-grid {
+    column-gap: 6px;
+  }
+
+  .home-app-tile {
+    min-height: 76px;
+    gap: 7px;
+  }
+
+  .home-app-tile .app-icon {
+    flex-basis: 52px;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .app-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px 12px;
+  }
+
+  .home-app-tile {
+    min-height: 62px;
+    gap: 4px;
+  }
+
+  .home-app-tile .app-icon {
+    flex-basis: 46px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-view.is-editing .home-app-tile .app-icon {
+    animation: none;
+  }
+}

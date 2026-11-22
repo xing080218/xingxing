@@ -135,6 +135,9 @@ async function initializeApp() {
     await restoreSettings();
     restoreLockPasswordSettings();
     await restoreChat();
+    await window.PocketLabHomeScreenApp.init({
+      onError: reportStorageError,
+    });
     await window.PocketLabSelfProfileApp.init();
     await window.PocketLabWorldBookApp.init();
     await window.PocketLabBeautify.init({
@@ -440,6 +443,13 @@ function bindEvents() {
 }
 
 function showView(viewName, options = {}) {
+  if (
+    viewName !== "home" &&
+    window.PocketLabHomeScreenApp &&
+    window.PocketLabHomeScreenApp.isEditing()
+  ) {
+    window.PocketLabHomeScreenApp.exitEditMode();
+  }
   state.activeView = viewName;
   const views = {
     home: elements["home-view"],
@@ -466,6 +476,14 @@ function showView(viewName, options = {}) {
 
   if (viewName === "characters") {
     renderCharacterList();
+  }
+
+  if (
+    viewName === "home" &&
+    window.PocketLabHomeScreenApp &&
+    !options.initial
+  ) {
+    window.PocketLabHomeScreenApp.refresh({ silent: true });
   }
 
   if (viewName === "beautify" && window.PocketLabBeautify) {

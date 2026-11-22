@@ -162,6 +162,10 @@ try {
     modelName = "test-model"
     characterName = "Test Character"
     persona = "Test persona."
+    userProfile = [ordered]@{
+      name = "Test User"
+      persona = "User profile must enter the system prompt."
+    }
     worldBook = [ordered]@{
       name = "Test World Book"
       content = "World Book content must enter the system prompt."
@@ -188,17 +192,19 @@ try {
     ConvertFrom-Json -ErrorAction Stop
   $systemContent = [string]$record.messages[0].content
   if (
+    $systemContent -notmatch "Test User" -or
+    $systemContent -notmatch "User profile must enter the system prompt." -or
     $systemContent -notmatch "Test World Book" -or
     $systemContent -notmatch "World Book content must enter the system prompt." -or
     $record.messages[1].content -ne "Hello"
   ) {
-    throw "World Book content was not inserted into the system prompt correctly."
+    throw "User profile and World Book content were not inserted into the system prompt correctly."
   }
   if ($systemContent -match "API Key") {
     throw "Unexpected content was inserted into the system prompt."
   }
 
-  Write-Host "Local API contract test passed: incomplete settings return HTTP 400 with guidance and World Book content reaches the provider."
+  Write-Host "Local API contract test passed: incomplete settings return HTTP 400 with guidance, and user profile plus World Book content reach the provider through the system prompt."
 } finally {
   if ($null -ne $mockProcess -and -not $mockProcess.HasExited) {
     Stop-Process -Id $mockProcess.Id -Force -ErrorAction SilentlyContinue

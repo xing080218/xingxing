@@ -122,6 +122,24 @@ async function run() {
   );
   assert.equal(built.messages[1].content, "你好");
 
+  const withUserProfile = buildChatMessages({
+    characterName: "占位角色",
+    persona: "你是用于测试的占位角色。",
+    userProfile: {
+      name: "占位用户",
+      persona: "用户是一名测试者。",
+    },
+    messages: [{ role: "user", content: "你好" }],
+  });
+  assert.equal(withUserProfile.ok, true);
+  assert.match(
+    withUserProfile.messages[0].content,
+    /角色名字：占位角色\n你是用于测试的占位角色。\n\n用户本人设定：\n名字：占位用户\n人设：用户是一名测试者。\n这是用户本人设定，只用于理解用户身份；角色不能代替用户说话。\n\n输出要求：/,
+  );
+  assert.equal(withUserProfile.messages[1].content, "你好");
+  assert.doesNotMatch(withUserProfile.messages[1].content, /占位用户/);
+  assert.doesNotMatch(withUserProfile.messages[1].content, /用户是一名测试者/);
+
   const withWorldBook = buildChatMessages({
     characterName: "占位角色",
     persona: "你是用于测试的占位角色。",
@@ -141,6 +159,51 @@ async function run() {
     withWorldBook.messages[1].content,
     /这个世界书只存在于系统提示中。/,
   );
+
+  const withProfileAndWorldBook = buildChatMessages({
+    characterName: "占位角色",
+    persona: "你是用于测试的占位角色。",
+    userProfile: {
+      name: "占位用户",
+      persona: "用户的资料只进入系统提示。",
+    },
+    worldBook: {
+      name: "占位世界书",
+      content: "世界书和本人资料需要同时保留。",
+    },
+    messages: [{ role: "user", content: "你好" }],
+  });
+  assert.equal(withProfileAndWorldBook.ok, true);
+  assert.match(
+    withProfileAndWorldBook.messages[0].content,
+    /用户本人设定：[\s\S]*世界书名称：占位世界书/,
+  );
+  assert.match(
+    withProfileAndWorldBook.messages[0].content,
+    /世界书和本人资料需要同时保留。/,
+  );
+  assert.equal(withProfileAndWorldBook.messages[1].content, "你好");
+
+  for (const invalidUserProfile of [
+    null,
+    [],
+    "本人资料",
+    {},
+    { name: "", persona: "用户人设" },
+    { name: "名".repeat(25), persona: "用户人设" },
+    { name: "占位用户", persona: "" },
+    { name: "占位用户", persona: "文".repeat(4001) },
+  ]) {
+    const invalid = buildChatMessages({
+      characterName: "占位角色",
+      persona: "你是用于测试的占位角色。",
+      userProfile: invalidUserProfile,
+      messages: [{ role: "user", content: "你好" }],
+    });
+    assert.equal(invalid.ok, false);
+    assert.equal(typeof invalid.error.title, "string");
+    assert.equal(typeof invalid.error.nextStep, "string");
+  }
 
   for (const invalidWorldBook of [
     null,
@@ -220,6 +283,10 @@ async function run() {
           modelName: "mock-chat-model",
           characterName: "占位角色",
           persona: "你是用于测试的占位角色。",
+          userProfile: {
+            name: "占位用户",
+            persona: "本人资料必须进入系统提示。",
+          },
           worldBook: {
             name: "占位世界书",
             content: "世界书内容必须进入系统提示。",
@@ -232,6 +299,9 @@ async function run() {
     );
     assert.equal(response.statusCode, 200);
     const routedBody = JSON.parse(mock.requests[3].body);
+    assert.match(routedBody.messages[0].content, /用户本人设定：/);
+    assert.match(routedBody.messages[0].content, /名字：占位用户/);
+    assert.match(routedBody.messages[0].content, /本人资料必须进入系统提示。/);
     assert.match(routedBody.messages[0].content, /世界书名称：占位世界书/);
     assert.match(routedBody.messages[0].content, /世界书内容必须进入系统提示。/);
     assert.equal(routedBody.messages[1].content, "你好");

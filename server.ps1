@@ -316,6 +316,8 @@ function Handle-ApiChat {
   $modelName = [string](Get-RequestPropertyValue -Request $request -Name "modelName")
   $characterName = [string](Get-RequestPropertyValue -Request $request -Name "characterName")
   $persona = [string](Get-RequestPropertyValue -Request $request -Name "persona")
+  $userProfileSupplied = Test-RequestPropertyExists -Request $request -Name "userProfile"
+  $userProfile = Get-RequestPropertyValue -Request $request -Name "userProfile"
   $worldBookSupplied = Test-RequestPropertyExists -Request $request -Name "worldBook"
   $worldBook = Get-RequestPropertyValue -Request $request -Name "worldBook"
   $requestMessages = Get-RequestPropertyValue -Request $request -Name "messages"
@@ -359,6 +361,76 @@ function Handle-ApiChat {
       error = New-ConnectionError -Title "角色人设过长" -Message "人设超过 4000 个字符。" -NextStep "精简角色人设后保存，再重新发送消息。"
     })
     return
+  }
+
+  if ($userProfileSupplied) {
+    $isUserProfileObject = (
+      $null -ne $userProfile -and
+      (
+        $userProfile -is [System.Collections.IDictionary] -or
+        $userProfile -is [System.Management.Automation.PSCustomObject]
+      )
+    )
+    if (-not $isUserProfileObject) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "本人资料格式不正确" -Message "聊天请求里的本人资料必须是包含名字和人设的记录。" -NextStep "打开主屏幕“我”，重新选择当前本人资料后再发送。" -Code "invalid_user_profile"
+      })
+      return
+    }
+
+    $userProfileNameValue = Get-RequestPropertyValue -Request $userProfile -Name "name"
+    $userProfilePersonaValue = Get-RequestPropertyValue -Request $userProfile -Name "persona"
+    if (
+      $null -eq $userProfileNameValue -or
+      -not ($userProfileNameValue -is [string])
+    ) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "本人资料名字为空" -Message "当前本人资料没有名字。" -NextStep "打开主屏幕“我”，编辑当前资料并填写名字后再发送。" -Code "missing_user_profile_name"
+      })
+      return
+    }
+    $userProfileName = ([string]$userProfileNameValue).Trim()
+    if ([string]::IsNullOrWhiteSpace($userProfileName)) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "本人资料名字为空" -Message "当前本人资料没有名字。" -NextStep "打开主屏幕“我”，编辑当前资料并填写名字后再发送。" -Code "missing_user_profile_name"
+      })
+      return
+    }
+    if ($userProfileName.Length -gt 24) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "本人资料名字过长" -Message "本人资料名字不能超过 24 个字符。" -NextStep "打开主屏幕“我”，缩短当前资料名字后再发送。" -Code "user_profile_name_too_long"
+      })
+      return
+    }
+    if (
+      $null -eq $userProfilePersonaValue -or
+      -not ($userProfilePersonaValue -is [string])
+    ) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "本人人设为空" -Message "当前本人资料没有可发送的人设内容。" -NextStep "打开主屏幕“我”，编辑当前资料并填写人设后再发送。" -Code "missing_user_profile_persona"
+      })
+      return
+    }
+    $userProfilePersona = ([string]$userProfilePersonaValue).Trim()
+    if ([string]::IsNullOrWhiteSpace($userProfilePersona)) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "本人人设为空" -Message "当前本人资料没有可发送的人设内容。" -NextStep "打开主屏幕“我”，编辑当前资料并填写人设后再发送。" -Code "missing_user_profile_persona"
+      })
+      return
+    }
+    if ($userProfilePersona.Length -gt 4000) {
+      Send-Json -Stream $Stream -StatusCode 400 -Payload ([ordered]@{
+        ok = $false
+        error = New-ConnectionError -Title "本人人设过长" -Message "本人人设不能超过 4000 个字符。" -NextStep "打开主屏幕“我”，精简当前资料人设后再发送。" -Code "user_profile_persona_too_long"
+      })
+      return
+    }
   }
 
   if ($worldBookSupplied) {
@@ -440,6 +512,9 @@ function Handle-ApiChat {
   }
 
   $systemContent = "角色名字：$($characterName.Trim())`n$($persona.Trim())"
+  if ($userProfileSupplied) {
+    $systemContent += "`n`n用户本人设定：`n名字：$userProfileName`n人设：$userProfilePersona`n这是用户本人设定，只用于理解用户身份；角色不能代替用户说话。"
+  }
   if ($worldBookSupplied) {
     $systemContent += "`n`n世界书名称：$worldBookName`n世界书内容：$worldBookContent"
   }

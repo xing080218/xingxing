@@ -135,6 +135,7 @@ async function initializeApp() {
     await restoreSettings();
     restoreLockPasswordSettings();
     await restoreChat();
+    await window.PocketLabSelfProfileApp.init();
     await window.PocketLabWorldBookApp.init();
     await window.PocketLabBeautify.init({
       onError: reportStorageError,
@@ -209,6 +210,7 @@ function cacheElements() {
     "settings-view",
     "beautify-view",
     "world-books-view",
+    "self-profile-view",
     "guide-view",
     "status-time",
     "home-date",
@@ -225,6 +227,10 @@ function cacheElements() {
     "guide-back",
     "guide-go-settings",
     "world-books-back",
+    "self-profile-back",
+    "open-self-profile-app",
+    "home-self-profile-name",
+    "home-self-profile-description",
     "chat-header-avatar",
     "chat-character-name",
     "chat-api-status",
@@ -321,6 +327,9 @@ function bindEvents() {
   document
     .getElementById("open-world-books-app")
     .addEventListener("click", () => showView("world-books"));
+  elements["open-self-profile-app"].addEventListener("click", () =>
+    showView("self-profile"),
+  );
   document.getElementById("open-guide-app").addEventListener("click", () => showView("guide"));
   document.getElementById("open-settings-app").addEventListener("click", () => showView("settings"));
   document.getElementById("beautify-back").addEventListener("click", () => showView("home"));
@@ -337,6 +346,7 @@ function bindEvents() {
   elements["guide-back"].addEventListener("click", () => showView("home"));
   elements["guide-go-settings"].addEventListener("click", () => showView("settings"));
   elements["world-books-back"].addEventListener("click", () => showView("home"));
+  elements["self-profile-back"].addEventListener("click", () => showView("home"));
   elements["chat-back"].addEventListener("click", () => showView("characters"));
   elements["chat-open-settings"].addEventListener("click", () => showView("settings"));
   elements["edit-character-button"].addEventListener("click", openCharacterEditor);
@@ -423,6 +433,10 @@ function bindEvents() {
   });
   elements["character-persona"].addEventListener("input", () => clearFieldError("character-persona"));
   window.addEventListener("pocketlab:world-books-changed", handleWorldBooksChanged);
+  window.addEventListener(
+    "pocketlab:self-profiles-changed",
+    updateHomeSelfProfile,
+  );
 
 }
 
@@ -435,6 +449,7 @@ function showView(viewName, options = {}) {
     settings: elements["settings-view"],
     beautify: elements["beautify-view"],
     "world-books": elements["world-books-view"],
+    "self-profile": elements["self-profile-view"],
     guide: elements["guide-view"],
   };
 
@@ -445,7 +460,7 @@ function showView(viewName, options = {}) {
 
   if (!options.initial) {
     const scrollArea = views[viewName].querySelector(
-      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll, .world-book-scroll",
+      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll, .world-book-scroll, .self-profile-scroll",
     );
     if (scrollArea) scrollArea.scrollTop = 0;
   }
@@ -462,11 +477,37 @@ function showView(viewName, options = {}) {
     window.PocketLabWorldBookApp.refresh({ silent: true });
   }
 
+  if (viewName === "self-profile" && window.PocketLabSelfProfileApp) {
+    window.PocketLabSelfProfileApp.refresh({ silent: true });
+  }
+
+  if (viewName === "home") {
+    updateHomeSelfProfile();
+  }
+
   if (viewName === "chat") {
     updateChatConnectionUI();
     renderChat();
     window.setTimeout(() => elements["chat-input"].focus(), 180);
   }
+}
+
+function updateHomeSelfProfile() {
+  const activeProfile =
+    window.PocketLabSelfProfileApp?.getActiveProfile?.() || null;
+  if (!activeProfile) {
+    elements["home-self-profile-name"].textContent = "添加我的人物设定";
+    elements["home-self-profile-description"].textContent =
+      "让角色在聊天里认识你";
+    return;
+  }
+
+  elements["home-self-profile-name"].textContent = activeProfile.name;
+  const persona = String(activeProfile.persona || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  elements["home-self-profile-description"].textContent =
+    persona.length > 42 ? `${persona.slice(0, 42)}...` : persona;
 }
 
 function handleWorldBooksChanged(event) {
@@ -2679,6 +2720,14 @@ async function requestSummaryReply(messages, config) {
         requestBody.worldBook = {
           name: boundWorldBook.name,
           content: boundWorldBook.content,
+        };
+      }
+      const activeSelfProfile =
+        window.PocketLabSelfProfileApp?.getActiveProfile?.();
+      if (activeSelfProfile?.name && activeSelfProfile?.persona) {
+        requestBody.userProfile = {
+          name: activeSelfProfile.name,
+          persona: activeSelfProfile.persona,
         };
       }
 

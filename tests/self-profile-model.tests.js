@@ -73,6 +73,9 @@ function runTests() {
   );
   assert.equal(store.activeProfileId, "newer");
   assert.equal(model.getActiveProfile(store).name, "新资料");
+  assert.equal(model.getProfileById(store, "older").name, "旧资料");
+  assert.equal(model.getProfileById(store, "missing"), null);
+  assert.equal(model.getProfileById(store, ""), null);
 
   const prompt = model.buildPrompt(store.profiles[0]);
   assert.match(prompt, /用户本人设定：/);

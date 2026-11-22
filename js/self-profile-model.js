@@ -113,6 +113,15 @@
     );
   }
 
+  function getProfileById(storeValue, profileId) {
+    const id = normalizeStableId(profileId);
+    if (!id) return null;
+    return (
+      normalizeStore(storeValue).profiles.find((profile) => profile.id === id) ||
+      null
+    );
+  }
+
   function buildPrompt(profileValue) {
     const validation = validateProfile(profileValue);
     if (!validation.ok) return "";
@@ -134,6 +143,7 @@
     validateProfile,
     normalizeStore,
     getActiveProfile,
+    getProfileById,
     buildPrompt,
   });
 });

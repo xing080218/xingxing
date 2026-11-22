@@ -401,6 +401,11 @@
         source.worldBookId.trim().length <= 200
           ? source.worldBookId.trim()
           : "",
+      selfProfileId:
+        typeof source.selfProfileId === "string" &&
+        source.selfProfileId.trim().length <= 200
+          ? source.selfProfileId.trim()
+          : "",
       updatedAt,
     };
   }
@@ -717,6 +722,10 @@
           : "";
       const worldBookId =
         typeof record.worldBookId === "string" ? record.worldBookId.trim() : "";
+      const selfProfileId =
+        typeof record.selfProfileId === "string"
+          ? record.selfProfileId.trim()
+          : "";
       if (avatarId && !imageIds.has(avatarId)) {
         throw new Error(`角色 ${id} 引用了备份中不存在的头像 ${avatarId}。`);
       }
@@ -731,7 +740,7 @@
         );
       }
       return persistentCharacterRecord(
-        { ...record, worldBookId },
+        { ...record, worldBookId, selfProfileId },
         id,
         avatarId,
         chatBackgroundImageId,

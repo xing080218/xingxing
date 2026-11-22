@@ -261,6 +261,7 @@ function cacheElements() {
     "character-name",
     "character-persona",
     "character-world-book",
+    "character-self-profile",
     "character-max-messages",
     "character-max-messages-value",
     "character-background-preview",
@@ -431,6 +432,10 @@ function bindEvents() {
   });
   elements["character-persona"].addEventListener("input", () => clearFieldError("character-persona"));
   window.addEventListener("pocketlab:world-books-changed", handleWorldBooksChanged);
+  window.addEventListener(
+    "pocketlab:self-profiles-changed",
+    handleSelfProfilesChanged,
+  );
 
 }
 
@@ -521,6 +526,51 @@ function populateCharacterWorldBookOptions(selectedId = "") {
   }
 
   select.replaceChildren(unboundOption, ...options);
+  select.value = normalizedSelectedId;
+}
+
+function handleSelfProfilesChanged() {
+  const modal = elements["character-modal"];
+  if (!modal || modal.classList.contains("is-hidden")) return;
+  populateCharacterSelfProfileOptions(elements["character-self-profile"].value);
+}
+
+function populateCharacterSelfProfileOptions(selectedId = "") {
+  const select = elements["character-self-profile"];
+  if (!select) return;
+
+  const profiles =
+    window.PocketLabSelfProfileApp?.getProfiles?.() || [];
+  const activeProfile =
+    window.PocketLabSelfProfileApp?.getActiveProfile?.();
+  const followOption = document.createElement("option");
+  followOption.value = "";
+  followOption.textContent = profiles.length
+    ? "跟随“我”App 当前人设"
+    : "跟随“我”App 当前人设（暂无资料）";
+
+  const options = profiles.map((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent =
+      profile.id === activeProfile?.id
+        ? `${profile.name}（当前）`
+        : profile.name;
+    return option;
+  });
+  const normalizedSelectedId = characterProfile.normalizeStableId(selectedId);
+  if (
+    normalizedSelectedId &&
+    !profiles.some((profile) => profile.id === normalizedSelectedId)
+  ) {
+    const missingOption = document.createElement("option");
+    missingOption.value = normalizedSelectedId;
+    missingOption.textContent = "原人设已不存在，将跟随当前人设";
+    missingOption.disabled = true;
+    options.push(missingOption);
+  }
+
+  select.replaceChildren(followOption, ...options);
   select.value = normalizedSelectedId;
 }
 
@@ -1805,6 +1855,7 @@ function showCharacterEditor(character, mode, options = {}) {
     ? ""
     : character.persona;
   populateCharacterWorldBookOptions(character.worldBookId || "");
+  populateCharacterSelfProfileOptions(character.selfProfileId || "");
   elements["character-max-messages"].value =
     characterProfile.normalizeMaxConsecutiveMessages(
       character.maxConsecutiveMessages,
@@ -2054,6 +2105,7 @@ async function saveCharacter(event) {
           ? previousCharacter?.chatBackgroundImageId || ""
           : "",
         worldBookId: elements["character-world-book"].value,
+        selfProfileId: elements["character-self-profile"].value,
         maxConsecutiveMessages:
           characterProfile.normalizeMaxConsecutiveMessages(
             elements["character-max-messages"].value,
@@ -2165,7 +2217,7 @@ async function saveCharacter(event) {
     setLocalDataStatus(
       "success",
       isNew ? "新角色已创建" : "角色资料已保存",
-      "名字、人设、世界书绑定、头像、最大连发数和聊天背景已经写入 IndexedDB。",
+      "名字、人设、世界书绑定、指定本人设、头像、最大连发数和聊天背景已经写入 IndexedDB。",
       "角色聊天记录独立保存，刷新页面后仍会恢复。",
     );
     applyCharacterChatBackground();
@@ -2694,12 +2746,25 @@ async function requestSummaryReply(messages, config) {
           content: boundWorldBook.content,
         };
       }
+      const selectedSelfProfileId = characterProfile.normalizeStableId(
+        requestCharacter.selfProfileId,
+      );
+      const selectedSelfProfile = selectedSelfProfileId
+        ? window.PocketLabSelfProfileApp?.getProfileById?.(
+            selectedSelfProfileId,
+          )
+        : null;
       const activeSelfProfile =
         window.PocketLabSelfProfileApp?.getActiveProfile?.();
-      if (activeSelfProfile?.name && activeSelfProfile?.persona) {
+      const conversationSelfProfile =
+        selectedSelfProfile || activeSelfProfile;
+      if (
+        conversationSelfProfile?.name &&
+        conversationSelfProfile?.persona
+      ) {
         requestBody.userProfile = {
-          name: activeSelfProfile.name,
-          persona: activeSelfProfile.persona,
+          name: conversationSelfProfile.name,
+          persona: conversationSelfProfile.persona,
         };
       }
 

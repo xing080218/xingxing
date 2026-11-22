@@ -135,6 +135,7 @@ async function initializeApp() {
     await restoreSettings();
     restoreLockPasswordSettings();
     await restoreChat();
+    await window.PocketLabSelfProfileApp.init();
     await window.PocketLabWorldBookApp.init();
     await window.PocketLabBeautify.init({
       onError: reportStorageError,
@@ -209,6 +210,7 @@ function cacheElements() {
     "settings-view",
     "beautify-view",
     "world-books-view",
+    "self-profile-view",
     "guide-view",
     "status-time",
     "home-date",
@@ -225,6 +227,8 @@ function cacheElements() {
     "guide-back",
     "guide-go-settings",
     "world-books-back",
+    "self-profile-back",
+    "open-self-profile-app",
     "chat-header-avatar",
     "chat-character-name",
     "chat-api-status",
@@ -257,6 +261,7 @@ function cacheElements() {
     "character-name",
     "character-persona",
     "character-world-book",
+    "character-self-profile",
     "character-max-messages",
     "character-max-messages-value",
     "character-background-preview",
@@ -321,6 +326,9 @@ function bindEvents() {
   document
     .getElementById("open-world-books-app")
     .addEventListener("click", () => showView("world-books"));
+  elements["open-self-profile-app"].addEventListener("click", () =>
+    showView("self-profile"),
+  );
   document.getElementById("open-guide-app").addEventListener("click", () => showView("guide"));
   document.getElementById("open-settings-app").addEventListener("click", () => showView("settings"));
   document.getElementById("beautify-back").addEventListener("click", () => showView("home"));
@@ -337,6 +345,7 @@ function bindEvents() {
   elements["guide-back"].addEventListener("click", () => showView("home"));
   elements["guide-go-settings"].addEventListener("click", () => showView("settings"));
   elements["world-books-back"].addEventListener("click", () => showView("home"));
+  elements["self-profile-back"].addEventListener("click", () => showView("home"));
   elements["chat-back"].addEventListener("click", () => showView("characters"));
   elements["chat-open-settings"].addEventListener("click", () => showView("settings"));
   elements["edit-character-button"].addEventListener("click", openCharacterEditor);
@@ -423,6 +432,10 @@ function bindEvents() {
   });
   elements["character-persona"].addEventListener("input", () => clearFieldError("character-persona"));
   window.addEventListener("pocketlab:world-books-changed", handleWorldBooksChanged);
+  window.addEventListener(
+    "pocketlab:self-profiles-changed",
+    handleSelfProfilesChanged,
+  );
 
 }
 
@@ -435,6 +448,7 @@ function showView(viewName, options = {}) {
     settings: elements["settings-view"],
     beautify: elements["beautify-view"],
     "world-books": elements["world-books-view"],
+    "self-profile": elements["self-profile-view"],
     guide: elements["guide-view"],
   };
 
@@ -445,7 +459,7 @@ function showView(viewName, options = {}) {
 
   if (!options.initial) {
     const scrollArea = views[viewName].querySelector(
-      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll, .world-book-scroll",
+      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll, .world-book-scroll, .self-profile-scroll",
     );
     if (scrollArea) scrollArea.scrollTop = 0;
   }
@@ -460,6 +474,10 @@ function showView(viewName, options = {}) {
 
   if (viewName === "world-books" && window.PocketLabWorldBookApp) {
     window.PocketLabWorldBookApp.refresh({ silent: true });
+  }
+
+  if (viewName === "self-profile" && window.PocketLabSelfProfileApp) {
+    window.PocketLabSelfProfileApp.refresh({ silent: true });
   }
 
   if (viewName === "chat") {
@@ -508,6 +526,51 @@ function populateCharacterWorldBookOptions(selectedId = "") {
   }
 
   select.replaceChildren(unboundOption, ...options);
+  select.value = normalizedSelectedId;
+}
+
+function handleSelfProfilesChanged() {
+  const modal = elements["character-modal"];
+  if (!modal || modal.classList.contains("is-hidden")) return;
+  populateCharacterSelfProfileOptions(elements["character-self-profile"].value);
+}
+
+function populateCharacterSelfProfileOptions(selectedId = "") {
+  const select = elements["character-self-profile"];
+  if (!select) return;
+
+  const profiles =
+    window.PocketLabSelfProfileApp?.getProfiles?.() || [];
+  const activeProfile =
+    window.PocketLabSelfProfileApp?.getActiveProfile?.();
+  const followOption = document.createElement("option");
+  followOption.value = "";
+  followOption.textContent = profiles.length
+    ? "跟随“我”App 当前人设"
+    : "跟随“我”App 当前人设（暂无资料）";
+
+  const options = profiles.map((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent =
+      profile.id === activeProfile?.id
+        ? `${profile.name}（当前）`
+        : profile.name;
+    return option;
+  });
+  const normalizedSelectedId = characterProfile.normalizeStableId(selectedId);
+  if (
+    normalizedSelectedId &&
+    !profiles.some((profile) => profile.id === normalizedSelectedId)
+  ) {
+    const missingOption = document.createElement("option");
+    missingOption.value = normalizedSelectedId;
+    missingOption.textContent = "原人设已不存在，将跟随当前人设";
+    missingOption.disabled = true;
+    options.push(missingOption);
+  }
+
+  select.replaceChildren(followOption, ...options);
   select.value = normalizedSelectedId;
 }
 
@@ -1792,6 +1855,7 @@ function showCharacterEditor(character, mode, options = {}) {
     ? ""
     : character.persona;
   populateCharacterWorldBookOptions(character.worldBookId || "");
+  populateCharacterSelfProfileOptions(character.selfProfileId || "");
   elements["character-max-messages"].value =
     characterProfile.normalizeMaxConsecutiveMessages(
       character.maxConsecutiveMessages,
@@ -2041,6 +2105,7 @@ async function saveCharacter(event) {
           ? previousCharacter?.chatBackgroundImageId || ""
           : "",
         worldBookId: elements["character-world-book"].value,
+        selfProfileId: elements["character-self-profile"].value,
         maxConsecutiveMessages:
           characterProfile.normalizeMaxConsecutiveMessages(
             elements["character-max-messages"].value,
@@ -2152,7 +2217,7 @@ async function saveCharacter(event) {
     setLocalDataStatus(
       "success",
       isNew ? "新角色已创建" : "角色资料已保存",
-      "名字、人设、世界书绑定、头像、最大连发数和聊天背景已经写入 IndexedDB。",
+      "名字、人设、世界书绑定、指定本人设、头像、最大连发数和聊天背景已经写入 IndexedDB。",
       "角色聊天记录独立保存，刷新页面后仍会恢复。",
     );
     applyCharacterChatBackground();
@@ -2679,6 +2744,27 @@ async function requestSummaryReply(messages, config) {
         requestBody.worldBook = {
           name: boundWorldBook.name,
           content: boundWorldBook.content,
+        };
+      }
+      const selectedSelfProfileId = characterProfile.normalizeStableId(
+        requestCharacter.selfProfileId,
+      );
+      const selectedSelfProfile = selectedSelfProfileId
+        ? window.PocketLabSelfProfileApp?.getProfileById?.(
+            selectedSelfProfileId,
+          )
+        : null;
+      const activeSelfProfile =
+        window.PocketLabSelfProfileApp?.getActiveProfile?.();
+      const conversationSelfProfile =
+        selectedSelfProfile || activeSelfProfile;
+      if (
+        conversationSelfProfile?.name &&
+        conversationSelfProfile?.persona
+      ) {
+        requestBody.userProfile = {
+          name: conversationSelfProfile.name,
+          persona: conversationSelfProfile.persona,
         };
       }
 

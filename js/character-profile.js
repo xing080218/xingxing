@@ -25,6 +25,7 @@
     avatarId: "",
     chatBackgroundImageId: "",
     worldBookId: "",
+    selfProfileId: "",
     maxConsecutiveMessages: DEFAULT_MAX_CONSECUTIVE_MESSAGES,
   });
 
@@ -73,6 +74,10 @@
       source.worldBookId,
       normalizeStableId(fallback.worldBookId),
     );
+    const selfProfileId = normalizeStableId(
+      source.selfProfileId,
+      normalizeStableId(fallback.selfProfileId),
+    );
     const now = Date.now();
 
     return {
@@ -82,6 +87,7 @@
       avatarId,
       chatBackgroundImageId,
       worldBookId,
+      selfProfileId,
       maxConsecutiveMessages: normalizeMaxConsecutiveMessages(
         source.maxConsecutiveMessages,
         fallback.maxConsecutiveMessages,

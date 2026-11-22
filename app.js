@@ -91,6 +91,7 @@ const state = {
   connected: false,
   toastTimer: null,
   characters: [],
+  worldBooks: [],
   activeCharacterId: defaultCharacter.id,
   character: {
     ...defaultCharacter,
@@ -134,6 +135,7 @@ async function initializeApp() {
     await restoreSettings();
     restoreLockPasswordSettings();
     await restoreChat();
+    await window.PocketLabWorldBookApp.init();
     await window.PocketLabBeautify.init({
       onError: reportStorageError,
       onSaved: updateStorageUsage,
@@ -206,6 +208,7 @@ function cacheElements() {
     "chat-view",
     "settings-view",
     "beautify-view",
+    "world-books-view",
     "guide-view",
     "status-time",
     "home-date",
@@ -221,6 +224,7 @@ function cacheElements() {
     "settings-back",
     "guide-back",
     "guide-go-settings",
+    "world-books-back",
     "chat-header-avatar",
     "chat-character-name",
     "chat-api-status",
@@ -252,6 +256,7 @@ function cacheElements() {
     "clear-avatar",
     "character-name",
     "character-persona",
+    "character-world-book",
     "character-max-messages",
     "character-max-messages-value",
     "character-background-preview",
@@ -313,6 +318,9 @@ function bindEvents() {
   document
     .getElementById("open-chat-app")
     .addEventListener("click", () => showView("characters"));
+  document
+    .getElementById("open-world-books-app")
+    .addEventListener("click", () => showView("world-books"));
   document.getElementById("open-guide-app").addEventListener("click", () => showView("guide"));
   document.getElementById("open-settings-app").addEventListener("click", () => showView("settings"));
   document.getElementById("beautify-back").addEventListener("click", () => showView("home"));
@@ -328,6 +336,7 @@ function bindEvents() {
   elements["settings-back"].addEventListener("click", () => showView("home"));
   elements["guide-back"].addEventListener("click", () => showView("home"));
   elements["guide-go-settings"].addEventListener("click", () => showView("settings"));
+  elements["world-books-back"].addEventListener("click", () => showView("home"));
   elements["chat-back"].addEventListener("click", () => showView("characters"));
   elements["chat-open-settings"].addEventListener("click", () => showView("settings"));
   elements["edit-character-button"].addEventListener("click", openCharacterEditor);
@@ -413,6 +422,7 @@ function bindEvents() {
     );
   });
   elements["character-persona"].addEventListener("input", () => clearFieldError("character-persona"));
+  window.addEventListener("pocketlab:world-books-changed", handleWorldBooksChanged);
 
 }
 
@@ -424,6 +434,7 @@ function showView(viewName, options = {}) {
     chat: elements["chat-view"],
     settings: elements["settings-view"],
     beautify: elements["beautify-view"],
+    "world-books": elements["world-books-view"],
     guide: elements["guide-view"],
   };
 
@@ -434,7 +445,7 @@ function showView(viewName, options = {}) {
 
   if (!options.initial) {
     const scrollArea = views[viewName].querySelector(
-      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll",
+      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll, .world-book-scroll",
     );
     if (scrollArea) scrollArea.scrollTop = 0;
   }
@@ -447,11 +458,57 @@ function showView(viewName, options = {}) {
     window.PocketLabBeautify.refresh();
   }
 
+  if (viewName === "world-books" && window.PocketLabWorldBookApp) {
+    window.PocketLabWorldBookApp.refresh({ silent: true });
+  }
+
   if (viewName === "chat") {
     updateChatConnectionUI();
     renderChat();
     window.setTimeout(() => elements["chat-input"].focus(), 180);
   }
+}
+
+function handleWorldBooksChanged(event) {
+  if (Array.isArray(event?.detail?.worldBooks)) {
+    state.worldBooks = event.detail.worldBooks;
+  }
+  renderCharacterList();
+
+  const modal = elements["character-modal"];
+  if (modal && !modal.classList.contains("is-hidden")) {
+    populateCharacterWorldBookOptions(elements["character-world-book"].value);
+  }
+}
+
+function populateCharacterWorldBookOptions(selectedId = "") {
+  const select = elements["character-world-book"];
+  if (!select) return;
+
+  const unboundOption = document.createElement("option");
+  unboundOption.value = "";
+  unboundOption.textContent = "不绑定世界书";
+  const options = state.worldBooks.map((worldBook) => {
+    const option = document.createElement("option");
+    option.value = worldBook.id;
+    option.textContent = `${worldBook.name} · ${worldBook.category}`;
+    return option;
+  });
+
+  const normalizedSelectedId = String(selectedId || "").trim();
+  if (
+    normalizedSelectedId &&
+    !state.worldBooks.some((worldBook) => worldBook.id === normalizedSelectedId)
+  ) {
+    const missingOption = document.createElement("option");
+    missingOption.value = normalizedSelectedId;
+    missingOption.textContent = "原绑定世界书已不存在，请重新选择";
+    missingOption.disabled = true;
+    options.push(missingOption);
+  }
+
+  select.replaceChildren(unboundOption, ...options);
+  select.value = normalizedSelectedId;
 }
 
 function updateClock() {
@@ -862,6 +919,7 @@ async function restoreChat() {
 
 async function loadChatFromDatabase() {
   let savedCharacters = await window.PocketLabStorage.listCharacters();
+  const worldBooks = await window.PocketLabStorage.listWorldBooks();
   if (!savedCharacters.length) {
     const defaultRecord = await window.PocketLabStorage.saveCharacter(
       createDefaultCharacter(),
@@ -884,6 +942,7 @@ async function loadChatFromDatabase() {
 
   releaseCharacterMedia();
   state.characters = characters;
+  state.worldBooks = worldBooks;
   state.activeCharacterId = nextActiveCharacter.id;
   state.character = nextActiveCharacter;
   state.messages = (Array.isArray(savedMessages) ? savedMessages : [])
@@ -1311,13 +1370,14 @@ async function importBackupFile(event) {
         : await readFileAsText(file);
     const result = await window.PocketLabBackup.importJson(text);
     await loadChatFromDatabase();
+    await window.PocketLabWorldBookApp.refresh({ silent: true });
     await window.PocketLabBeautify.reload();
     renderChat();
     await updateStorageUsage();
     setLocalDataStatus(
       "success",
       "备份导入完成",
-      `已导入 ${result.characters || 0} 个角色、${result.messages || 0} 条聊天、${result.memories || 0} 条记忆、${result.images || 0} 张图片。`,
+      `已导入 ${result.characters || 0} 个角色、${result.worldBooks || 0} 本世界书、${result.messages || 0} 条聊天、${result.memories || 0} 条记忆、${result.images || 0} 张图片。`,
       "刷新页面后仍会保留；API Key 没有从备份恢复。",
     );
     showToast("备份已导入，本机数据已刷新。");
@@ -1731,6 +1791,7 @@ function showCharacterEditor(character, mode, options = {}) {
   elements["character-persona"].value = options.blankFields
     ? ""
     : character.persona;
+  populateCharacterWorldBookOptions(character.worldBookId || "");
   elements["character-max-messages"].value =
     characterProfile.normalizeMaxConsecutiveMessages(
       character.maxConsecutiveMessages,
@@ -1817,6 +1878,14 @@ function renderCharacterList() {
         character.persona.length > 58
           ? `${character.persona.slice(0, 58)}…`
           : character.persona;
+      const boundWorldBook = state.worldBooks.find(
+        (worldBook) => worldBook.id === character.worldBookId,
+      );
+      const worldBookLabel = boundWorldBook
+        ? `世界书：${boundWorldBook.name}`
+        : character.worldBookId
+          ? "世界书：原绑定已不存在"
+          : "未绑定世界书";
       return `
         <button
           class="character-list-item${isActive ? " is-active" : ""}"
@@ -1832,6 +1901,7 @@ function renderCharacterList() {
               ${isActive ? '<span class="character-current-badge">当前</span>' : ""}
             </span>
             <small>${escapeHtml(personaPreview || "还没有填写人物设定")}</small>
+            <small class="character-world-book-summary">${escapeHtml(worldBookLabel)}</small>
           </span>
           <span class="character-list-mark" data-icon="arrow-right"></span>
         </button>
@@ -1970,6 +2040,7 @@ async function saveCharacter(event) {
         chatBackgroundImageId: hasChatBackground
           ? previousCharacter?.chatBackgroundImageId || ""
           : "",
+        worldBookId: elements["character-world-book"].value,
         maxConsecutiveMessages:
           characterProfile.normalizeMaxConsecutiveMessages(
             elements["character-max-messages"].value,
@@ -2046,6 +2117,7 @@ async function saveCharacter(event) {
     state.activeCharacterId = nextCharacter.id;
     state.character = nextCharacter;
     window.PocketLabSettings.saveActiveCharacterId(nextCharacter.id);
+    await window.PocketLabWorldBookApp.refresh({ silent: true });
 
     if (isNew) {
       state.messages = [];
@@ -2080,7 +2152,7 @@ async function saveCharacter(event) {
     setLocalDataStatus(
       "success",
       isNew ? "新角色已创建" : "角色资料已保存",
-      "名字、人设、头像、最大连发数和聊天背景已经写入 IndexedDB。",
+      "名字、人设、世界书绑定、头像、最大连发数和聊天背景已经写入 IndexedDB。",
       "角色聊天记录独立保存，刷新页面后仍会恢复。",
     );
     applyCharacterChatBackground();
@@ -2562,51 +2634,87 @@ async function requestSummaryReply(messages, config) {
   persistMessages();
   renderChat();
 
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), apiRequestTimeoutMs);
+  let boundWorldBook = null;
   let assistantReplyLines = [];
   let assistantMessage = null;
   let failure = null;
 
+  if (requestCharacter.worldBookId) {
+    try {
+      boundWorldBook = await window.PocketLabStorage.getWorldBook(
+        requestCharacter.worldBookId,
+      );
+    } catch (error) {
+      failure = {
+        title: "无法读取角色世界书",
+        message: error?.message || "本机世界书数据库没有响应。",
+        nextStep: "刷新页面后重试；如果仍然失败，请重新选择角色绑定的世界书。",
+        status: 0,
+      };
+    }
+    if (!boundWorldBook && !failure) {
+      failure = {
+        title: "角色绑定的世界书不存在",
+        message: "这个角色原绑定的世界书已经找不到，本次请求没有发送。",
+        nextStep: "打开角色编辑，重新选择一本世界书或改为“不绑定世界书”，然后重试。",
+        status: 0,
+      };
+    }
+  }
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), apiRequestTimeoutMs);
+
   try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    if (!failure) {
+      const requestBody = {
         apiUrl: config.apiUrl,
         apiKey: config.apiKey,
         modelName: config.modelName,
         characterName: requestCharacter.name,
         persona: requestCharacter.persona,
         messages: buildProviderMessages(requestMessages),
-      }),
-      signal: controller.signal,
-    });
-
-    const payload = await response.json().catch(() => null);
-    if (!payload) {
-      throw new Error("本地聊天服务返回了无法识别的结果。");
-    }
-
-    if (!response.ok || !payload.ok) {
-      failure = normalizeChatError(payload.error, response.status);
-    } else {
-      const reply = String(payload.reply || "").trim();
-      const normalizedReply = window.PocketLabChatSummary.normalizeReply(reply);
-      const replyLines = characterProfile.limitReplyLines(
-        splitReplyLines(normalizedReply),
-        requestCharacter.maxConsecutiveMessages,
-      );
-      if (!replyLines.length) {
-        failure = {
-          title: "模型没有返回文字",
-          message: "服务商完成了请求，但回复内容为空。",
-          nextStep:
-            "点击“重试总结”再试；如果连续出现，换用普通对话模型。",
-          status: Number(payload.status) || 0,
+      };
+      if (boundWorldBook) {
+        requestBody.worldBook = {
+          name: boundWorldBook.name,
+          content: boundWorldBook.content,
         };
+      }
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!payload) {
+        throw new Error("本地聊天服务返回了无法识别的结果。");
+      }
+
+      if (!response.ok || !payload.ok) {
+        failure = normalizeChatError(payload.error, response.status);
       } else {
-        assistantReplyLines = replyLines;
+        const reply = String(payload.reply || "").trim();
+        const normalizedReply =
+          window.PocketLabChatSummary.normalizeReply(reply);
+        const replyLines = characterProfile.limitReplyLines(
+          splitReplyLines(normalizedReply),
+          requestCharacter.maxConsecutiveMessages,
+        );
+        if (!replyLines.length) {
+          failure = {
+            title: "模型没有返回文字",
+            message: "服务商完成了请求，但回复内容为空。",
+            nextStep:
+              "点击“重试总结”再试；如果连续出现，换用普通对话模型。",
+            status: Number(payload.status) || 0,
+          };
+        } else {
+          assistantReplyLines = replyLines;
+        }
       }
     }
   } catch (error) {

@@ -17,21 +17,21 @@
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/assets/icons/favicon-32.png?v=20261122-08"
+      href="/assets/icons/favicon-32.png?v=20261122-09"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="64x64"
-      href="/assets/icons/favicon-64.png?v=20261122-08"
+      href="/assets/icons/favicon-64.png?v=20261122-09"
     />
     <link
       rel="apple-touch-icon"
       type="image/png"
       sizes="180x180"
-      href="/assets/icons/apple-touch-icon.png?v=20261122-08"
+      href="/assets/icons/apple-touch-icon.png?v=20261122-09"
     />
-    <link rel="manifest" href="/site.webmanifest?v=20261122-08" />
+    <link rel="manifest" href="/site.webmanifest?v=20261122-09" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -216,8 +216,9 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=20261122-08" />
-    <link rel="stylesheet" href="/beautify.css?v=20261122-08" />
+    <link rel="stylesheet" href="/styles.css?v=20261122-09" />
+    <link rel="stylesheet" href="/world-book.css?v=20261122-09" />
+    <link rel="stylesheet" href="/beautify.css?v=20261122-09" />
   </head>
   <body>
     <aside
@@ -238,7 +239,7 @@
         </p>
         <div class="service-warning-actions">
           <button id="service-warning-retry" type="button">重新检查</button>
-          <a href="/mobile-check.html?v=20261122-08">连接检查页</a>
+          <a href="/mobile-check.html?v=20261122-09">连接检查页</a>
         </div>
       </div>
       <button
@@ -254,7 +255,7 @@
     <div class="bootstrap-status" id="bootstrap-status" role="status" aria-live="polite">
       <strong id="bootstrap-title">正在打开濴星语</strong>
       <span id="bootstrap-message">页面已开始加载，正在检查本地服务。</span>
-      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261122-08</span>
+      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261122-09</span>
       <ol class="bootstrap-steps" aria-label="启动检查">
         <li class="bootstrap-step" data-bootstrap-step="page" data-state="ok">
           <span class="bootstrap-step-marker" aria-hidden="true">1</span>
@@ -272,8 +273,8 @@
       <div class="bootstrap-actions">
         <button id="bootstrap-retry" type="button">重新加载</button>
         <button id="bootstrap-details-toggle" type="button" aria-expanded="false">显示诊断信息</button>
-        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261122-08">连接检查页</a>
-        <a href="/connect.html?v=20261122-08">电脑连接入口</a>
+        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261122-09">连接检查页</a>
+        <a href="/connect.html?v=20261122-09">电脑连接入口</a>
       </div>
       <pre class="bootstrap-details is-hidden" id="bootstrap-details" aria-label="启动诊断信息"></pre>
     </div>
@@ -417,6 +418,12 @@
                       <span data-icon="message-circle"></span>
                     </span>
                     <span>对话</span>
+                  </button>
+                  <button class="app-icon-button" id="open-world-books-app" type="button">
+                    <span class="app-icon app-world-book">
+                      <span data-icon="book-open"></span>
+                    </span>
+                    <span>世界书</span>
                   </button>
                   <button class="app-icon-button" id="open-settings-app" type="button">
                     <span class="app-icon app-settings">
@@ -1055,6 +1062,55 @@
                 </div>
               </section>
 
+              <section class="view world-books-view" id="world-books-view" aria-label="世界书" aria-hidden="true">
+                <header class="app-header world-books-header">
+                  <button class="back-button" id="world-books-back" type="button" aria-label="返回主屏幕">
+                    <span data-icon="chevron-left"></span>
+                  </button>
+                  <div>
+                    <p class="eyebrow">WORLD BOOKS</p>
+                    <h1>世界书</h1>
+                  </div>
+                  <button
+                    class="round-icon-button world-book-add-button"
+                    id="add-world-book"
+                    type="button"
+                    aria-label="添加世界书"
+                    title="添加世界书"
+                  >
+                    <span data-icon="plus"></span>
+                  </button>
+                </header>
+
+                <div class="world-book-scroll">
+                  <div class="world-book-toolbar" role="search">
+                    <label class="world-book-search-field">
+                      <span data-icon="book-open"></span>
+                      <input
+                        id="world-book-search"
+                        type="search"
+                        autocomplete="off"
+                        placeholder="搜索名称、分类或内容"
+                        aria-label="搜索世界书"
+                      />
+                    </label>
+                    <label class="world-book-filter-field">
+                      <span>分类</span>
+                      <select id="world-book-category-filter" aria-label="按分类筛选世界书">
+                        <option value="">全部分类</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="world-book-status" id="world-book-status" data-state="idle" role="status" aria-live="polite">
+                    <strong id="world-book-status-title">世界书独立管理</strong>
+                    <p id="world-book-status-message">创建后，在角色编辑中选择；只有绑定的角色会在聊天时读取它。</p>
+                  </div>
+
+                  <div class="world-book-list" id="world-book-list" role="list"></div>
+                </div>
+              </section>
+
               <section class="view guide-view" id="guide-view" aria-label="使用说明">
                 <header class="app-header">
                   <button class="back-button" id="guide-back" type="button" aria-label="返回主屏幕">
@@ -1113,6 +1169,85 @@
                 </div>
               </section>
 
+              <div class="character-modal world-book-modal is-hidden" id="world-book-modal" role="dialog" aria-modal="true" aria-labelledby="world-book-modal-title">
+                <div class="character-modal-card world-book-modal-card">
+                  <div class="character-modal-header">
+                    <div>
+                      <p class="eyebrow">WORLD BOOK</p>
+                      <h2 id="world-book-modal-title">添加世界书</h2>
+                    </div>
+                    <button class="round-icon-button modal-close-button" id="close-world-book-modal" type="button" aria-label="关闭世界书编辑">
+                      <span data-icon="x"></span>
+                    </button>
+                  </div>
+
+                  <form id="world-book-form" novalidate>
+                    <label class="field">
+                      <span class="field-label">
+                        <span data-icon="book-open"></span>
+                        名称
+                      </span>
+                      <input
+                        id="world-book-name"
+                        type="text"
+                        maxlength="80"
+                        autocomplete="off"
+                        placeholder="例如：星港城世界观"
+                        required
+                      />
+                      <span class="field-error" id="world-book-name-error"></span>
+                    </label>
+
+                    <label class="field">
+                      <span class="field-label">
+                        <span data-icon="layout-grid"></span>
+                        分类
+                      </span>
+                      <input
+                        id="world-book-category"
+                        type="text"
+                        maxlength="40"
+                        autocomplete="off"
+                        list="world-book-category-options"
+                        placeholder="例如：主线、角色、地点"
+                      />
+                      <span class="field-help">留空时自动归入“未分类”。</span>
+                      <span class="field-error" id="world-book-category-error"></span>
+                    </label>
+                    <datalist id="world-book-category-options"></datalist>
+
+                    <label class="field">
+                      <span class="field-label">
+                        <span data-icon="scroll-text"></span>
+                        世界书内容
+                      </span>
+                      <textarea
+                        id="world-book-content"
+                        rows="10"
+                        maxlength="12000"
+                        placeholder="写清这个世界的地点、规则、人物关系和其他需要模型长期遵守的设定。"
+                        required
+                      ></textarea>
+                      <span class="field-help">
+                        内容较长时仍只发送给绑定的角色，不会进入普通聊天记录。
+                      </span>
+                      <span class="field-error" id="world-book-content-error"></span>
+                      <output class="world-book-content-count" id="world-book-content-count" for="world-book-content">0 / 12000</output>
+                    </label>
+
+                    <div class="character-form-actions">
+                      <button class="secondary-button" id="cancel-world-book" type="button">取消</button>
+                      <button class="primary-button" id="save-world-book" type="submit">
+                        <span class="button-label">
+                          <span data-icon="check"></span>
+                          <span id="save-world-book-label">创建世界书</span>
+                        </span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
               <div class="character-modal is-hidden" id="character-modal" role="dialog" aria-modal="true" aria-labelledby="character-modal-title">
                 <div class="character-modal-card">
                   <div class="character-modal-header">
@@ -1156,6 +1291,19 @@
                       <textarea id="character-persona" rows="6" maxlength="4000" placeholder="描述角色的身份、性格、说话方式和边界。" required></textarea>
                       <span class="field-help">每次发送都会把这段人设作为系统提示交给模型。</span>
                       <span class="field-error" id="character-persona-error"></span>
+                    </label>
+
+                    <label class="field character-world-book-field">
+                      <span class="field-label">
+                        <span data-icon="book-open"></span>
+                        使用世界书
+                      </span>
+                      <select id="character-world-book">
+                        <option value="">不绑定世界书</option>
+                      </select>
+                      <span class="field-help">
+                        只把当前角色绑定的世界书加入它的系统提示；不会影响其他角色。
+                      </span>
                     </label>
 
                     <label class="field character-range-field">
@@ -1224,19 +1372,21 @@
       </section>
     </main>
 
-    <script src="/js/character-profile.js?v=20261122-08" defer></script>
-    <script src="/js/settings-store.js?v=20261122-08" defer></script>
-    <script src="/js/media.js?v=20261122-08" defer></script>
-    <script src="/js/storage.js?v=20261122-08" defer></script>
-    <script src="/js/appearance-store.js?v=20261122-08" defer></script>
-    <script src="/js/backup.js?v=20261122-08" defer></script>
-    <script src="/bootstrap.js?v=20261122-08" defer></script>
-    <script src="/js/lock-password-store.js?v=20261122-08" defer></script>
-    <script src="/js/lock-screen.js?v=20261122-08" defer></script>
-    <script src="/js/beautify.js?v=20261122-08" defer></script>
-    <script src="/js/chat-summary-mode.js?v=20261122-08" defer></script>
-    <script src="/js/reply-reveal.js?v=20261122-08" defer></script>
-    <script src="/app.js?v=20261122-08" defer></script>
+    <script src="/js/character-profile.js?v=20261122-09" defer></script>
+    <script src="/js/settings-store.js?v=20261122-09" defer></script>
+    <script src="/js/media.js?v=20261122-09" defer></script>
+    <script src="/js/world-book-model.js?v=20261122-09" defer></script>
+    <script src="/js/storage.js?v=20261122-09" defer></script>
+    <script src="/js/appearance-store.js?v=20261122-09" defer></script>
+    <script src="/js/backup.js?v=20261122-09" defer></script>
+    <script src="/bootstrap.js?v=20261122-09" defer></script>
+    <script src="/js/lock-password-store.js?v=20261122-09" defer></script>
+    <script src="/js/lock-screen.js?v=20261122-09" defer></script>
+    <script src="/js/beautify.js?v=20261122-09" defer></script>
+    <script src="/js/chat-summary-mode.js?v=20261122-09" defer></script>
+    <script src="/js/reply-reveal.js?v=20261122-09" defer></script>
+    <script src="/js/world-book-app.js?v=20261122-09" defer></script>
+    <script src="/app.js?v=20261122-09" defer></script>
     <noscript>
       <div class="bootstrap-status bootstrap-status-error">
         <strong>浏览器没有启用 JavaScript</strong>

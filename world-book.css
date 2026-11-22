@@ -1,0 +1,382 @@
+.world-books-view {
+  background:
+    radial-gradient(circle at 100% 0, rgba(192, 218, 239, 0.42), transparent 40%),
+    radial-gradient(circle at 0 100%, rgba(242, 226, 190, 0.28), transparent 46%),
+    var(--paper);
+}
+
+.world-books-header > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.world-book-add-button {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-color: rgba(51, 79, 120, 0.2);
+  border-radius: 12px;
+  color: #334f78;
+  background: rgba(217, 235, 248, 0.82);
+  box-shadow: none;
+}
+
+.world-book-add-button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+
+.world-book-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 17px 17px calc(26px + env(safe-area-inset-bottom, 0px));
+  scrollbar-width: thin;
+  scrollbar-color: #bdb7ac transparent;
+}
+
+.world-book-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 8px;
+  margin-bottom: 11px;
+}
+
+.world-book-search-field,
+.world-book-filter-field {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 39px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: rgba(255, 253, 248, 0.88);
+}
+
+.world-book-search-field {
+  gap: 8px;
+  padding: 0 11px;
+}
+
+.world-book-search-field svg {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  color: #5d7890;
+}
+
+.world-book-search-field input {
+  width: 100%;
+  min-width: 0;
+  height: 37px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font-size: 10px;
+}
+
+.world-book-search-field input::placeholder {
+  color: #99958c;
+}
+
+.world-book-filter-field {
+  gap: 6px;
+  padding-left: 9px;
+}
+
+.world-book-filter-field > span {
+  color: #777267;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.world-book-filter-field select {
+  width: 100%;
+  min-width: 0;
+  height: 37px;
+  padding: 0 20px 0 0;
+  border: 0;
+  outline: 0;
+  color: #3b5047;
+  background: transparent;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.world-book-search-field:focus-within,
+.world-book-filter-field:focus-within {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 3px rgba(28, 117, 97, 0.1);
+}
+
+.world-book-status {
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(72, 111, 139, 0.14);
+  border-radius: 12px;
+  color: #4f6775;
+  background: rgba(228, 241, 248, 0.66);
+}
+
+.world-book-status strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #315165;
+  font-size: 10px;
+}
+
+.world-book-status p {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.world-book-status[data-state="success"] {
+  border-color: rgba(28, 117, 97, 0.2);
+  color: #3d6859;
+  background: rgba(219, 238, 231, 0.82);
+}
+
+.world-book-status[data-state="success"] strong {
+  color: var(--jade-deep);
+}
+
+.world-book-status[data-state="error"] {
+  border-color: rgba(183, 67, 50, 0.23);
+  color: #7f4e45;
+  background: rgba(248, 223, 218, 0.78);
+}
+
+.world-book-status[data-state="error"] strong {
+  color: var(--danger);
+}
+
+.world-book-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.world-book-state {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  min-height: 120px;
+  padding: 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 15px;
+  color: #716b61;
+  background: rgba(255, 253, 248, 0.68);
+}
+
+.world-book-state strong {
+  color: #35443d;
+  font-size: 12px;
+}
+
+.world-book-state p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.world-book-state button {
+  margin-top: 3px;
+}
+
+.world-book-card {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: rgba(255, 253, 248, 0.9);
+  box-shadow: 0 7px 18px rgba(52, 72, 64, 0.055);
+}
+
+.world-book-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.world-book-category {
+  max-width: 58%;
+  overflow: hidden;
+  padding: 3px 7px;
+  border: 1px solid rgba(72, 111, 139, 0.16);
+  border-radius: 999px;
+  color: #48697c;
+  background: rgba(222, 238, 247, 0.75);
+  font-size: 8px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.world-book-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.world-book-card-actions button {
+  min-height: 27px;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #486859;
+  background: transparent;
+  font-size: 8px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.world-book-card-actions button:hover {
+  border-color: var(--line);
+  background: #f3f0e9;
+}
+
+.world-book-card-actions button.is-danger {
+  color: #9a5749;
+}
+
+.world-book-card h2 {
+  margin: 9px 0 6px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.world-book-summary,
+.world-book-content p {
+  margin: 0;
+  color: #67665f;
+  font-size: 9px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.world-book-content,
+.world-book-content summary,
+.world-book-users {
+  margin-top: 8px;
+  color: #68776f;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.world-book-content summary {
+  width: max-content;
+  color: #426c5d;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.world-book-content p {
+  max-height: 210px;
+  margin-top: 8px;
+  overflow-y: auto;
+  padding: 10px;
+  border-radius: 10px;
+  background: #f4f1ea;
+}
+
+.world-book-users {
+  padding-top: 8px;
+  border-top: 1px solid rgba(221, 216, 204, 0.72);
+  overflow-wrap: anywhere;
+}
+
+.world-book-modal-card {
+  max-height: min(92%, 720px);
+}
+
+.world-book-modal-card select {
+  width: 100%;
+  height: 44px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  outline: 0;
+  color: var(--ink);
+  background: var(--paper-strong);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.world-book-modal-card select:focus {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 3px rgba(28, 117, 97, 0.12);
+}
+
+.world-book-modal-card .field.has-error select {
+  border-color: var(--danger);
+}
+
+.world-book-content-count {
+  display: block;
+  margin-top: 5px;
+  color: #8b8377;
+  font-family: var(--mono);
+  font-size: 8px;
+  text-align: right;
+}
+
+.character-world-book-field select {
+  width: 100%;
+  height: 44px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  outline: 0;
+  color: var(--ink);
+  background: var(--paper-strong);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.character-world-book-field select:focus {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 3px rgba(28, 117, 97, 0.12);
+}
+
+.character-world-book-summary {
+  display: block !important;
+  overflow: hidden !important;
+  color: #4e7466 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+  .world-book-scroll {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .world-book-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .world-book-filter-field {
+    padding-right: 9px;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .world-book-scroll {
+    padding-top: 11px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .world-book-modal-card {
+    max-height: 100%;
+  }
+}

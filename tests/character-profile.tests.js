@@ -15,6 +15,7 @@ function runTests() {
     persona: "  测试人设  ",
     avatarId: "image-avatar",
     chatBackgroundImageId: "image-background",
+    worldBookId: "world-book-example",
     maxConsecutiveMessages: 7,
   });
   assert.equal(character.id, "character-example");
@@ -22,6 +23,7 @@ function runTests() {
   assert.equal(character.persona, "测试人设");
   assert.equal(character.avatarId, "image-avatar");
   assert.equal(character.chatBackgroundImageId, "image-background");
+  assert.equal(character.worldBookId, "world-book-example");
   assert.equal(character.maxConsecutiveMessages, 7);
 
   const fallbackCharacter = profile.normalizeCharacter({}, {
@@ -30,6 +32,7 @@ function runTests() {
   assert.equal(fallbackCharacter.id, profile.PRIMARY_CHARACTER_ID);
   assert.equal(fallbackCharacter.name, profile.defaultCharacter.name);
   assert.equal(fallbackCharacter.maxConsecutiveMessages, 3);
+  assert.equal(fallbackCharacter.worldBookId, "");
 
   assert.equal(profile.normalizeMessageCharacterId(""), profile.PRIMARY_CHARACTER_ID);
   assert.equal(

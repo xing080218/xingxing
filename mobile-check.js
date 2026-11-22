@@ -1,7 +1,7 @@
 "use strict";
 
 (function () {
-  var BUILD = "20261122-07";
+  var BUILD = "20261122-08";
   var TIMEOUT_MS = 8000;
   var status = document.getElementById("live-status");
   var button = document.getElementById("check-now");

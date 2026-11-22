@@ -97,6 +97,7 @@ const state = {
   },
   messages: [],
   isReplying: false,
+  isSwitchingCharacter: false,
   replyReveal: {
     messageId: "",
     visibleCount: 0,
@@ -1385,6 +1386,14 @@ function getPendingMessages(batchId = "") {
   );
 }
 
+function isChatInteractionLocked() {
+  return (
+    state.isReplying ||
+    state.isSwitchingCharacter ||
+    state.isSavingCharacter
+  );
+}
+
 function updateBatchControls() {
   const pendingMessages = getPendingMessages();
   const hasPending = pendingMessages.length > 0;
@@ -1392,7 +1401,8 @@ function updateBatchControls() {
 
   elements["chat-pending-actions"].classList.toggle("is-hidden", !hasPending);
   elements["pending-reply-count"].textContent = `${pendingMessages.length} 条消息待总结`;
-  elements["reply-pending-batch"].disabled = state.isReplying || !state.connected;
+  elements["reply-pending-batch"].disabled =
+    isChatInteractionLocked() || !state.connected;
   elements["batch-reply-label"].textContent = state.isReplying
     ? "正在总结并回复"
     : hasFailedGroup
@@ -1656,23 +1666,31 @@ function updateSendButton() {
   const hasText = Boolean(elements["chat-input"].value.trim());
   const pendingMessages = getPendingMessages();
   const groupIsFull = pendingMessages.length >= chatBatchLimits.maxMessages;
-  const disabled = !state.connected || state.isReplying || !hasText || groupIsFull;
+  const interactionLocked = isChatInteractionLocked();
+  const disabled =
+    !state.connected || interactionLocked || !hasText || groupIsFull;
   elements["send-chat"].disabled = disabled;
-  elements["chat-input"].disabled = state.isReplying;
-  elements["send-chat"].classList.toggle("is-loading", state.isReplying);
+  elements["chat-input"].disabled = interactionLocked;
+  elements["send-chat"].classList.toggle(
+    "is-loading",
+    state.isReplying || state.isSwitchingCharacter,
+  );
   elements["send-chat"].setAttribute(
     "aria-label",
     state.isReplying ? "正在总结并回复" : "发送消息",
   );
-  const iconName = state.isReplying ? "loader" : "arrow-up";
+  const iconName =
+    state.isReplying || state.isSwitchingCharacter ? "loader" : "arrow-up";
   if (elements["send-chat"].dataset.iconState !== iconName) {
     elements["send-chat"].innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[iconName]}</svg>`;
     elements["send-chat"].dataset.iconState = iconName;
   }
+  elements["open-character-directory"].disabled = interactionLocked;
+  elements["edit-character-button"].disabled = interactionLocked;
 }
 
 function openCharacterEditor() {
-  if (state.isReplying || state.isSavingCharacter) {
+  if (isChatInteractionLocked()) {
     showToast("请等待当前回复或保存完成后再编辑角色。");
     return;
   }
@@ -1680,7 +1698,7 @@ function openCharacterEditor() {
 }
 
 function openNewCharacterEditor() {
-  if (state.isReplying || state.isSavingCharacter) {
+  if (isChatInteractionLocked()) {
     showToast("请等待当前回复或保存完成后再新建角色。");
     return;
   }
@@ -1790,7 +1808,7 @@ function queueCharacterSave(
 }
 
 function openCharacterDirectory() {
-  if (state.isReplying || state.isSavingCharacter) {
+  if (isChatInteractionLocked()) {
     showToast("请等待当前回复或保存完成后再切换角色。");
     return;
   }
@@ -1850,6 +1868,7 @@ function renderCharacterDirectory() {
 }
 
 function handleCharacterDirectoryAction(event) {
+  if (state.isSwitchingCharacter) return;
   const eventTarget = event.target;
   const target =
     eventTarget instanceof Element
@@ -1866,7 +1885,7 @@ function handleCharacterDirectoryAction(event) {
 }
 
 async function switchCharacter(characterId) {
-  if (state.isReplying || state.isSavingCharacter) {
+  if (isChatInteractionLocked()) {
     showToast("请等待当前回复或保存完成后再切换角色。");
     return;
   }
@@ -1878,6 +1897,9 @@ async function switchCharacter(characterId) {
     return;
   }
 
+  state.isSwitchingCharacter = true;
+  updateBatchControls();
+  updateSendButton();
   closeCharacterDirectory(false);
   try {
     await messageSaveChain;
@@ -1909,12 +1931,16 @@ async function switchCharacter(characterId) {
     window.setTimeout(() => elements["chat-input"].focus(), 80);
   } catch (error) {
     reportStorageError(error, "切换角色", "messages");
+  } finally {
+    state.isSwitchingCharacter = false;
+    updateBatchControls();
+    updateSendButton();
   }
 }
 
 async function saveCharacter(event) {
   event.preventDefault();
-  if (state.isSavingCharacter) return;
+  if (state.isSwitchingCharacter || state.isSavingCharacter) return;
   clearFieldError("character-name");
   clearFieldError("character-persona");
 
@@ -1946,9 +1972,13 @@ async function saveCharacter(event) {
   const chatBackgroundBlob = state.chatBackgroundDraftBlob;
   const hasAvatar = Boolean(state.avatarDraftUrl);
   const hasChatBackground = Boolean(state.chatBackgroundDraftUrl);
+  let saveSucceeded = false;
+  let savedCharacter = null;
   state.isSavingCharacter = true;
   elements["save-character"].disabled = true;
   elements["save-character"].setAttribute("aria-busy", "true");
+  updateBatchControls();
+  updateSendButton();
 
   try {
     const savedRecord = await queueCharacterSave(
@@ -1970,6 +2000,7 @@ async function saveCharacter(event) {
       chatBackgroundBlob,
     );
     const nextCharacter = normalizeCharacter(savedRecord);
+    savedCharacter = nextCharacter;
 
     let nextAvatarUrl = "";
     if (avatarBlob) {
@@ -2074,23 +2105,32 @@ async function saveCharacter(event) {
     );
     applyCharacterChatBackground();
     renderChat();
-    closeCharacterEditor(false);
     updateStorageUsage();
-    showToast(isNew ? `已创建 ${nextCharacter.name}。` : "角色资料已保存在本机。");
-    window.setTimeout(
-      () =>
-        (isNew
-          ? elements["chat-input"]
-          : elements["edit-character-button"]
-        ).focus(),
-      80,
-    );
+    saveSucceeded = true;
   } catch (error) {
     reportStorageError(error, "保存角色资料");
   } finally {
     state.isSavingCharacter = false;
     elements["save-character"].disabled = false;
     elements["save-character"].removeAttribute("aria-busy");
+    updateBatchControls();
+    updateSendButton();
+    if (saveSucceeded && savedCharacter) {
+      closeCharacterEditor(false);
+      showToast(
+        isNew
+          ? `已创建 ${savedCharacter.name}。`
+          : "角色资料已保存在本机。",
+      );
+      window.setTimeout(
+        () =>
+          (isNew
+            ? elements["chat-input"]
+            : elements["edit-character-button"]
+          ).focus(),
+        80,
+      );
+    }
   }
 }
 
@@ -2293,7 +2333,7 @@ function discardPendingRetractionsBeforeNewTurn() {
 
 function handleChatSubmit(event) {
   event.preventDefault();
-  if (state.isReplying) return;
+  if (isChatInteractionLocked()) return;
 
   const content = elements["chat-input"].value.trim();
   if (!content) return;
@@ -2376,7 +2416,7 @@ function buildProviderMessages(requestInput) {
 }
 
 function handleReplyPendingBatch() {
-  if (state.isReplying) return;
+  if (isChatInteractionLocked()) return;
 
   const pendingMessages = getPendingMessages();
   if (!pendingMessages.length) return;
@@ -2386,6 +2426,7 @@ function handleReplyPendingBatch() {
 }
 
 function handleChatMessageAction(event) {
+  if (state.isSwitchingCharacter) return;
   const eventTarget = event.target;
   const target =
     eventTarget instanceof Element ? eventTarget : eventTarget && eventTarget.parentElement;
@@ -2433,14 +2474,14 @@ function handleChatMessageAction(event) {
 }
 
 function canEditTurn(turnId) {
-  if (state.isReplying) return false;
+  if (isChatInteractionLocked()) return false;
   if (isLatestTurn(turnId)) return true;
   showToast("为避免打乱后续上下文，目前只能撤回最近一轮对话。");
   return false;
 }
 
 function deleteMessageReply(messageId) {
-  if (state.isReplying) return;
+  if (isChatInteractionLocked()) return;
   const message = state.messages.find((item) => item.id === messageId);
   if (!message || message.role !== "assistant" || message.retracted) return;
 
@@ -2459,7 +2500,7 @@ function deleteMessageReply(messageId) {
 }
 
 function retractTurn(turnId) {
-  if (state.isReplying) return;
+  if (isChatInteractionLocked()) return;
   const turnMessages = getTurnMessages(turnId);
   if (!turnMessages.length || !canEditTurn(turnId)) return;
 
@@ -2474,7 +2515,7 @@ function retractTurn(turnId) {
 }
 
 function deleteTurn(turnId) {
-  if (state.isReplying) return;
+  if (isChatInteractionLocked()) return;
   if (!isLatestTurn(turnId)) {
     showToast("目前只能删除最近一轮对话。");
     return;
@@ -2516,7 +2557,7 @@ async function regenerateTurn(turnId) {
 }
 
 async function requestSummaryReply(messages, config) {
-  if (state.isReplying) return;
+  if (isChatInteractionLocked()) return;
 
   const requestMessages = messages.filter(
     (message) =>

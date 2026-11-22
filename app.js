@@ -229,8 +229,6 @@ function cacheElements() {
     "world-books-back",
     "self-profile-back",
     "open-self-profile-app",
-    "home-self-profile-name",
-    "home-self-profile-description",
     "chat-header-avatar",
     "chat-character-name",
     "chat-api-status",
@@ -433,10 +431,6 @@ function bindEvents() {
   });
   elements["character-persona"].addEventListener("input", () => clearFieldError("character-persona"));
   window.addEventListener("pocketlab:world-books-changed", handleWorldBooksChanged);
-  window.addEventListener(
-    "pocketlab:self-profiles-changed",
-    updateHomeSelfProfile,
-  );
 
 }
 
@@ -481,33 +475,11 @@ function showView(viewName, options = {}) {
     window.PocketLabSelfProfileApp.refresh({ silent: true });
   }
 
-  if (viewName === "home") {
-    updateHomeSelfProfile();
-  }
-
   if (viewName === "chat") {
     updateChatConnectionUI();
     renderChat();
     window.setTimeout(() => elements["chat-input"].focus(), 180);
   }
-}
-
-function updateHomeSelfProfile() {
-  const activeProfile =
-    window.PocketLabSelfProfileApp?.getActiveProfile?.() || null;
-  if (!activeProfile) {
-    elements["home-self-profile-name"].textContent = "添加我的人物设定";
-    elements["home-self-profile-description"].textContent =
-      "让角色在聊天里认识你";
-    return;
-  }
-
-  elements["home-self-profile-name"].textContent = activeProfile.name;
-  const persona = String(activeProfile.persona || "")
-    .replace(/\s+/g, " ")
-    .trim();
-  elements["home-self-profile-description"].textContent =
-    persona.length > 42 ? `${persona.slice(0, 42)}...` : persona;
 }
 
 function handleWorldBooksChanged(event) {

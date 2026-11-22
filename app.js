@@ -202,6 +202,7 @@ function hydrateIcons() {
 function cacheElements() {
   const ids = [
     "home-view",
+    "character-list-view",
     "chat-view",
     "settings-view",
     "beautify-view",
@@ -213,13 +214,16 @@ function cacheElements() {
     "api-access-card",
     "summary-action",
     "header-status",
+    "character-list-scroll",
+    "character-list-back",
+    "add-character-from-list",
+    "character-list",
     "settings-back",
     "guide-back",
     "guide-go-settings",
     "chat-header-avatar",
     "chat-character-name",
     "chat-api-status",
-    "open-character-directory",
     "edit-character-button",
     "chat-connection-warning",
     "chat-open-settings",
@@ -258,10 +262,6 @@ function cacheElements() {
     "cancel-character",
     "save-character",
     "save-character-label",
-    "character-directory-modal",
-    "close-character-directory",
-    "character-directory-list",
-    "new-character-button",
     "export-backup",
     "import-backup",
     "backup-file",
@@ -310,19 +310,26 @@ function cacheElements() {
 function bindEvents() {
   elements["api-access-card"].addEventListener("click", () => showView("settings"));
   document.getElementById("open-beautify-app").addEventListener("click", () => showView("beautify"));
-  document.getElementById("open-chat-app").addEventListener("click", () => showView("chat"));
+  document
+    .getElementById("open-chat-app")
+    .addEventListener("click", () => showView("characters"));
   document.getElementById("open-guide-app").addEventListener("click", () => showView("guide"));
   document.getElementById("open-settings-app").addEventListener("click", () => showView("settings"));
   document.getElementById("beautify-back").addEventListener("click", () => showView("home"));
+  elements["character-list-back"].addEventListener("click", () => showView("home"));
+  elements["add-character-from-list"].addEventListener(
+    "click",
+    openNewCharacterEditor,
+  );
+  elements["character-list"].addEventListener(
+    "click",
+    handleCharacterListAction,
+  );
   elements["settings-back"].addEventListener("click", () => showView("home"));
   elements["guide-back"].addEventListener("click", () => showView("home"));
   elements["guide-go-settings"].addEventListener("click", () => showView("settings"));
-  elements["chat-back"].addEventListener("click", () => showView("home"));
+  elements["chat-back"].addEventListener("click", () => showView("characters"));
   elements["chat-open-settings"].addEventListener("click", () => showView("settings"));
-  elements["open-character-directory"].addEventListener(
-    "click",
-    openCharacterDirectory,
-  );
   elements["edit-character-button"].addEventListener("click", openCharacterEditor);
   elements["close-character-modal"].addEventListener("click", closeCharacterEditor);
   elements["cancel-character"].addEventListener("click", closeCharacterEditor);
@@ -343,23 +350,6 @@ function bindEvents() {
   elements["character-max-messages"].addEventListener(
     "input",
     updateCharacterMaxMessagesPreview,
-  );
-  elements["close-character-directory"].addEventListener(
-    "click",
-    closeCharacterDirectory,
-  );
-  elements["character-directory-modal"].addEventListener("click", (event) => {
-    if (event.target === elements["character-directory-modal"]) {
-      closeCharacterDirectory();
-    }
-  });
-  elements["character-directory-list"].addEventListener(
-    "click",
-    handleCharacterDirectoryAction,
-  );
-  elements["new-character-button"].addEventListener(
-    "click",
-    openNewCharacterEditor,
   );
   elements["export-backup"].addEventListener("click", exportBackup);
   elements["import-backup"].addEventListener("click", () => {
@@ -386,10 +376,6 @@ function bindEvents() {
       });
       if (!elements["character-modal"].classList.contains("is-hidden")) {
         closeCharacterEditor();
-      } else if (
-        !elements["character-directory-modal"].classList.contains("is-hidden")
-      ) {
-        closeCharacterDirectory();
       }
     }
   });
@@ -434,6 +420,7 @@ function showView(viewName, options = {}) {
   state.activeView = viewName;
   const views = {
     home: elements["home-view"],
+    characters: elements["character-list-view"],
     chat: elements["chat-view"],
     settings: elements["settings-view"],
     beautify: elements["beautify-view"],
@@ -447,9 +434,13 @@ function showView(viewName, options = {}) {
 
   if (!options.initial) {
     const scrollArea = views[viewName].querySelector(
-      ".settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll",
+      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll",
     );
     if (scrollArea) scrollArea.scrollTop = 0;
+  }
+
+  if (viewName === "characters") {
+    renderCharacterList();
   }
 
   if (viewName === "beautify" && window.PocketLabBeautify) {
@@ -1685,7 +1676,7 @@ function updateSendButton() {
     elements["send-chat"].innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[iconName]}</svg>`;
     elements["send-chat"].dataset.iconState = iconName;
   }
-  elements["open-character-directory"].disabled = interactionLocked;
+  elements["add-character-from-list"].disabled = interactionLocked;
   elements["edit-character-button"].disabled = interactionLocked;
 }
 
@@ -1702,7 +1693,6 @@ function openNewCharacterEditor() {
     showToast("请等待当前回复或保存完成后再新建角色。");
     return;
   }
-  closeCharacterDirectory(false);
   showCharacterEditor(
     normalizeCharacter({
       id: `character-${createId()}`,
@@ -1756,7 +1746,6 @@ function showCharacterEditor(character, mode, options = {}) {
     state.avatarDraftUrl,
   );
   updateCharacterBackgroundPreview();
-  elements["character-directory-modal"].classList.add("is-hidden");
   elements["character-modal"].classList.remove("is-hidden");
   window.setTimeout(() => elements["character-name"].focus(), 60);
 }
@@ -1768,7 +1757,7 @@ function closeCharacterEditor(shouldFocus = true) {
   if (!shouldFocus) return;
   const focusTarget =
     state.characterEditorMode === "new"
-      ? elements["open-character-directory"]
+      ? elements["add-character-from-list"]
       : elements["edit-character-button"];
   if (focusTarget) focusTarget.focus();
 }
@@ -1807,50 +1796,44 @@ function queueCharacterSave(
   return operation;
 }
 
-function openCharacterDirectory() {
-  if (isChatInteractionLocked()) {
-    showToast("请等待当前回复或保存完成后再切换角色。");
+function renderCharacterList() {
+  const list = elements["character-list"];
+  if (!list) return;
+
+  if (!state.characters.length) {
+    list.innerHTML = `
+      <div class="character-list-empty" role="status">
+        <strong>还没有角色</strong>
+        <p>点右上角的加号，创建一个角色开始聊天。</p>
+      </div>
+    `;
     return;
   }
-  renderCharacterDirectory();
-  elements["character-directory-modal"].classList.remove("is-hidden");
-  window.setTimeout(
-    () => elements["close-character-directory"].focus(),
-    60,
-  );
-}
 
-function closeCharacterDirectory(shouldFocus = true) {
-  elements["character-directory-modal"].classList.add("is-hidden");
-  if (shouldFocus) elements["open-character-directory"].focus();
-}
-
-function renderCharacterDirectory() {
-  const list = elements["character-directory-list"];
   list.innerHTML = state.characters
     .map((character) => {
       const isActive = character.id === state.activeCharacterId;
       const personaPreview =
-        character.persona.length > 54
-          ? `${character.persona.slice(0, 54)}…`
+        character.persona.length > 58
+          ? `${character.persona.slice(0, 58)}…`
           : character.persona;
       return `
         <button
-          class="character-directory-item${isActive ? " is-active" : ""}"
+          class="character-list-item${isActive ? " is-active" : ""}"
           type="button"
           role="listitem"
           data-character-id="${escapeHtml(character.id)}"
           aria-current="${isActive ? "true" : "false"}"
         >
-          <span class="chat-avatar character-directory-avatar" data-directory-avatar="${escapeHtml(character.id)}" aria-hidden="true"></span>
-          <span class="character-directory-copy">
-            <span class="character-directory-name-row">
+          <span class="chat-avatar character-list-avatar" data-list-avatar="${escapeHtml(character.id)}" aria-hidden="true"></span>
+          <span class="character-list-copy">
+            <span class="character-list-name-row">
               <strong>${escapeHtml(character.name)}</strong>
               ${isActive ? '<span class="character-current-badge">当前</span>' : ""}
             </span>
             <small>${escapeHtml(personaPreview || "还没有填写人物设定")}</small>
           </span>
-          <span class="character-directory-mark" data-icon="${isActive ? "check" : "arrow-right"}"></span>
+          <span class="character-list-mark" data-icon="arrow-right"></span>
         </button>
       `;
     })
@@ -1859,15 +1842,15 @@ function renderCharacterDirectory() {
   const characterById = new Map(
     state.characters.map((character) => [character.id, character]),
   );
-  list.querySelectorAll("[data-directory-avatar]").forEach((node) => {
-    const character = characterById.get(node.dataset.directoryAvatar);
+  list.querySelectorAll("[data-list-avatar]").forEach((node) => {
+    const character = characterById.get(node.dataset.listAvatar);
     if (!character) return;
     applyAvatar(node, character.name, character.avatarUrl);
   });
   hydrateIcons();
 }
 
-function handleCharacterDirectoryAction(event) {
+function handleCharacterListAction(event) {
   if (state.isSwitchingCharacter) return;
   const eventTarget = event.target;
   const target =
@@ -1875,16 +1858,11 @@ function handleCharacterDirectoryAction(event) {
       ? eventTarget
       : eventTarget && eventTarget.parentElement;
   const item = target && target.closest("[data-character-id]");
-  if (!item) return;
-  const characterId = item.dataset.characterId;
-  if (characterId === state.activeCharacterId) {
-    closeCharacterDirectory();
-    return;
-  }
-  switchCharacter(characterId);
+  if (!item || !elements["character-list"].contains(item)) return;
+  switchCharacter(item.dataset.characterId, { openChat: true });
 }
 
-async function switchCharacter(characterId) {
+async function switchCharacter(characterId, options = {}) {
   if (isChatInteractionLocked()) {
     showToast("请等待当前回复或保存完成后再切换角色。");
     return;
@@ -1900,7 +1878,6 @@ async function switchCharacter(characterId) {
   state.isSwitchingCharacter = true;
   updateBatchControls();
   updateSendButton();
-  closeCharacterDirectory(false);
   try {
     await messageSaveChain;
     const savedMessages = await window.PocketLabStorage.getMessages(characterId);
@@ -1927,6 +1904,9 @@ async function switchCharacter(characterId) {
     resizeChatInput();
     applyCharacterChatBackground();
     renderChat();
+    if (options.openChat !== false) {
+      showView("chat");
+    }
     showToast(`已切换到 ${nextCharacter.name}。`);
     window.setTimeout(() => elements["chat-input"].focus(), 80);
   } catch (error) {
@@ -2117,6 +2097,9 @@ async function saveCharacter(event) {
     updateSendButton();
     if (saveSucceeded && savedCharacter) {
       closeCharacterEditor(false);
+      if (isNew) {
+        showView("chat");
+      }
       showToast(
         isNew
           ? `已创建 ${savedCharacter.name}。`

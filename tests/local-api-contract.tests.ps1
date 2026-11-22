@@ -4,6 +4,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $serverScript = Join-Path $root "server.ps1"
 $serverProcess = $null
+$mockProcess = $null
 
 function Get-FreeTcpPort {
   $probe = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
@@ -129,8 +130,82 @@ try {
     throw "Empty chat configuration should return HTTP 400 with incomplete_config and a next step. Body: $($chatResponse.Body)"
   }
 
-  Write-Host "Local API contract test passed: incomplete settings return HTTP 400 with guidance."
+  $mockPort = Get-FreeTcpPort
+  $recordPath = Join-Path $root "work\local-world-book-provider-record.json"
+  if (Test-Path -LiteralPath $recordPath) {
+    Remove-Item -LiteralPath $recordPath -Force
+  }
+  $mockScript = Join-Path $root "tests\mock-provider.ps1"
+  $mockProcess = Start-Process `
+    -FilePath "powershell.exe" `
+    -ArgumentList @(
+      "-NoProfile",
+      "-ExecutionPolicy", "Bypass",
+      "-File", "`"$mockScript`"",
+      "-Port", [string]$mockPort,
+      "-ListenAddress", "127.0.0.1",
+      "-RepeatReplies",
+      "-MaxRequests", "1",
+      "-RecordPath", "`"$recordPath`""
+    ) `
+    -WorkingDirectory $root `
+    -WindowStyle Hidden `
+    -PassThru
+
+  if (-not (Wait-ForTcpPort -Port $mockPort)) {
+    throw "The mock provider did not start."
+  }
+
+  $worldBookChatJson = [ordered]@{
+    apiUrl = "http://127.0.0.1:$mockPort/v1"
+    apiKey = "placeholder-local-world-book-key"
+    modelName = "test-model"
+    characterName = "Test Character"
+    persona = "Test persona."
+    worldBook = [ordered]@{
+      name = "Test World Book"
+      content = "World Book content must enter the system prompt."
+    }
+    messages = @(
+      [ordered]@{
+        role = "user"
+        content = "Hello"
+      }
+    )
+  } | ConvertTo-Json -Depth 8 -Compress
+
+  $worldBookResponse = Invoke-JsonPost `
+    -Url "$baseUrl/api/chat" `
+    -Json $worldBookChatJson
+  if (
+    $worldBookResponse.StatusCode -ne 200 -or
+    $worldBookResponse.Json.ok -ne $true
+  ) {
+    throw "World Book chat should succeed through the local service. Body: $($worldBookResponse.Body)"
+  }
+
+  $record = Get-Content -LiteralPath $recordPath -Encoding UTF8 -Raw |
+    ConvertFrom-Json -ErrorAction Stop
+  $systemContent = [string]$record.messages[0].content
+  if (
+    $systemContent -notmatch "Test World Book" -or
+    $systemContent -notmatch "World Book content must enter the system prompt." -or
+    $record.messages[1].content -ne "Hello"
+  ) {
+    throw "World Book content was not inserted into the system prompt correctly."
+  }
+  if ($systemContent -match "API Key") {
+    throw "Unexpected content was inserted into the system prompt."
+  }
+
+  Write-Host "Local API contract test passed: incomplete settings return HTTP 400 with guidance and World Book content reaches the provider."
 } finally {
+  if ($null -ne $mockProcess -and -not $mockProcess.HasExited) {
+    Stop-Process -Id $mockProcess.Id -Force -ErrorAction SilentlyContinue
+  }
+  if ($null -ne $mockProcess) {
+    $mockProcess.Dispose()
+  }
   if ($null -ne $serverProcess -and -not $serverProcess.HasExited) {
     Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
   }

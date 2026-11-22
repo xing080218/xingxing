@@ -5,31 +5,43 @@
   scrollbar-color: rgba(70, 112, 133, 0.34) transparent;
 }
 
-.home-self-profile-card {
+.home-self-profile-dock {
   position: relative;
   z-index: 2;
+  width: 100%;
+  margin-top: auto;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 23px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.14)),
+    rgba(214, 239, 250, 0.28);
+  box-shadow:
+    0 14px 34px rgba(43, 82, 103, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  backdrop-filter: blur(22px) saturate(145%);
+}
+
+.home-self-profile-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 11px;
   width: 100%;
   min-width: 0;
-  margin-top: 17px;
-  padding: 12px 13px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 16px;
+  min-height: 58px;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 17px;
   color: #284554;
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: 0 10px 24px rgba(50, 94, 116, 0.1);
+  background: transparent;
   text-align: left;
-  backdrop-filter: blur(15px);
   cursor: pointer;
-  transition:
-    background 160ms ease,
-    transform 160ms ease;
+  transition: transform 160ms ease;
 }
 
 .home-self-profile-card:hover {
-  background: rgba(255, 255, 255, 0.72);
   transform: translateY(-1px);
 }
 
@@ -41,18 +53,23 @@
 .home-self-profile-avatar {
   display: grid;
   place-items: center;
-  flex: 0 0 39px;
-  width: 39px;
-  height: 39px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 13px;
+  flex: 0 0 51px;
+  width: 51px;
+  height: 51px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 16px;
   color: #4b5d68;
-  background: linear-gradient(145deg, #fff0bd, #d7edf7);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.48), transparent 48%),
+    linear-gradient(145deg, #fff0bd, #cfeaf7);
+  box-shadow:
+    0 8px 18px rgba(52, 91, 111, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.64);
 }
 
 .home-self-profile-avatar svg {
-  width: 19px;
-  height: 19px;
+  width: 23px;
+  height: 23px;
 }
 
 .home-self-profile-copy {
@@ -92,7 +109,7 @@
   height: 28px;
   border-radius: 9px;
   color: #436b80;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.42);
 }
 
 .home-self-profile-arrow svg {
@@ -397,8 +414,8 @@
     padding-left: calc(16px + env(safe-area-inset-left, 0px));
   }
 
-  .home-self-profile-card {
-    margin-bottom: calc(9px + env(safe-area-inset-bottom, 0px));
+  .home-self-profile-dock {
+    margin-bottom: 3px;
   }
 }
 
@@ -426,9 +443,23 @@
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-  .home-self-profile-card {
+  .home-self-profile-dock {
     margin-top: 10px;
-    margin-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    margin-bottom: 0;
+    padding: 7px;
+    border-radius: 19px;
+  }
+
+  .home-self-profile-card {
+    min-height: 48px;
+    padding: 2px 4px;
+  }
+
+  .home-self-profile-avatar {
+    flex-basis: 43px;
+    width: 43px;
+    height: 43px;
+    border-radius: 14px;
   }
 
   .self-profile-scroll {

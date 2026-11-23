@@ -74,6 +74,7 @@ const icons = {
 };
 
 const characterProfile = window.PocketLabCharacterProfile;
+const chatListModel = window.PocketLabChatListModel;
 const defaultCharacter = {
   ...characterProfile.normalizeCharacter(characterProfile.defaultCharacter),
   avatarUrl: "",
@@ -121,6 +122,7 @@ const state = {
 const elements = {};
 let messageSaveChain = Promise.resolve();
 let characterSaveChain = Promise.resolve();
+let characterListRenderSequence = 0;
 
 document.addEventListener("DOMContentLoaded", initializeApp);
 
@@ -217,10 +219,6 @@ function cacheElements() {
     "guide-view",
     "status-time",
     "home-date",
-    "home-connection-label",
-    "connection-orb",
-    "api-access-card",
-    "summary-action",
     "header-status",
     "character-list-scroll",
     "character-list-back",
@@ -321,7 +319,6 @@ function cacheElements() {
 }
 
 function bindEvents() {
-  elements["api-access-card"].addEventListener("click", () => showView("settings"));
   document.getElementById("open-beautify-app").addEventListener("click", () => showView("beautify"));
   document
     .getElementById("open-chat-app")
@@ -509,7 +506,6 @@ function handleWorldBooksChanged(event) {
   if (Array.isArray(event?.detail?.worldBooks)) {
     state.worldBooks = event.detail.worldBooks;
   }
-  renderCharacterList();
 
   const modal = elements["character-modal"];
   if (modal && !modal.classList.contains("is-hidden")) {
@@ -1939,11 +1935,13 @@ function queueCharacterSave(
   return operation;
 }
 
-function renderCharacterList() {
+async function renderCharacterList() {
   const list = elements["character-list"];
   if (!list) return;
+  const renderSequence = ++characterListRenderSequence;
 
   if (!state.characters.length) {
+    list.removeAttribute("aria-busy");
     list.innerHTML = `
       <div class="character-list-empty" role="status">
         <strong>还没有角色</strong>
@@ -1953,53 +1951,106 @@ function renderCharacterList() {
     return;
   }
 
-  list.innerHTML = state.characters
-    .map((character) => {
-      const isActive = character.id === state.activeCharacterId;
-      const personaPreview =
-        character.persona.length > 58
-          ? `${character.persona.slice(0, 58)}…`
-          : character.persona;
-      const boundWorldBook = state.worldBooks.find(
-        (worldBook) => worldBook.id === character.worldBookId,
-      );
-      const worldBookLabel = boundWorldBook
-        ? `世界书：${boundWorldBook.name}`
-        : character.worldBookId
-          ? "世界书：原绑定已不存在"
-          : "未绑定世界书";
+  const characters = state.characters.slice();
+  const loadingRows = characters.map((character) => ({
+    character,
+    preview: chatListModel.LOADING_PREVIEW,
+    timeLabel: "",
+    timestamp: 0,
+  }));
+  list.setAttribute("aria-busy", "true");
+  list.innerHTML = buildCharacterListRowsHtml(loadingRows);
+  applyCharacterListAvatars(list, characters);
+
+  try {
+    await messageSaveChain;
+    const messageSets = await Promise.all(
+      characters.map((character) =>
+        window.PocketLabStorage.getMessages(character.id),
+      ),
+    );
+    if (
+      renderSequence !== characterListRenderSequence ||
+      state.activeView !== "characters"
+    ) {
+      return;
+    }
+
+    const rows = chatListModel.buildCharacterRows(
+      characters.map((character, index) => ({
+        character,
+        messages: messageSets[index],
+      })),
+    );
+    list.innerHTML = buildCharacterListRowsHtml(rows);
+    applyCharacterListAvatars(list, characters);
+    list.removeAttribute("aria-busy");
+  } catch (error) {
+    if (
+      renderSequence !== characterListRenderSequence ||
+      state.activeView !== "characters"
+    ) {
+      return;
+    }
+    const description = window.PocketLabStorage.describeError(
+      error,
+      "读取人物列表",
+    );
+    list.removeAttribute("aria-busy");
+    list.innerHTML = `
+      <div class="character-list-empty character-list-error" role="alert">
+        <strong>${escapeHtml(description.title)}</strong>
+        <p>${escapeHtml(description.message)}</p>
+        <p>${escapeHtml(description.nextStep)}</p>
+        <button type="button" data-retry-character-list>重新读取</button>
+      </div>
+    `;
+    reportStorageError(error, "读取人物列表", "messages");
+  }
+}
+
+function buildCharacterListRowsHtml(rows) {
+  return rows
+    .map((row) => {
+      const character = row.character;
+      const timestamp = Number(row.timestamp) || 0;
+      const dateTime = timestamp
+        ? new Date(timestamp).toISOString()
+        : "";
+      const timeHtml = row.timeLabel
+        ? `<time class="character-list-time" datetime="${escapeHtml(dateTime)}">${escapeHtml(row.timeLabel)}</time>`
+        : "";
       return `
-        <button
-          class="character-list-item${isActive ? " is-active" : ""}"
-          type="button"
-          role="listitem"
-          data-character-id="${escapeHtml(character.id)}"
-          aria-current="${isActive ? "true" : "false"}"
-        >
-          <span class="chat-avatar character-list-avatar" data-list-avatar="${escapeHtml(character.id)}" aria-hidden="true"></span>
-          <span class="character-list-copy">
-            <span class="character-list-name-row">
-              <strong>${escapeHtml(character.name)}</strong>
-              ${isActive ? '<span class="character-current-badge">当前</span>' : ""}
+        <div class="character-list-row" role="listitem">
+          <button
+            class="character-list-item"
+            type="button"
+            data-character-id="${escapeHtml(character.id)}"
+          >
+            <span class="chat-avatar character-list-avatar" data-list-avatar="${escapeHtml(character.id)}" aria-hidden="true"></span>
+            <span class="character-list-copy">
+              <span class="character-list-name-row">
+                <strong>${escapeHtml(character.name)}</strong>
+                ${timeHtml}
+              </span>
+              <span class="character-list-preview" title="${escapeHtml(row.preview)}">${escapeHtml(row.preview)}</span>
             </span>
-            <small>${escapeHtml(personaPreview || "还没有填写人物设定")}</small>
-            <small class="character-world-book-summary">${escapeHtml(worldBookLabel)}</small>
-          </span>
-          <span class="character-list-mark" data-icon="arrow-right"></span>
-        </button>
+          </button>
+        </div>
       `;
     })
     .join("");
+}
 
+function applyCharacterListAvatars(list, characters) {
   const characterById = new Map(
-    state.characters.map((character) => [character.id, character]),
+    characters.map((character) => [character.id, character]),
   );
   list.querySelectorAll("[data-list-avatar]").forEach((node) => {
     const character = characterById.get(node.dataset.listAvatar);
     if (!character) return;
     applyAvatar(node, character.name, character.avatarUrl);
   });
-  hydrateIcons();
 }
 
 function handleCharacterListAction(event) {
@@ -2009,6 +2060,10 @@ function handleCharacterListAction(event) {
     eventTarget instanceof Element
       ? eventTarget
       : eventTarget && eventTarget.parentElement;
+  if (target && target.closest("[data-retry-character-list]")) {
+    renderCharacterList();
+    return;
+  }
   const item = target && target.closest("[data-character-id]");
   if (!item || !elements["character-list"].contains(item)) return;
   switchCharacter(item.dataset.characterId, { openChat: true });
@@ -2905,14 +2960,6 @@ function normalizeChatError(rawError, fallbackStatus) {
 }
 
 function updateConnectionUI() {
-  const label = state.connected ? "连接正常" : "等待配置";
-  elements["home-connection-label"].textContent = label;
-  elements["connection-orb"].classList.toggle("is-connected", state.connected);
-  elements["summary-action"].innerHTML = state.connected
-    ? '重新测试 <span data-icon="arrow-up-right"></span>'
-    : '去填写 <span data-icon="arrow-up-right"></span>';
-  hydrateIcons();
-
   elements["header-status"].classList.toggle("is-connected", state.connected);
   elements["header-status"].innerHTML = state.connected
     ? '<span class="status-dot"></span>已连接'

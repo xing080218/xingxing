@@ -17,13 +17,13 @@
     layout: null,
     press: null,
     drag: null,
+    dropSlot: null,
     suppressClickUntil: 0,
     onError: () => {},
     homeView: null,
     grid: null,
     dock: null,
     containers: [],
-    sectionLabel: null,
     dateLabel: null,
     doneButton: null,
     editStatus: null,
@@ -49,6 +49,7 @@
 
     bindEvents();
     state.initialized = true;
+    ensureHomeSlots(model.HOME_SLOT_COUNT);
 
     try {
       state.layout = await store.load(getAppIds());
@@ -78,7 +79,6 @@
     state.grid = document.getElementById("home-app-grid");
     state.dock = document.getElementById("home-app-dock");
     state.containers = [state.grid, state.dock].filter(Boolean);
-    state.sectionLabel = document.getElementById("home-section-label");
     state.dateLabel = document.getElementById("home-date");
     state.doneButton = document.getElementById("home-edit-done");
     state.editStatus = document.getElementById("home-screen-edit-status");
@@ -106,6 +106,68 @@
     return targets.flatMap((target) =>
       Array.from(target.querySelectorAll("[data-home-app-id]")),
     );
+  }
+
+  function createHomeSlot() {
+    const slot = document.createElement("div");
+    slot.className = "home-app-slot";
+    slot.setAttribute("aria-hidden", "true");
+    return slot;
+  }
+
+  function getHomeSlots() {
+    return Array.from(state.grid.children).filter((child) =>
+      child.classList.contains("home-app-slot"),
+    );
+  }
+
+  function getTileInSlot(slot) {
+    if (!slot) return null;
+    return Array.from(slot.children).find((child) =>
+      child.matches?.("[data-home-app-id]"),
+    ) || null;
+  }
+
+  function ensureHomeSlots(targetCount = model.HOME_SLOT_COUNT) {
+    const unwrappedTiles = Array.from(state.grid.children).filter((child) =>
+      child.matches?.("[data-home-app-id]"),
+    );
+    if (unwrappedTiles.length) {
+      const fragment = document.createDocumentFragment();
+      unwrappedTiles.forEach((tile) => {
+        const slot = createHomeSlot();
+        slot.append(tile);
+        fragment.append(slot);
+      });
+      state.grid.replaceChildren(fragment);
+    }
+
+    let slots = getHomeSlots();
+    while (slots.length < targetCount) {
+      const slot = createHomeSlot();
+      state.grid.append(slot);
+      slots = getHomeSlots();
+    }
+
+    if (slots.length <= targetCount) return;
+
+    const visibleSlots = slots.slice(0, targetCount);
+    const extraSlots = slots.slice(targetCount);
+    extraSlots.forEach((extraSlot) => {
+      const tile = getTileInSlot(extraSlot);
+      if (!tile) return;
+      const emptySlot = visibleSlots.find((slot) => !getTileInSlot(slot));
+      if (emptySlot) {
+        emptySlot.append(tile);
+        return;
+      }
+      if (getTiles(state.dock).length < model.DOCK_MAX_APPS) {
+        state.dock.append(tile);
+      }
+    });
+    extraSlots.forEach((slot) => {
+      if (!getTileInSlot(slot)) slot.remove();
+    });
   }
 
   function getAppIds() {
@@ -138,9 +200,13 @@
       Array.from(tileById.keys()),
     );
 
-    normalized.homeOrder.forEach((id) => {
+    ensureHomeSlots(normalized.homeSlots.length);
+    const slots = getHomeSlots();
+    slots.forEach((slot) => slot.replaceChildren());
+
+    normalized.homeSlots.forEach((id, index) => {
       const tile = tileById.get(id);
-      if (tile) state.grid.append(tile);
+      if (tile) slots[index].append(tile);
     });
     normalized.dockOrder.forEach((id) => {
       const tile = tileById.get(id);
@@ -152,25 +218,30 @@
   }
 
   function updateAccessibility() {
+    const homeSlots = getHomeSlots();
     const homeTiles = getTiles(state.grid);
     const dockTiles = getTiles(state.dock);
     state.grid.setAttribute(
       "aria-label",
-      `主屏幕应用，共 ${homeTiles.length} 个。长按图标可编辑排列。`,
+      `主屏幕应用，共 ${homeTiles.length} 个。长按图标可编辑到任意空位。`,
     );
     state.dock.setAttribute(
       "aria-label",
       `主屏幕底部应用栏，共 ${dockTiles.length} 个。长按图标可编辑或移出。`,
     );
 
-    [
-      [homeTiles, "home"],
-      [dockTiles, "dock"],
-    ].forEach(([tiles, containerName]) => {
-      tiles.forEach((tile, index) => {
-        tile.dataset.homeAppPosition = String(index + 1);
-        tile.dataset.homeAppContainer = containerName;
-      });
+    homeSlots.forEach((slot, index) => {
+      const tile = getTileInSlot(slot);
+      slot.dataset.homeSlotIndex = String(index);
+      slot.classList.toggle("is-empty", !tile);
+      slot.setAttribute("aria-hidden", tile ? "false" : "true");
+      if (!tile) return;
+      tile.dataset.homeAppPosition = String(index + 1);
+      tile.dataset.homeAppContainer = "home";
+    });
+    dockTiles.forEach((tile, index) => {
+      tile.dataset.homeAppPosition = String(index + 1);
+      tile.dataset.homeAppContainer = "dock";
     });
   }
 
@@ -196,6 +267,7 @@
       timer: null,
     };
     state.press = press;
+    tile.style.touchAction = "none";
     tile.setPointerCapture?.(event.pointerId);
 
     if (state.editing) {
@@ -268,7 +340,7 @@
 
     const drag = state.drag;
     if (drag && drag.pointerId === event.pointerId) {
-      finishDrag();
+      cancelDrag();
     }
   }
 
@@ -298,6 +370,10 @@
       offsetY: press.startY - rect.top,
       originLeft: rect.left,
       originTop: rect.top,
+      dropContainer: null,
+      dropHomeIndex: null,
+      dropDockIndex: null,
+      rejectedDock: false,
     };
     guardClick();
   }
@@ -314,47 +390,93 @@
 
     const container = getDropContainerAtPoint(clientX, clientY);
     const currentContainer = getContainerForTile(drag.tile);
+    drag.dropContainer = null;
+    drag.dropHomeIndex = null;
+    drag.dropDockIndex = null;
+    drag.rejectedDock = false;
+
     if (
       container === state.dock &&
       currentContainer !== state.dock &&
       getTiles(state.dock).length >= model.DOCK_MAX_APPS
     ) {
-      setDropTarget(null);
+      drag.rejectedDock = true;
+      clearDropTarget();
       return;
     }
 
     setDropTarget(container);
-    if (!container) return;
-
-    const target = findClosestTile(
-      clientX,
-      clientY,
-      drag.tile,
-      getTiles(container),
-    );
-    if (!target) {
-      if (container.lastElementChild !== drag.tile) {
-        container.append(drag.tile);
-      }
+    if (!container) {
+      setDropSlot(null);
       return;
     }
 
-    const rect = target.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const placeAfter = container === state.dock
-      ? clientX > centerX
-      : Math.abs(clientY - centerY) > rect.height * 0.28
-        ? clientY > centerY
-        : clientX > centerX;
-
-    if (placeAfter) {
-      if (target.nextElementSibling !== drag.tile) {
-        target.insertAdjacentElement("afterend", drag.tile);
-      }
-    } else if (target.previousElementSibling !== drag.tile) {
-      target.insertAdjacentElement("beforebegin", drag.tile);
+    if (container === state.grid) {
+      updateHomeDrag(clientX, clientY);
+      return;
     }
+
+    setDropSlot(null);
+    const dockTiles = getTiles(container).filter(
+      (tile) => tile !== drag.tile,
+    );
+    const target = findClosestTile(
+      clientX,
+      clientY,
+      null,
+      dockTiles,
+    );
+    const targetIndex = target ? dockTiles.indexOf(target) : -1;
+    const placeAfter = target
+      ? clientX > target.getBoundingClientRect().left +
+        target.getBoundingClientRect().width / 2
+      : false;
+    drag.dropContainer = state.dock;
+    drag.dropDockIndex = targetIndex < 0
+      ? dockTiles.length
+      : targetIndex + (placeAfter ? 1 : 0);
+  }
+
+  function updateHomeDrag(clientX, clientY) {
+    const drag = state.drag;
+    if (!drag) return;
+
+    const targetSlot = findClosestHomeSlot(clientX, clientY);
+    setDropSlot(targetSlot);
+    if (!targetSlot) return;
+    const slotIndex = Number(targetSlot.dataset.homeSlotIndex);
+    if (!Number.isFinite(slotIndex)) return;
+    drag.dropContainer = state.grid;
+    drag.dropHomeIndex = slotIndex;
+  }
+
+  function findClosestHomeSlot(clientX, clientY) {
+    const slots = getHomeSlots();
+    let closest = null;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    slots.forEach((slot) => {
+      const rect = slot.getBoundingClientRect();
+      const distanceX =
+        clientX < rect.left
+          ? rect.left - clientX
+          : clientX > rect.right
+            ? clientX - rect.right
+            : 0;
+      const distanceY =
+        clientY < rect.top
+          ? rect.top - clientY
+          : clientY > rect.bottom
+            ? clientY - rect.bottom
+            : 0;
+      const distance =
+        distanceX * distanceX + distanceY * distanceY;
+      if (distance >= closestDistance) return;
+      closestDistance = distance;
+      closest = slot;
+    });
+
+    return closest;
   }
 
   function getDropContainerAtPoint(clientX, clientY) {
@@ -402,10 +524,19 @@
     });
   }
 
+  function setDropSlot(slot) {
+    if (state.dropSlot && state.dropSlot !== slot) {
+      state.dropSlot.classList.remove("is-drop-slot");
+    }
+    state.dropSlot = slot || null;
+    if (state.dropSlot) state.dropSlot.classList.add("is-drop-slot");
+  }
+
   function clearDropTarget() {
     state.containers.forEach((container) => {
       container.classList.remove("is-drop-target");
     });
+    setDropSlot(null);
   }
 
   function findClosestTile(clientX, clientY, excludedTile, tiles) {
@@ -442,16 +573,66 @@
   function finishDrag() {
     const drag = state.drag;
     if (!drag) return;
+    const appId = drag.tile.dataset.homeAppId;
+    const targetContainer = drag.dropContainer;
+    const homeIndex = drag.dropHomeIndex;
+    const dockIndex = drag.dropDockIndex;
+    const rejectedDock = drag.rejectedDock;
+    const previousLayout = state.layout;
+    cleanupDrag();
+
+    let nextLayout = previousLayout;
+    if (targetContainer === state.grid && Number.isFinite(homeIndex)) {
+      nextLayout = model.moveAppToHomeSlot(
+        previousLayout,
+        appId,
+        homeIndex,
+        getAppIds(),
+      );
+    } else if (targetContainer === state.dock && Number.isFinite(dockIndex)) {
+      nextLayout = model.moveAppToDock(
+        previousLayout,
+        appId,
+        dockIndex,
+        getAppIds(),
+      );
+    }
+
+    const moved = layoutPositionsChanged(previousLayout, nextLayout);
+    state.dirty = state.dirty || moved;
+    applyLayout(nextLayout);
+    if (rejectedDock) {
+      announce("底部应用栏已满，应用保留在原位置。");
+    } else if (moved) {
+      announce("应用已放到指定位置。完成后保存。");
+    } else {
+      announce("应用位置没有改变。");
+    }
+  }
+
+  function cancelDrag() {
+    if (!state.drag) return;
+    cleanupDrag();
+    applyLayout(state.layout);
+    announce("已取消本次移动。");
+  }
+
+  function cleanupDrag() {
+    const drag = state.drag;
+    if (!drag) return;
     drag.ghost.remove();
     drag.tile.classList.remove("is-drag-source");
-    state.drag = null;
     if (state.press) state.press.dragging = false;
+    state.drag = null;
     clearDropTarget();
+  }
 
-    const nextLayout = layoutFromDom();
-    state.dirty = true;
-    applyLayout(nextLayout);
-    announce("应用位置已更新。完成后保存。");
+  function layoutPositionsChanged(previous, next) {
+    if (!previous || !next) return false;
+    return (
+      JSON.stringify(previous.homeSlots) !== JSON.stringify(next.homeSlots) ||
+      JSON.stringify(previous.dockOrder) !== JSON.stringify(next.dockOrder)
+    );
   }
 
   function handleClickCapture(event) {
@@ -487,9 +668,7 @@
     if (!state.editing || !event.altKey) return;
     const container = getContainerForTile(tile);
     if (!container) return;
-    const columns = container === state.grid
-      ? getGridColumnCount()
-      : Math.max(1, getTiles(state.dock).length);
+    const columns = getGridColumnCount();
     const offsets = {
       ArrowLeft: -1,
       ArrowRight: 1,
@@ -501,19 +680,26 @@
 
     event.preventDefault();
     const appId = tile.dataset.homeAppId;
-    const next = model.moveAppByOffset(
-      state.layout,
-      appId,
-      offset,
-      getAppIds(),
-    );
+    const next = container === state.grid
+      ? model.moveHomeAppByOffset(
+          state.layout,
+          appId,
+          offset,
+          getAppIds(),
+        )
+      : model.moveDockAppByOffset(
+          state.layout,
+          appId,
+          offset > 0 ? 1 : -1,
+          getAppIds(),
+        );
     state.dirty = true;
     applyLayout(next);
     tile.focus({ preventScroll: true });
     announce(
       container === state.dock
         ? "底部应用顺序已调整。"
-        : "主屏幕图标位置已调整。",
+        : "主屏幕图标已移到相邻位置。",
     );
   }
 
@@ -551,8 +737,8 @@
   function layoutFromDom() {
     return model.normalizeLayout(
       {
-        homeOrder: getTiles(state.grid).map(
-          (tile) => tile.dataset.homeAppId,
+        homeSlots: getHomeSlots().map(
+          (slot) => getTileInSlot(slot)?.dataset.homeAppId || null,
         ),
         dockOrder: getTiles(state.dock).map(
           (tile) => tile.dataset.homeAppId,
@@ -569,17 +755,19 @@
     }
 
     state.editing = true;
+    ensureHomeSlots(model.HOME_SLOT_COUNT);
     state.homeView.classList.add("is-editing");
     state.containers.forEach((container) => {
       container.classList.add("is-editing");
     });
-    if (state.sectionLabel) state.sectionLabel.textContent = "编辑主屏幕";
     if (state.dateLabel) state.dateLabel.hidden = true;
     state.doneButton.hidden = false;
     if (options.focusTile) {
       options.focusTile.focus({ preventScroll: true });
     }
-    announce("主屏幕编辑模式已开启。可将应用拖入或拖出底部应用栏。");
+    announce(
+      "主屏幕编辑模式已开启。可把应用拖到任意空位、与已有应用交换，或拖入底部应用栏。",
+    );
   }
 
   function exitEditMode() {
@@ -591,7 +779,6 @@
       container.classList.remove("is-editing");
     });
     clearDropTarget();
-    if (state.sectionLabel) state.sectionLabel.textContent = "常用功能";
     if (state.dateLabel) state.dateLabel.hidden = false;
     state.doneButton.hidden = true;
     state.doneButton.disabled = false;
@@ -617,13 +804,15 @@
   }
 
   function releasePointer(tile, pointerId) {
-    if (!tile?.hasPointerCapture?.(pointerId)) return;
-    tile.releasePointerCapture(pointerId);
+    if (tile?.hasPointerCapture?.(pointerId)) {
+      tile.releasePointerCapture(pointerId);
+    }
+    if (tile) tile.style.touchAction = "";
   }
 
   function cancelInteractions() {
     clearPress();
-    if (state.drag) finishDrag();
+    if (state.drag) cancelDrag();
   }
 
   function announce(message) {

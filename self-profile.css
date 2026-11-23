@@ -5,39 +5,6 @@
   scrollbar-color: rgba(70, 112, 133, 0.34) transparent;
 }
 
-.home-self-profile-dock {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 92px;
-  margin-top: auto;
-  padding: 10px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 29px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.14)),
-    rgba(214, 239, 250, 0.28);
-  box-shadow:
-    0 14px 34px rgba(43, 82, 103, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
-  -webkit-backdrop-filter: blur(22px) saturate(145%);
-  backdrop-filter: blur(22px) saturate(145%);
-}
-
-.home-self-profile-card {
-  flex: 0 0 62px;
-  width: 62px;
-}
-
-.home-self-profile-card:focus-visible {
-  outline: 3px solid rgba(65, 139, 170, 0.36);
-  outline-offset: 2px;
-  border-radius: 17px;
-}
-
 .app-self-profile {
   color: #405a73;
   background:
@@ -341,24 +308,9 @@
     padding-right: calc(16px + env(safe-area-inset-right, 0px));
     padding-left: calc(16px + env(safe-area-inset-left, 0px));
   }
-
-  .home-self-profile-dock {
-    margin-bottom: 3px;
-  }
 }
 
 @media (max-width: 360px) {
-  .home-self-profile-dock {
-    min-height: 86px;
-    padding: 9px 12px;
-    border-radius: 25px;
-  }
-
-  .home-self-profile-card {
-    flex-basis: 58px;
-    width: 58px;
-  }
-
   .self-profile-scroll {
     padding-right: 15px;
     padding-left: 15px;
@@ -382,14 +334,6 @@
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-  .home-self-profile-dock {
-    min-height: 72px;
-    margin-top: auto;
-    margin-bottom: 0;
-    padding: 7px;
-    border-radius: 23px;
-  }
-
   .self-profile-scroll {
     padding-top: 10px;
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));

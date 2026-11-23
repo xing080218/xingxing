@@ -287,6 +287,20 @@
     });
   }
 
+  function normalizeGroupMemberIds(value) {
+    if (!Array.isArray(value)) return [];
+    const ids = [];
+    const seen = new Set();
+    value.forEach((entry) => {
+      if (typeof entry !== "string") return;
+      const id = entry.trim();
+      if (!id || id.length > 200 || seen.has(id)) return;
+      seen.add(id);
+      ids.push(id);
+    });
+    return ids;
+  }
+
   function normalizeGroupChatRecord(value) {
     const model = window.PocketLabGroupChatModel;
     if (model && typeof model.normalizeGroupChat === "function") {
@@ -309,6 +323,7 @@
         typeof source.backgroundSetting === "string"
           ? source.backgroundSetting.trim().slice(0, 4000)
           : "",
+      memberCharacterIds: normalizeGroupMemberIds(source.memberCharacterIds),
       createdAt: Number.isFinite(Number(source.createdAt))
         ? Number(source.createdAt)
         : now,
@@ -354,6 +369,18 @@
   async function saveGroupChat(record) {
     const validation = validateGroupChatRecord(record);
     const id = requireStableId(validation.id || record?.id, "群聊");
+    if (validation.memberCharacterIds.length) {
+      const characterIds = new Set(
+        (await listCharacters()).map((character) => character.id),
+      );
+      validation.memberCharacterIds.forEach((characterId) => {
+        if (!characterIds.has(characterId)) {
+          throw new Error(
+            "群聊成员引用了不存在的角色，未保存群聊资料。请刷新页面后重新选择成员。",
+          );
+        }
+      });
+    }
     const saved = {
       ...validation,
       id,
@@ -789,13 +816,20 @@
     return { worldBooks, worldBookIds };
   }
 
-  function prepareImportedGroupChats(records) {
+  function prepareImportedGroupChats(records, characterIds) {
     assertUniqueRecords(records, "id", "群聊");
     const groupChats = records.map((record) => {
       if (!record || typeof record !== "object") {
         throw new Error("备份中的群聊记录格式不正确。");
       }
       const validation = validateGroupChatRecord(record);
+      validation.memberCharacterIds.forEach((characterId) => {
+        if (!characterIds.has(characterId)) {
+          throw new Error(
+            `群聊 ${record.id.trim()} 引用了备份中不存在的角色 ${characterId}。`,
+          );
+        }
+      });
       return {
         ...validation,
         id: record.id.trim(),
@@ -946,7 +980,10 @@
       messages: preparedMessages.messages,
       memories: prepareImportedMemories(rawMemories),
       worldBooks: preparedWorldBooks.worldBooks,
-      groupChats: prepareImportedGroupChats(rawGroupChats),
+      groupChats: prepareImportedGroupChats(
+        rawGroupChats,
+        preparedCharacters.characterIds,
+      ),
       appData: prepareImportedAppData(rawAppData),
       images: preparedImages.images,
     };

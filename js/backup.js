@@ -2,8 +2,8 @@
 
 (() => {
   const FORMAT = "pocket-lab-backup";
-  const SCHEMA_VERSION = 3;
-  const SUPPORTED_SCHEMA_VERSIONS = Object.freeze([1, 2, 3]);
+  const SCHEMA_VERSION = 4;
+  const SUPPORTED_SCHEMA_VERSIONS = Object.freeze([1, 2, 3, 4]);
 
   function isObject(value) {
     return Boolean(value && typeof value === "object" && !Array.isArray(value));

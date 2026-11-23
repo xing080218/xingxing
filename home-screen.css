@@ -152,10 +152,6 @@
   transform: none;
 }
 
-.home-view.is-editing .device-summary {
-  pointer-events: none;
-}
-
 .home-app-tile.is-drag-source {
   opacity: 0.2;
 }

@@ -217,10 +217,6 @@ function cacheElements() {
     "guide-view",
     "status-time",
     "home-date",
-    "home-connection-label",
-    "connection-orb",
-    "api-access-card",
-    "summary-action",
     "header-status",
     "character-list-scroll",
     "character-list-back",
@@ -321,7 +317,6 @@ function cacheElements() {
 }
 
 function bindEvents() {
-  elements["api-access-card"].addEventListener("click", () => showView("settings"));
   document.getElementById("open-beautify-app").addEventListener("click", () => showView("beautify"));
   document
     .getElementById("open-chat-app")
@@ -2905,14 +2900,6 @@ function normalizeChatError(rawError, fallbackStatus) {
 }
 
 function updateConnectionUI() {
-  const label = state.connected ? "连接正常" : "等待配置";
-  elements["home-connection-label"].textContent = label;
-  elements["connection-orb"].classList.toggle("is-connected", state.connected);
-  elements["summary-action"].innerHTML = state.connected
-    ? '重新测试 <span data-icon="arrow-up-right"></span>'
-    : '去填写 <span data-icon="arrow-up-right"></span>';
-  hydrateIcons();
-
   elements["header-status"].classList.toggle("is-connected", state.connected);
   elements["header-status"].innerHTML = state.connected
     ? '<span class="status-dot"></span>已连接'

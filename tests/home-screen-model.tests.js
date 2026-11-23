@@ -12,7 +12,8 @@ function withEmptySlots(values, minimum = model.HOME_MIN_SLOTS) {
 function runTests() {
   assert.equal(model.VERSION, 3);
   assert.equal(model.HOME_COLUMNS, 4);
-  assert.equal(model.HOME_MIN_SLOTS, 12);
+  assert.equal(model.HOME_MIN_SLOTS, 20);
+  assert.equal(model.HOME_MIN_SLOTS / model.HOME_COLUMNS, 5);
   assert.equal(model.HOME_MAX_SLOTS, 64);
   assert.equal(model.DOCK_MAX_APPS, 4);
 
@@ -27,6 +28,31 @@ function runTests() {
     ]),
     dockOrder: ["self-profile"],
   });
+
+  const twelveSlotLayout = model.normalizeLayout({
+    version: 3,
+    homeSlots: [
+      null,
+      "guide",
+      "chat",
+      "world-books",
+      "settings",
+      null,
+      null,
+      null,
+      "beautify",
+      null,
+      null,
+      null,
+    ],
+    dockOrder: ["self-profile"],
+  });
+  assert.equal(
+    twelveSlotLayout.homeSlots.length,
+    model.HOME_MIN_SLOTS,
+    "A saved 12-slot layout must expand to five rows without moving apps.",
+  );
+  assert.equal(twelveSlotLayout.homeSlots[8], "beautify");
 
   const sparseIds = ["chat", "settings", "beautify", "self-profile"];
   assert.deepEqual(

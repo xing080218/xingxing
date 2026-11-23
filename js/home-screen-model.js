@@ -14,7 +14,7 @@
   const STORAGE_KEY = "home-screen.layout.v1";
   const VERSION = 3;
   const HOME_COLUMNS = 4;
-  const HOME_MIN_SLOTS = 12;
+  const HOME_MIN_SLOTS = 20;
   const HOME_MAX_SLOTS = 64;
   const DOCK_MAX_APPS = 4;
   const DEFAULT_HOME_ORDER = Object.freeze([

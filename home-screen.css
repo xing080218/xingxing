@@ -1,14 +1,16 @@
 .app-grid {
   flex: 1 1 0;
   min-height: 0;
+  width: 100%;
+  align-self: stretch;
   height: auto;
   overflow: hidden;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
-  gap: clamp(6px, 1.5cqh, 19px) 8px;
+  grid-template-rows: repeat(4, minmax(0, clamp(64px, 10.5cqh, 88px)));
+  gap: clamp(4px, 0.9cqh, 8px) 4px;
   align-items: stretch;
-  align-content: stretch;
-  padding: 2px;
+  align-content: start;
+  padding: 2px max(2px, calc((100% - 300px) / 2));
   margin: -2px;
   overscroll-behavior: none;
 }
@@ -239,7 +241,7 @@
 
 @media (max-width: 360px) {
   .app-grid {
-    column-gap: 6px;
+    column-gap: 3px;
   }
 
   .home-app-dock {
@@ -271,7 +273,11 @@
 
 @media (max-height: 500px) and (orientation: landscape) {
   .app-grid {
-    gap: 4px 12px;
+    width: 100%;
+    grid-template-rows: repeat(4, minmax(0, clamp(36px, 10.5cqh, 52px)));
+    gap: 3px 4px;
+    padding-right: max(2px, calc((100% - 280px) / 2));
+    padding-left: max(2px, calc((100% - 280px) / 2));
   }
 
   .home-app-dock {

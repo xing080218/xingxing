@@ -2,7 +2,8 @@
 
 (() => {
   const FORMAT = "pocket-lab-backup";
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 4;
+  const SUPPORTED_SCHEMA_VERSIONS = Object.freeze([1, 2, 3, 4]);
 
   function isObject(value) {
     return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -60,6 +61,7 @@
       messages: prepared.messages.map((record) => cloneJson(record)),
       memories: prepared.memories.map((record) => cloneJson(record)),
       worldBooks: prepared.worldBooks.map((record) => cloneJson(record)),
+      groupChats: prepared.groupChats.map((record) => cloneJson(record)),
       appData: prepared.appData.map((record) => cloneJson(record)),
       images,
     };
@@ -69,7 +71,7 @@
     if (!isObject(input)) throw new Error("备份文件不是有效的 JSON 对象。");
     if (input.format !== FORMAT) throw new Error("这不是小手机生成的备份文件。");
     const schemaVersion = Number(input.schemaVersion);
-    if (schemaVersion !== 1 && schemaVersion !== SCHEMA_VERSION) {
+    if (!SUPPORTED_SCHEMA_VERSIONS.includes(schemaVersion)) {
       throw new Error(`备份版本 ${input.schemaVersion || "未知"} 不受支持。`);
     }
 
@@ -98,12 +100,21 @@
             : (() => {
                 throw new Error("备份中的世界书必须是列表。");
               })();
+    const groupChats =
+      input.groupChats === undefined
+        ? []
+        : Array.isArray(input.groupChats)
+          ? input.groupChats
+          : (() => {
+              throw new Error("备份中的群聊必须是列表。");
+            })();
 
     return window.PocketLabStorage.prepareImportRecords({
       characters,
       messages: input.messages,
       memories: input.memories,
       worldBooks,
+      groupChats,
       appData: input.appData,
       images,
     });

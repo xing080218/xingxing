@@ -6,6 +6,7 @@
   const LONG_PRESS_MS = 560;
   const MOVE_CANCEL_PX = 10;
   const DRAG_START_PX = 4;
+  const DROP_CONTAINER_MARGIN_PX = 24;
   const CLICK_GUARD_MS = 900;
 
   const state = {
@@ -20,6 +21,8 @@
     onError: () => {},
     homeView: null,
     grid: null,
+    dock: null,
+    containers: [],
     sectionLabel: null,
     dateLabel: null,
     doneButton: null,
@@ -35,7 +38,14 @@
     state.onError =
       typeof options.onError === "function" ? options.onError : () => {};
     cacheElements();
-    if (!state.homeView || !state.grid || !state.doneButton) return;
+    if (
+      !state.homeView ||
+      !state.grid ||
+      !state.dock ||
+      !state.doneButton
+    ) {
+      return;
+    }
 
     bindEvents();
     state.initialized = true;
@@ -66,6 +76,8 @@
   function cacheElements() {
     state.homeView = document.getElementById("home-view");
     state.grid = document.getElementById("home-app-grid");
+    state.dock = document.getElementById("home-app-dock");
+    state.containers = [state.grid, state.dock].filter(Boolean);
     state.sectionLabel = document.getElementById("home-section-label");
     state.dateLabel = document.getElementById("home-date");
     state.doneButton = document.getElementById("home-edit-done");
@@ -73,10 +85,12 @@
   }
 
   function bindEvents() {
-    state.grid.addEventListener("pointerdown", handlePointerDown);
-    state.grid.addEventListener("click", handleClickCapture, true);
-    state.grid.addEventListener("contextmenu", handleContextMenu);
-    state.grid.addEventListener("keydown", handleTileKeyDown);
+    state.containers.forEach((container) => {
+      container.addEventListener("pointerdown", handlePointerDown);
+      container.addEventListener("click", handleClickCapture, true);
+      container.addEventListener("contextmenu", handleContextMenu);
+      container.addEventListener("keydown", handleTileKeyDown);
+    });
     state.doneButton.addEventListener("click", handleDone);
     document.addEventListener("pointermove", handlePointerMove, {
       passive: false,
@@ -87,9 +101,10 @@
     root.addEventListener("blur", cancelInteractions);
   }
 
-  function getTiles() {
-    return Array.from(
-      state.grid.querySelectorAll("[data-home-app-id]"),
+  function getTiles(container = null) {
+    const targets = container ? [container] : state.containers;
+    return targets.flatMap((target) =>
+      Array.from(target.querySelectorAll("[data-home-app-id]")),
     );
   }
 
@@ -100,30 +115,62 @@
     return ids.length ? ids : model.DEFAULT_APP_IDS;
   }
 
+  function getContainerForTile(tile) {
+    if (!tile) return null;
+    return state.containers.find((container) => container.contains(tile)) || null;
+  }
+
+  function getManagedTile(target) {
+    const tile =
+      target instanceof Element
+        ? target.closest("[data-home-app-id]")
+        : null;
+    return tile && getContainerForTile(tile) ? tile : null;
+  }
+
   function applyLayout(layout) {
     const tiles = getTiles();
     const tileById = new Map(
       tiles.map((tile) => [tile.dataset.homeAppId, tile]),
     );
-    const normalized = model.normalizeLayout(layout, Array.from(tileById.keys()));
+    const normalized = model.normalizeLayout(
+      layout,
+      Array.from(tileById.keys()),
+    );
 
-    normalized.order.forEach((id) => {
+    normalized.homeOrder.forEach((id) => {
       const tile = tileById.get(id);
       if (tile) state.grid.append(tile);
     });
+    normalized.dockOrder.forEach((id) => {
+      const tile = tileById.get(id);
+      if (tile) state.dock.append(tile);
+    });
 
     state.layout = normalized;
-    updateGridAccessibility();
+    updateAccessibility();
   }
 
-  function updateGridAccessibility() {
-    const tiles = getTiles();
+  function updateAccessibility() {
+    const homeTiles = getTiles(state.grid);
+    const dockTiles = getTiles(state.dock);
     state.grid.setAttribute(
       "aria-label",
-      `主屏幕应用，共 ${tiles.length} 个。长按图标可编辑排列。`,
+      `主屏幕应用，共 ${homeTiles.length} 个。长按图标可编辑排列。`,
     );
-    tiles.forEach((tile, index) => {
-      tile.dataset.homeAppPosition = String(index + 1);
+    state.dock.setAttribute(
+      "aria-label",
+      `主屏幕底部应用栏，共 ${dockTiles.length} 个。长按图标可编辑或移出。`,
+    );
+
+    [
+      [homeTiles, "home"],
+      [dockTiles, "dock"],
+    ].forEach(([tiles, containerName]) => {
+      tiles.forEach((tile, index) => {
+        tile.dataset.homeAppPosition = String(index + 1);
+        tile.dataset.homeAppContainer = containerName;
+      });
     });
   }
 
@@ -135,11 +182,8 @@
       return;
     }
 
-    const tile =
-      event.target instanceof Element
-        ? event.target.closest("[data-home-app-id]")
-        : null;
-    if (!tile || !state.grid.contains(tile)) return;
+    const tile = getManagedTile(event.target);
+    if (!tile) return;
 
     clearPress();
     const press = {
@@ -268,14 +312,39 @@
       "0) scale(1.035)",
     ].join(" ");
 
-    const target = findClosestTile(clientX, clientY, drag.tile);
-    if (!target) return;
+    const container = getDropContainerAtPoint(clientX, clientY);
+    const currentContainer = getContainerForTile(drag.tile);
+    if (
+      container === state.dock &&
+      currentContainer !== state.dock &&
+      getTiles(state.dock).length >= model.DOCK_MAX_APPS
+    ) {
+      setDropTarget(null);
+      return;
+    }
+
+    setDropTarget(container);
+    if (!container) return;
+
+    const target = findClosestTile(
+      clientX,
+      clientY,
+      drag.tile,
+      getTiles(container),
+    );
+    if (!target) {
+      if (container.lastElementChild !== drag.tile) {
+        container.append(drag.tile);
+      }
+      return;
+    }
+
     const rect = target.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    const verticalDistance = Math.abs(clientY - centerY);
-    const placeAfter =
-      verticalDistance > rect.height * 0.28
+    const placeAfter = container === state.dock
+      ? clientX > centerX
+      : Math.abs(clientY - centerY) > rect.height * 0.28
         ? clientY > centerY
         : clientX > centerX;
 
@@ -288,11 +357,62 @@
     }
   }
 
-  function findClosestTile(clientX, clientY, excludedTile) {
+  function getDropContainerAtPoint(clientX, clientY) {
+    const exactMatch = state.containers.find((container) => {
+      const rect = container.getBoundingClientRect();
+      return (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      );
+    });
+    if (exactMatch) return exactMatch;
+
+    let closestContainer = null;
+    let closestDistance = Number.POSITIVE_INFINITY;
+    state.containers.forEach((container) => {
+      const rect = container.getBoundingClientRect();
+      const distanceX =
+        clientX < rect.left
+          ? rect.left - clientX
+          : clientX > rect.right
+            ? clientX - rect.right
+            : 0;
+      const distanceY =
+        clientY < rect.top
+          ? rect.top - clientY
+          : clientY > rect.bottom
+            ? clientY - rect.bottom
+            : 0;
+      const distance = Math.hypot(distanceX, distanceY);
+      if (distance >= closestDistance) return;
+      closestDistance = distance;
+      closestContainer = container;
+    });
+
+    return closestDistance <= DROP_CONTAINER_MARGIN_PX
+      ? closestContainer
+      : null;
+  }
+
+  function setDropTarget(container) {
+    state.containers.forEach((candidate) => {
+      candidate.classList.toggle("is-drop-target", candidate === container);
+    });
+  }
+
+  function clearDropTarget() {
+    state.containers.forEach((container) => {
+      container.classList.remove("is-drop-target");
+    });
+  }
+
+  function findClosestTile(clientX, clientY, excludedTile, tiles) {
     let closest = null;
     let closestDistance = Number.POSITIVE_INFINITY;
 
-    getTiles().forEach((tile) => {
+    tiles.forEach((tile) => {
       if (tile === excludedTile) return;
       const rect = tile.getBoundingClientRect();
       const horizontalDistance =
@@ -326,16 +446,17 @@
     drag.tile.classList.remove("is-drag-source");
     state.drag = null;
     if (state.press) state.press.dragging = false;
-    markDirty();
-    announce("图标顺序已更新。完成后保存。");
+    clearDropTarget();
+
+    const nextLayout = layoutFromDom();
+    state.dirty = true;
+    applyLayout(nextLayout);
+    announce("应用位置已更新。完成后保存。");
   }
 
   function handleClickCapture(event) {
-    const target =
-      event.target instanceof Element
-        ? event.target.closest("[data-home-app-id]")
-        : null;
-    if (!target || !state.grid.contains(target)) return;
+    const target = getManagedTile(event.target);
+    if (!target) return;
     if (!state.editing && performance.now() >= state.suppressClickUntil) return;
 
     event.preventDefault();
@@ -343,11 +464,8 @@
   }
 
   function handleContextMenu(event) {
-    const tile =
-      event.target instanceof Element
-        ? event.target.closest("[data-home-app-id]")
-        : null;
-    if (!tile || !state.grid.contains(tile)) return;
+    const tile = getManagedTile(event.target);
+    if (!tile) return;
 
     event.preventDefault();
     clearPress();
@@ -356,11 +474,8 @@
   }
 
   function handleTileKeyDown(event) {
-    const tile =
-      event.target instanceof Element
-        ? event.target.closest("[data-home-app-id]")
-        : null;
-    if (!tile || !state.grid.contains(tile)) return;
+    const tile = getManagedTile(event.target);
+    if (!tile) return;
 
     if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
       event.preventDefault();
@@ -370,7 +485,11 @@
     }
 
     if (!state.editing || !event.altKey) return;
-    const columns = getGridColumnCount();
+    const container = getContainerForTile(tile);
+    if (!container) return;
+    const columns = container === state.grid
+      ? getGridColumnCount()
+      : Math.max(1, getTiles(state.dock).length);
     const offsets = {
       ArrowLeft: -1,
       ArrowRight: 1,
@@ -382,11 +501,20 @@
 
     event.preventDefault();
     const appId = tile.dataset.homeAppId;
-    const next = model.moveAppByOffset(state.layout, appId, offset, getAppIds());
+    const next = model.moveAppByOffset(
+      state.layout,
+      appId,
+      offset,
+      getAppIds(),
+    );
+    state.dirty = true;
     applyLayout(next);
-    markDirty();
     tile.focus({ preventScroll: true });
-    announce("图标位置已调整。");
+    announce(
+      container === state.dock
+        ? "底部应用顺序已调整。"
+        : "主屏幕图标位置已调整。",
+    );
   }
 
   function getGridColumnCount() {
@@ -422,7 +550,14 @@
 
   function layoutFromDom() {
     return model.normalizeLayout(
-      { order: getTiles().map((tile) => tile.dataset.homeAppId) },
+      {
+        homeOrder: getTiles(state.grid).map(
+          (tile) => tile.dataset.homeAppId,
+        ),
+        dockOrder: getTiles(state.dock).map(
+          (tile) => tile.dataset.homeAppId,
+        ),
+      },
       getAppIds(),
     );
   }
@@ -435,14 +570,16 @@
 
     state.editing = true;
     state.homeView.classList.add("is-editing");
-    state.grid.classList.add("is-editing");
+    state.containers.forEach((container) => {
+      container.classList.add("is-editing");
+    });
     if (state.sectionLabel) state.sectionLabel.textContent = "编辑主屏幕";
     if (state.dateLabel) state.dateLabel.hidden = true;
     state.doneButton.hidden = false;
     if (options.focusTile) {
       options.focusTile.focus({ preventScroll: true });
     }
-    announce("主屏幕编辑模式已开启。");
+    announce("主屏幕编辑模式已开启。可将应用拖入或拖出底部应用栏。");
   }
 
   function exitEditMode() {
@@ -450,7 +587,10 @@
     state.editing = false;
     clearPress();
     state.homeView.classList.remove("is-editing");
-    state.grid.classList.remove("is-editing");
+    state.containers.forEach((container) => {
+      container.classList.remove("is-editing");
+    });
+    clearDropTarget();
     if (state.sectionLabel) state.sectionLabel.textContent = "常用功能";
     if (state.dateLabel) state.dateLabel.hidden = false;
     state.doneButton.hidden = true;
@@ -462,11 +602,6 @@
     if (!state.editing || event.key !== "Escape" || state.saving) return;
     event.preventDefault();
     void handleDone();
-  }
-
-  function markDirty() {
-    state.dirty = true;
-    state.layout = layoutFromDom();
   }
 
   function guardClick() {

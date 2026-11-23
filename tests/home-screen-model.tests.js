@@ -4,75 +4,186 @@ const assert = require("node:assert/strict");
 const model = require("../js/home-screen-model.js");
 
 function runTests() {
-  assert.deepEqual(model.normalizeLayout(null).order, [
-    "beautify",
-    "guide",
-    "chat",
-    "world-books",
-    "settings",
-  ]);
+  assert.equal(model.DOCK_MAX_APPS, 4);
+  assert.deepEqual(model.normalizeLayout(null), {
+    version: 2,
+    homeOrder: [
+      "beautify",
+      "guide",
+      "chat",
+      "world-books",
+      "settings",
+    ],
+    dockOrder: ["self-profile"],
+  });
 
   const customIds = ["beautify", "chat", "settings", "memory"];
   assert.deepEqual(
     model.normalizeLayout(
       {
-        version: 99,
+        version: 1,
         order: ["chat", "missing", "chat", "", "settings"],
       },
       customIds,
     ),
     {
-      version: 1,
-      order: ["chat", "settings", "beautify", "memory"],
+      version: 2,
+      homeOrder: ["chat", "settings", "beautify", "memory"],
+      dockOrder: [],
     },
-  );
-
-  assert.deepEqual(
-    model.moveApp(
-      ["beautify", "guide", "chat", "world-books", "settings"],
-      "settings",
-      "beautify",
-      false,
-    ).order,
-    ["settings", "beautify", "guide", "chat", "world-books"],
-  );
-
-  assert.deepEqual(
-    model.moveApp(
-      ["beautify", "guide", "chat", "world-books", "settings"],
-      "beautify",
-      "chat",
-      true,
-    ).order,
-    ["guide", "chat", "beautify", "world-books", "settings"],
-  );
-
-  assert.deepEqual(
-    model.moveAppByOffset(
-      ["beautify", "guide", "chat", "world-books", "settings"],
-      "chat",
-      -4,
-    ).order,
-    ["chat", "beautify", "guide", "world-books", "settings"],
-  );
-
-  assert.deepEqual(
-    model.moveAppByOffset(
-      ["beautify", "guide", "chat", "world-books", "settings"],
-      "guide",
-      1,
-    ).order,
-    ["beautify", "chat", "guide", "world-books", "settings"],
   );
 
   assert.deepEqual(
     model.normalizeLayout(
       {
-        order: ["chat", "chat", "world-books"],
+        version: 1,
+        order: ["chat", "settings", "beautify", "self-profile"],
       },
-      ["chat", "world-books"],
-    ).order,
-    ["chat", "world-books"],
+      model.DEFAULT_APP_IDS,
+    ),
+    {
+      version: 2,
+      homeOrder: [
+        "chat",
+        "settings",
+        "beautify",
+        "guide",
+        "world-books",
+      ],
+      dockOrder: ["self-profile"],
+    },
+  );
+
+  assert.deepEqual(
+    model.normalizeLayout(
+      {
+        version: 2,
+        homeOrder: ["chat", "missing", "chat", "world-books"],
+        dockOrder: ["settings", "settings", "self-profile"],
+      },
+      model.DEFAULT_APP_IDS,
+    ),
+    {
+      version: 2,
+      homeOrder: ["chat", "world-books", "beautify", "guide"],
+      dockOrder: ["settings", "self-profile"],
+    },
+  );
+
+  assert.deepEqual(
+    model.normalizeLayout(
+      {
+        version: 2,
+        homeOrder: [],
+        dockOrder: [
+          "self-profile",
+          "settings",
+          "world-books",
+          "chat",
+          "guide",
+          "beautify",
+        ],
+      },
+      model.DEFAULT_APP_IDS,
+    ),
+    {
+      version: 2,
+      homeOrder: ["guide", "beautify"],
+      dockOrder: ["self-profile", "settings", "world-books", "chat"],
+    },
+  );
+
+  assert.deepEqual(
+    model.moveApp(
+      model.normalizeLayout(null),
+      "settings",
+      "self-profile",
+      false,
+    ),
+    {
+      version: 2,
+      homeOrder: ["beautify", "guide", "chat", "world-books"],
+      dockOrder: ["settings", "self-profile"],
+    },
+  );
+
+  assert.deepEqual(
+    model.moveApp(
+      model.normalizeLayout(null),
+      "self-profile",
+      "chat",
+      true,
+    ),
+    {
+      version: 2,
+      homeOrder: [
+        "beautify",
+        "guide",
+        "chat",
+        "self-profile",
+        "world-books",
+        "settings",
+      ],
+      dockOrder: [],
+    },
+  );
+
+  assert.deepEqual(
+    model.moveApp(
+      {
+        version: 2,
+        homeOrder: ["beautify", "guide", "chat", "world-books"],
+        dockOrder: ["self-profile", "settings"],
+      },
+      "settings",
+      "self-profile",
+      true,
+    ),
+    {
+      version: 2,
+      homeOrder: ["beautify", "guide", "chat", "world-books"],
+      dockOrder: ["self-profile", "settings"],
+    },
+  );
+
+  assert.deepEqual(
+    model.moveAppToContainer(
+      {
+        version: 2,
+        homeOrder: ["beautify"],
+        dockOrder: [
+          "self-profile",
+          "settings",
+          "chat",
+          "world-books",
+          "guide",
+        ],
+      },
+      "beautify",
+      "dock",
+    ),
+    {
+      version: 2,
+      homeOrder: ["guide", "self-profile"],
+      dockOrder: ["settings", "chat", "world-books", "beautify"],
+    },
+  );
+
+  assert.deepEqual(
+    model.moveAppByOffset(
+      {
+        version: 2,
+        homeOrder: ["beautify", "guide", "chat", "world-books"],
+        dockOrder: ["self-profile", "settings"],
+      },
+      "settings",
+      -1,
+    ),
+    {
+      version: 2,
+      homeOrder: ["beautify", "guide", "chat", "world-books"],
+      dockOrder: ["settings", "self-profile"],
+    },
   );
 
   console.log("Home screen model tests passed.");

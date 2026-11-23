@@ -2302,16 +2302,22 @@ svg {
   width: 37px;
   height: 37px;
   padding: 0;
-  border: 1px solid rgba(28, 117, 97, 0.24);
+  border: 1px solid #d5f3f3;
   border-radius: 12px;
-  color: var(--jade-deep);
-  background: var(--jade-soft);
+  color: #80c9d7;
+  background: #dcfeff;
   cursor: pointer;
 }
 
 .character-add-button:hover:not(:disabled) {
-  border-color: rgba(28, 117, 97, 0.42);
-  background: #cce8dd;
+  border-color: #bfe8ec;
+  color: #6fbecd;
+  background: #d2f8fa;
+}
+
+.character-add-button:focus-visible {
+  outline: 2px solid rgba(128, 201, 215, 0.42);
+  outline-offset: 2px;
 }
 
 .character-add-button:disabled {

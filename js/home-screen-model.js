@@ -12,10 +12,13 @@
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const STORAGE_KEY = "home-screen.layout.v1";
-  const VERSION = 3;
+  const VERSION = 4;
   const HOME_COLUMNS = 4;
-  const HOME_MIN_SLOTS = 20;
-  const HOME_MAX_SLOTS = 64;
+  const HOME_ROWS = 4;
+  const HOME_SLOT_COUNT = HOME_COLUMNS * HOME_ROWS;
+  const HOME_MIN_SLOTS = HOME_SLOT_COUNT;
+  const HOME_MAX_SLOTS = HOME_SLOT_COUNT;
+  const LEGACY_SLOT_LIMIT = 64;
   const DOCK_MAX_APPS = 4;
   const DEFAULT_HOME_ORDER = Object.freeze([
     "beautify",
@@ -75,12 +78,9 @@
   }
 
   function normalizeSlotCount(slots) {
-    const targetLength = Math.max(
-      HOME_MIN_SLOTS,
-      Math.ceil(slots.length / HOME_COLUMNS) * HOME_COLUMNS,
-    );
-    while (slots.length < targetLength) slots.push(null);
-    return slots;
+    const normalized = slots.slice(0, HOME_SLOT_COUNT);
+    while (normalized.length < HOME_SLOT_COUNT) normalized.push(null);
+    return normalized;
   }
 
   function normalizeLayout(value, appIds = DEFAULT_APP_IDS) {
@@ -117,13 +117,19 @@
 
     if (usesSlotLayout) {
       const sourceSlots = Array.isArray(source.homeSlots)
-        ? source.homeSlots.slice(0, HOME_MAX_SLOTS)
+        ? source.homeSlots.slice(0, LEGACY_SLOT_LIMIT)
         : [];
-      homeSlots = sourceSlots.map((value) => {
+      homeSlots = sourceSlots.slice(0, HOME_SLOT_COUNT).map((value) => {
         const id = typeof value === "string" ? value.trim() : "";
         if (!knownSet.has(id) || seen.has(id)) return null;
         seen.add(id);
         return id;
+      });
+      sourceSlots.slice(HOME_SLOT_COUNT).forEach((value) => {
+        const id = typeof value === "string" ? value.trim() : "";
+        if (!knownSet.has(id) || seen.has(id)) return;
+        seen.add(id);
+        placeInFirstEmptySlot(homeSlots, id);
       });
     } else {
       filterKnownIds(requestedHomeOrder, knownSet, seen).forEach((id) => {
@@ -300,6 +306,8 @@
     STORAGE_KEY,
     VERSION,
     HOME_COLUMNS,
+    HOME_ROWS,
+    HOME_SLOT_COUNT,
     HOME_MIN_SLOTS,
     HOME_MAX_SLOTS,
     DOCK_MAX_APPS,

@@ -1,8 +1,7 @@
 .home-view {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(70, 112, 133, 0.34) transparent;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .app-self-profile {

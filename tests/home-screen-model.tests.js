@@ -3,22 +3,45 @@
 const assert = require("node:assert/strict");
 const model = require("../js/home-screen-model.js");
 
-function withEmptySlots(values, minimum = model.HOME_MIN_SLOTS) {
+function withEmptySlots(values, count = model.HOME_SLOT_COUNT) {
   const slots = values.slice();
-  while (slots.length < minimum) slots.push(null);
-  return slots;
+  while (slots.length < count) slots.push(null);
+  return slots.slice(0, count);
+}
+
+function assertAllAppsOnce(layout, appIds = model.DEFAULT_APP_IDS) {
+  assert.equal(layout.version, model.VERSION);
+  assert.equal(layout.homeSlots.length, model.HOME_SLOT_COUNT);
+
+  const placedIds = [
+    ...layout.homeSlots.filter(Boolean),
+    ...layout.dockOrder,
+  ];
+  assert.equal(
+    new Set(placedIds).size,
+    placedIds.length,
+    "Every app must appear only once.",
+  );
+  assert.deepEqual(
+    placedIds.slice().sort(),
+    Array.from(new Set(appIds)).slice().sort(),
+    "No app may disappear during layout normalization.",
+  );
 }
 
 function runTests() {
-  assert.equal(model.VERSION, 3);
+  assert.equal(model.VERSION, 4);
   assert.equal(model.HOME_COLUMNS, 4);
-  assert.equal(model.HOME_MIN_SLOTS, 20);
-  assert.equal(model.HOME_MIN_SLOTS / model.HOME_COLUMNS, 5);
-  assert.equal(model.HOME_MAX_SLOTS, 64);
+  assert.equal(model.HOME_ROWS, 4);
+  assert.equal(model.HOME_SLOT_COUNT, 16);
+  assert.equal(model.HOME_SLOT_COUNT, model.HOME_COLUMNS * model.HOME_ROWS);
+  assert.equal(model.HOME_MIN_SLOTS, 16);
+  assert.equal(model.HOME_MAX_SLOTS, 16);
   assert.equal(model.DOCK_MAX_APPS, 4);
 
-  assert.deepEqual(model.normalizeLayout(null), {
-    version: 3,
+  const defaultLayout = model.normalizeLayout(null);
+  assert.deepEqual(defaultLayout, {
+    version: 4,
     homeSlots: withEmptySlots([
       "beautify",
       "guide",
@@ -28,6 +51,7 @@ function runTests() {
     ]),
     dockOrder: ["self-profile"],
   });
+  assertAllAppsOnce(defaultLayout);
 
   const twelveSlotLayout = model.normalizeLayout({
     version: 3,
@@ -49,10 +73,62 @@ function runTests() {
   });
   assert.equal(
     twelveSlotLayout.homeSlots.length,
-    model.HOME_MIN_SLOTS,
-    "A saved 12-slot layout must expand to five rows without moving apps.",
+    model.HOME_SLOT_COUNT,
+    "A saved 12-slot layout must expand to the fixed four-row grid.",
   );
-  assert.equal(twelveSlotLayout.homeSlots[8], "beautify");
+  assert.equal(
+    twelveSlotLayout.homeSlots[8],
+    "beautify",
+    "Apps that already fit inside the first 16 slots must keep their position.",
+  );
+  assertAllAppsOnce(twelveSlotLayout);
+
+  const rowFiveAppIds = [
+    ...model.DEFAULT_APP_IDS,
+    "extra-app",
+  ];
+  const rowFiveLayout = model.normalizeLayout(
+    {
+      version: 3,
+      homeSlots: withEmptySlots(
+        [
+          "beautify",
+          "guide",
+          "chat",
+          "world-books",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "settings",
+          "extra-app",
+          null,
+        ],
+        20,
+      ),
+      dockOrder: ["self-profile"],
+    },
+    rowFiveAppIds,
+  );
+  assert.deepEqual(rowFiveLayout.homeSlots, withEmptySlots([
+    "beautify",
+    "guide",
+    "chat",
+    "world-books",
+    "settings",
+    "extra-app",
+  ]));
+  assert.deepEqual(rowFiveLayout.dockOrder, ["self-profile"]);
+  assertAllAppsOnce(rowFiveLayout, rowFiveAppIds);
 
   const sparseIds = ["chat", "settings", "beautify", "self-profile"];
   assert.deepEqual(
@@ -75,7 +151,7 @@ function runTests() {
       sparseIds,
     ),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         null,
         "chat",
@@ -91,11 +167,10 @@ function runTests() {
     },
   );
 
-  const defaultLayout = model.normalizeLayout(null);
   assert.deepEqual(
     model.moveAppToHomeSlot(defaultLayout, "beautify", 8),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         null,
         "guide",
@@ -114,7 +189,7 @@ function runTests() {
   assert.deepEqual(
     model.moveAppToHomeSlot(defaultLayout, "beautify", 2),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         "chat",
         "guide",
@@ -129,7 +204,7 @@ function runTests() {
   assert.deepEqual(
     model.moveAppToDock(defaultLayout, "settings"),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         "beautify",
         "guide",
@@ -143,7 +218,7 @@ function runTests() {
   assert.deepEqual(
     model.moveAppToHomeSlot(defaultLayout, "self-profile", 8),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         "beautify",
         "guide",
@@ -162,7 +237,7 @@ function runTests() {
   assert.deepEqual(
     model.moveAppToHomeSlot(defaultLayout, "self-profile", 0),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         "self-profile",
         "guide",
@@ -183,6 +258,7 @@ function runTests() {
     model.moveAppToDock(fullDockLayout, "beautify"),
     fullDockLayout,
   );
+  assertAllAppsOnce(fullDockLayout);
 
   assert.deepEqual(
     model.normalizeLayout(
@@ -193,7 +269,7 @@ function runTests() {
       model.DEFAULT_APP_IDS,
     ),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         "chat",
         "settings",
@@ -215,7 +291,7 @@ function runTests() {
       model.DEFAULT_APP_IDS,
     ),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         "chat",
         "world-books",
@@ -236,7 +312,7 @@ function runTests() {
       model.DEFAULT_APP_IDS,
     ),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         "chat",
         "beautify",
@@ -264,7 +340,7 @@ function runTests() {
       model.DEFAULT_APP_IDS,
     ),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots(["beautify", "guide"]),
       dockOrder: ["self-profile", "settings", "chat", "world-books"],
     },
@@ -279,7 +355,7 @@ function runTests() {
   assert.deepEqual(
     model.moveHomeAppByOffset(defaultLayout, "chat", -1),
     {
-      version: 3,
+      version: 4,
       homeSlots: withEmptySlots([
         "beautify",
         "chat",

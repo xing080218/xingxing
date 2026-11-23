@@ -8,8 +8,6 @@
   const DRAG_START_PX = 4;
   const DROP_CONTAINER_MARGIN_PX = 24;
   const CLICK_GUARD_MS = 900;
-  const GRID_SCROLL_ZONE_PX = 28;
-  const GRID_SCROLL_STEP_PX = 12;
 
   const state = {
     initialized: false,
@@ -52,7 +50,7 @@
 
     bindEvents();
     state.initialized = true;
-    ensureHomeSlots(model.HOME_MIN_SLOTS);
+    ensureHomeSlots(model.HOME_SLOT_COUNT);
 
     try {
       state.layout = await store.load(getAppIds());
@@ -132,7 +130,7 @@
     ) || null;
   }
 
-  function ensureHomeSlots(minimum) {
+  function ensureHomeSlots(targetCount = model.HOME_SLOT_COUNT) {
     const unwrappedTiles = Array.from(state.grid.children).filter((child) =>
       child.matches?.("[data-home-app-id]"),
     );
@@ -147,11 +145,31 @@
     }
 
     let slots = getHomeSlots();
-    while (slots.length < minimum) {
+    while (slots.length < targetCount) {
       const slot = createHomeSlot();
       state.grid.append(slot);
       slots = getHomeSlots();
     }
+
+    if (slots.length <= targetCount) return;
+
+    const visibleSlots = slots.slice(0, targetCount);
+    const extraSlots = slots.slice(targetCount);
+    extraSlots.forEach((extraSlot) => {
+      const tile = getTileInSlot(extraSlot);
+      if (!tile) return;
+      const emptySlot = visibleSlots.find((slot) => !getTileInSlot(slot));
+      if (emptySlot) {
+        emptySlot.append(tile);
+        return;
+      }
+      if (getTiles(state.dock).length < model.DOCK_MAX_APPS) {
+        state.dock.append(tile);
+      }
+    });
+    extraSlots.forEach((slot) => {
+      if (!getTileInSlot(slot)) slot.remove();
+    });
   }
 
   function getAppIds() {
@@ -424,7 +442,6 @@
   function updateHomeDrag(clientX, clientY) {
     const drag = state.drag;
     if (!drag) return;
-    maybeAutoScrollHomeGrid(clientY);
 
     const targetSlot = findClosestHomeSlot(clientX, clientY);
     setDropSlot(targetSlot);
@@ -462,21 +479,6 @@
     });
 
     return closest;
-  }
-
-  function maybeAutoScrollHomeGrid(clientY) {
-    const rect = state.grid.getBoundingClientRect();
-    if (clientY < rect.top + GRID_SCROLL_ZONE_PX) {
-      state.grid.scrollTop = Math.max(
-        0,
-        state.grid.scrollTop - GRID_SCROLL_STEP_PX,
-      );
-    } else if (clientY > rect.bottom - GRID_SCROLL_ZONE_PX) {
-      state.grid.scrollTop = Math.min(
-        state.grid.scrollHeight,
-        state.grid.scrollTop + GRID_SCROLL_STEP_PX,
-      );
-    }
   }
 
   function getDropContainerAtPoint(clientX, clientY) {
@@ -755,7 +757,7 @@
     }
 
     state.editing = true;
-    ensureHomeSlots(model.HOME_MIN_SLOTS);
+    ensureHomeSlots(model.HOME_SLOT_COUNT);
     state.homeView.classList.add("is-editing");
     state.containers.forEach((container) => {
       container.classList.add("is-editing");

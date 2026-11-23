@@ -1,4 +1,5 @@
 .app-grid {
+  --home-app-icon-size: clamp(34px, 13.7cqw, 58px);
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
@@ -6,11 +7,11 @@
   height: auto;
   overflow: hidden;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, clamp(64px, 10.5cqh, 88px)));
-  gap: clamp(4px, 0.9cqh, 8px) 4px;
+  grid-template-rows: repeat(4, minmax(0, clamp(68px, 13.5cqh, 104px)));
+  gap: clamp(4px, 1.1cqh, 9px) 0;
   align-items: stretch;
   align-content: start;
-  padding: 2px max(2px, calc((100% - 300px) / 2));
+  padding: 2px 0;
   margin: -2px;
   overscroll-behavior: none;
 }
@@ -53,7 +54,7 @@
   min-height: 0;
   overflow: hidden;
   justify-content: center;
-  gap: clamp(3px, 0.9cqh, 8px);
+  gap: clamp(7px, 1.55cqh, 13px);
   border-radius: 17px;
   touch-action: none;
   user-select: none;
@@ -63,8 +64,17 @@
 
 .home-app-tile .app-icon {
   flex: 0 0 auto;
-  width: clamp(34px, min(13cqw, 6.4cqh), 56px);
-  height: clamp(34px, min(13cqw, 6.4cqh), 56px);
+  width: var(--home-app-icon-size);
+  height: var(--home-app-icon-size);
+}
+
+.app-grid .home-app-tile .app-icon {
+  border-radius: clamp(10px, 2.8cqw, 13px);
+}
+
+.app-grid .home-app-tile .app-icon svg {
+  width: 42%;
+  height: 42%;
 }
 
 .home-app-tile > span:last-child {
@@ -241,7 +251,7 @@
 
 @media (max-width: 360px) {
   .app-grid {
-    column-gap: 3px;
+    column-gap: 0;
   }
 
   .home-app-dock {
@@ -258,24 +268,19 @@
 
   .home-app-tile {
     min-height: 0;
-    gap: 4px;
+    gap: clamp(7px, 1.55cqh, 10px);
   }
 
   .home-app-slot {
     min-height: 0;
-  }
-
-  .home-app-tile .app-icon {
-    width: clamp(30px, min(11cqw, 5.5cqh), 44px);
-    height: clamp(30px, min(11cqw, 5.5cqh), 44px);
   }
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
   .app-grid {
     width: 100%;
-    grid-template-rows: repeat(4, minmax(0, clamp(36px, 10.5cqh, 52px)));
-    gap: 3px 4px;
+    grid-template-rows: repeat(4, minmax(0, clamp(38px, 11.8cqh, 47px)));
+    gap: 2px;
     padding-right: max(2px, calc((100% - 280px) / 2));
     padding-left: max(2px, calc((100% - 280px) / 2));
   }
@@ -302,7 +307,7 @@
 
   .home-app-tile {
     min-height: 0;
-    gap: 1px;
+    gap: clamp(1px, 0.55cqh, 2.5px);
     font-size: min(calc(var(--global-font-size) - 4px), 8px);
   }
 
@@ -311,8 +316,8 @@
   }
 
   .home-app-tile .app-icon {
-    width: clamp(18px, 5.4cqh, 30px);
-    height: clamp(18px, 5.4cqh, 30px);
+    width: clamp(24px, 8.1cqh, 32px);
+    height: clamp(24px, 8.1cqh, 32px);
   }
 }
 

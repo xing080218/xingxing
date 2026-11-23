@@ -299,20 +299,6 @@ svg {
   background: #d7edf9;
 }
 
-.phone-screen::after {
-  content: "";
-  position: absolute;
-  z-index: 40;
-  top: 9px;
-  left: 50%;
-  width: 103px;
-  height: 27px;
-  border-radius: 999px;
-  background: #101211;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
 .status-bar {
   position: relative;
   z-index: 30;
@@ -3058,10 +3044,6 @@ svg {
   .phone-screen {
     border-radius: 0;
     box-shadow: none;
-  }
-
-  .phone-screen::after {
-    top: 8px;
   }
 
   .device-caption {

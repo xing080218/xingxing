@@ -200,7 +200,7 @@
 }
 
 .home-edit-done[hidden],
-.date-label[hidden] {
+.status-date[hidden] {
   display: none;
 }
 

@@ -314,7 +314,30 @@ svg {
 }
 
 .status-time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.status-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   padding-top: 1px;
+  white-space: nowrap;
+}
+
+.status-date {
+  display: none;
+  color: rgba(35, 70, 92, 0.72);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.phone-screen:has(.lock-screen.is-unlocked):has(.home-view.is-active) .status-date:not([hidden]) {
+  display: inline;
 }
 
 .status-indicators {
@@ -453,7 +476,6 @@ svg {
 }
 
 .home-top,
-.home-section-heading,
 .app-grid,
 .home-note {
   position: relative;
@@ -509,21 +531,6 @@ svg {
 .round-icon-button:hover {
   background: rgba(255, 255, 255, 0.82);
   transform: translateY(-1px);
-}
-
-.home-section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 20px 3px 13px;
-  color: #587a8f;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.date-label {
-  font-family: var(--mono);
-  font-size: 9px;
 }
 
 .app-grid {
@@ -3307,11 +3314,6 @@ svg {
 
   .home-top h1 {
     font-size: 22px;
-  }
-
-  .home-section-heading {
-    margin-top: 10px;
-    margin-bottom: 8px;
   }
 
   .app-grid {

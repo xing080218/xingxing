@@ -24,7 +24,6 @@
     grid: null,
     dock: null,
     containers: [],
-    sectionLabel: null,
     dateLabel: null,
     doneButton: null,
     editStatus: null,
@@ -80,7 +79,6 @@
     state.grid = document.getElementById("home-app-grid");
     state.dock = document.getElementById("home-app-dock");
     state.containers = [state.grid, state.dock].filter(Boolean);
-    state.sectionLabel = document.getElementById("home-section-label");
     state.dateLabel = document.getElementById("home-date");
     state.doneButton = document.getElementById("home-edit-done");
     state.editStatus = document.getElementById("home-screen-edit-status");
@@ -762,7 +760,6 @@
     state.containers.forEach((container) => {
       container.classList.add("is-editing");
     });
-    if (state.sectionLabel) state.sectionLabel.textContent = "编辑主屏幕";
     if (state.dateLabel) state.dateLabel.hidden = true;
     state.doneButton.hidden = false;
     if (options.focusTile) {
@@ -782,7 +779,6 @@
       container.classList.remove("is-editing");
     });
     clearDropTarget();
-    if (state.sectionLabel) state.sectionLabel.textContent = "常用功能";
     if (state.dateLabel) state.dateLabel.hidden = false;
     state.doneButton.hidden = true;
     state.doneButton.disabled = false;

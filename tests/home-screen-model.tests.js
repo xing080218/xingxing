@@ -3,34 +3,159 @@
 const assert = require("node:assert/strict");
 const model = require("../js/home-screen-model.js");
 
+function withEmptySlots(values, minimum = model.HOME_MIN_SLOTS) {
+  const slots = values.slice();
+  while (slots.length < minimum) slots.push(null);
+  return slots;
+}
+
 function runTests() {
+  assert.equal(model.VERSION, 3);
+  assert.equal(model.HOME_COLUMNS, 4);
+  assert.equal(model.HOME_MIN_SLOTS, 12);
+  assert.equal(model.HOME_MAX_SLOTS, 64);
   assert.equal(model.DOCK_MAX_APPS, 4);
+
   assert.deepEqual(model.normalizeLayout(null), {
-    version: 2,
-    homeOrder: [
+    version: 3,
+    homeSlots: withEmptySlots([
       "beautify",
       "guide",
       "chat",
       "world-books",
       "settings",
-    ],
+    ]),
     dockOrder: ["self-profile"],
   });
 
-  const customIds = ["beautify", "chat", "settings", "memory"];
+  const sparseIds = ["chat", "settings", "beautify", "self-profile"];
   assert.deepEqual(
     model.normalizeLayout(
       {
-        version: 1,
-        order: ["chat", "missing", "chat", "", "settings"],
+        version: 3,
+        homeSlots: [
+          null,
+          "chat",
+          null,
+          "settings",
+          null,
+          null,
+          null,
+          null,
+          "beautify",
+        ],
+        dockOrder: ["self-profile"],
       },
-      customIds,
+      sparseIds,
     ),
     {
-      version: 2,
-      homeOrder: ["chat", "settings", "beautify", "memory"],
+      version: 3,
+      homeSlots: withEmptySlots([
+        null,
+        "chat",
+        null,
+        "settings",
+        null,
+        null,
+        null,
+        null,
+        "beautify",
+      ]),
+      dockOrder: ["self-profile"],
+    },
+  );
+
+  const defaultLayout = model.normalizeLayout(null);
+  assert.deepEqual(
+    model.moveAppToHomeSlot(defaultLayout, "beautify", 8),
+    {
+      version: 3,
+      homeSlots: withEmptySlots([
+        null,
+        "guide",
+        "chat",
+        "world-books",
+        "settings",
+        null,
+        null,
+        null,
+        "beautify",
+      ]),
+      dockOrder: ["self-profile"],
+    },
+  );
+
+  assert.deepEqual(
+    model.moveAppToHomeSlot(defaultLayout, "beautify", 2),
+    {
+      version: 3,
+      homeSlots: withEmptySlots([
+        "chat",
+        "guide",
+        "beautify",
+        "world-books",
+        "settings",
+      ]),
+      dockOrder: ["self-profile"],
+    },
+  );
+
+  assert.deepEqual(
+    model.moveAppToDock(defaultLayout, "settings"),
+    {
+      version: 3,
+      homeSlots: withEmptySlots([
+        "beautify",
+        "guide",
+        "chat",
+        "world-books",
+      ]),
+      dockOrder: ["self-profile", "settings"],
+    },
+  );
+
+  assert.deepEqual(
+    model.moveAppToHomeSlot(defaultLayout, "self-profile", 8),
+    {
+      version: 3,
+      homeSlots: withEmptySlots([
+        "beautify",
+        "guide",
+        "chat",
+        "world-books",
+        "settings",
+        null,
+        null,
+        null,
+        "self-profile",
+      ]),
       dockOrder: [],
     },
+  );
+
+  assert.deepEqual(
+    model.moveAppToHomeSlot(defaultLayout, "self-profile", 0),
+    {
+      version: 3,
+      homeSlots: withEmptySlots([
+        "self-profile",
+        "guide",
+        "chat",
+        "world-books",
+        "settings",
+      ]),
+      dockOrder: ["beautify"],
+    },
+  );
+
+  const fullDockLayout = model.normalizeLayout({
+    version: 3,
+    homeSlots: withEmptySlots(["beautify", "guide"]),
+    dockOrder: ["self-profile", "settings", "chat", "world-books"],
+  });
+  assert.deepEqual(
+    model.moveAppToDock(fullDockLayout, "beautify"),
+    fullDockLayout,
   );
 
   assert.deepEqual(
@@ -42,14 +167,14 @@ function runTests() {
       model.DEFAULT_APP_IDS,
     ),
     {
-      version: 2,
-      homeOrder: [
+      version: 3,
+      homeSlots: withEmptySlots([
         "chat",
         "settings",
         "beautify",
         "guide",
         "world-books",
-      ],
+      ]),
       dockOrder: ["self-profile"],
     },
   );
@@ -58,130 +183,97 @@ function runTests() {
     model.normalizeLayout(
       {
         version: 2,
-        homeOrder: ["chat", "missing", "chat", "world-books"],
-        dockOrder: ["settings", "settings", "self-profile"],
+        homeOrder: ["chat", "world-books"],
+        dockOrder: ["self-profile", "settings"],
       },
       model.DEFAULT_APP_IDS,
     ),
     {
-      version: 2,
-      homeOrder: ["chat", "world-books", "beautify", "guide"],
-      dockOrder: ["settings", "self-profile"],
+      version: 3,
+      homeSlots: withEmptySlots([
+        "chat",
+        "world-books",
+        "beautify",
+        "guide",
+      ]),
+      dockOrder: ["self-profile", "settings"],
     },
   );
 
   assert.deepEqual(
     model.normalizeLayout(
       {
-        version: 2,
-        homeOrder: [],
+        version: 3,
+        homeSlots: ["chat", "missing", "chat", null, "settings"],
+        dockOrder: ["self-profile", "self-profile", "unknown"],
+      },
+      model.DEFAULT_APP_IDS,
+    ),
+    {
+      version: 3,
+      homeSlots: withEmptySlots([
+        "chat",
+        "beautify",
+        "guide",
+        "world-books",
+        "settings",
+      ]),
+      dockOrder: ["self-profile"],
+    },
+  );
+
+  assert.deepEqual(
+    model.normalizeLayout(
+      {
+        version: 3,
+        homeSlots: withEmptySlots(["beautify"]),
         dockOrder: [
           "self-profile",
           "settings",
-          "world-books",
           "chat",
+          "world-books",
           "guide",
-          "beautify",
         ],
       },
       model.DEFAULT_APP_IDS,
     ),
     {
-      version: 2,
-      homeOrder: ["guide", "beautify"],
-      dockOrder: ["self-profile", "settings", "world-books", "chat"],
+      version: 3,
+      homeSlots: withEmptySlots(["beautify", "guide"]),
+      dockOrder: ["self-profile", "settings", "chat", "world-books"],
     },
   );
 
-  assert.deepEqual(
-    model.moveApp(
-      model.normalizeLayout(null),
-      "settings",
-      "self-profile",
-      false,
-    ),
-    {
-      version: 2,
-      homeOrder: ["beautify", "guide", "chat", "world-books"],
-      dockOrder: ["settings", "self-profile"],
-    },
+  assert.equal(model.findContainer(defaultLayout, "chat"), "homeSlots");
+  assert.equal(
+    model.findContainer(defaultLayout, "self-profile"),
+    "dockOrder",
   );
 
   assert.deepEqual(
-    model.moveApp(
-      model.normalizeLayout(null),
-      "self-profile",
-      "chat",
-      true,
-    ),
+    model.moveHomeAppByOffset(defaultLayout, "chat", -1),
     {
-      version: 2,
-      homeOrder: [
+      version: 3,
+      homeSlots: withEmptySlots([
         "beautify",
-        "guide",
         "chat",
-        "self-profile",
+        "guide",
         "world-books",
         "settings",
-      ],
-      dockOrder: [],
+      ]),
+      dockOrder: ["self-profile"],
     },
   );
 
+  const twoDockApps = model.normalizeLayout({
+    version: 3,
+    homeSlots: withEmptySlots(["beautify"]),
+    dockOrder: ["self-profile", "settings"],
+  });
   assert.deepEqual(
-    model.moveApp(
-      {
-        version: 2,
-        homeOrder: ["beautify", "guide", "chat", "world-books"],
-        dockOrder: ["self-profile", "settings"],
-      },
-      "settings",
-      "self-profile",
-      true,
-    ),
+    model.moveDockAppByOffset(twoDockApps, "settings", -1),
     {
-      version: 2,
-      homeOrder: ["beautify", "guide", "chat", "world-books"],
-      dockOrder: ["self-profile", "settings"],
-    },
-  );
-
-  assert.deepEqual(
-    model.moveAppToContainer(
-      {
-        version: 2,
-        homeOrder: ["beautify"],
-        dockOrder: [
-          "self-profile",
-          "settings",
-          "chat",
-          "world-books",
-          "guide",
-        ],
-      },
-      "beautify",
-      "dock",
-    ),
-    {
-      version: 2,
-      homeOrder: ["guide", "self-profile"],
-      dockOrder: ["settings", "chat", "world-books", "beautify"],
-    },
-  );
-
-  assert.deepEqual(
-    model.moveAppByOffset(
-      {
-        version: 2,
-        homeOrder: ["beautify", "guide", "chat", "world-books"],
-        dockOrder: ["self-profile", "settings"],
-      },
-      "settings",
-      -1,
-    ),
-    {
-      version: 2,
-      homeOrder: ["beautify", "guide", "chat", "world-books"],
+      ...twoDockApps,
       dockOrder: ["settings", "self-profile"],
     },
   );

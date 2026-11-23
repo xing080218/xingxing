@@ -14,7 +14,7 @@ const DEFAULT_PORT = 4176;
 const DEFAULT_API_PORT = 4177;
 const MAX_BODY_BYTES = 512 * 1024;
 const API_PROXY_TIMEOUT_MS = 130000;
-const BUILD = "20261123-18";
+const BUILD = "20261124-02";
 
 function parseArgs(argv) {
   const result = {

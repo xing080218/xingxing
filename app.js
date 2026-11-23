@@ -485,6 +485,7 @@ function showView(viewName, options = {}) {
   }
 
   if (viewName === "characters") {
+    window.PocketLabConversationTabs?.reset();
     renderCharacterList();
   }
 

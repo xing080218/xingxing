@@ -468,7 +468,6 @@ svg {
 
 .home-top,
 .home-section-heading,
-.device-summary,
 .app-grid,
 .home-note {
   position: relative;
@@ -524,107 +523,6 @@ svg {
 .round-icon-button:hover {
   background: rgba(255, 255, 255, 0.82);
   transform: translateY(-1px);
-}
-
-.device-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.54);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  box-shadow: 0 12px 30px rgba(60, 105, 130, 0.11);
-  backdrop-filter: blur(16px);
-  appearance: none;
-  cursor: pointer;
-  transition:
-    background 160ms ease,
-    transform 160ms ease;
-}
-
-.device-summary:hover {
-  background: rgba(255, 255, 255, 0.72);
-  transform: translateY(-1px);
-}
-
-.device-summary:active {
-  transform: translateY(0);
-}
-
-.device-summary:focus-visible {
-  outline: 3px solid rgba(65, 139, 170, 0.36);
-  outline-offset: 2px;
-}
-
-.summary-heading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.summary-copy {
-  min-width: 0;
-}
-
-.signal-orb {
-  display: grid;
-  place-items: center;
-  flex: 0 0 42px;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  color: #a76631;
-  background: rgba(248, 208, 154, 0.46);
-  transition:
-    color 180ms ease,
-    background 180ms ease;
-}
-
-.signal-orb.is-connected {
-  color: #277a62;
-  background: rgba(164, 220, 196, 0.55);
-}
-
-.summary-kicker {
-  display: block;
-  margin: 0 0 3px;
-  color: #668397;
-  font-size: 10px;
-}
-
-.summary-heading strong {
-  display: block;
-  overflow: hidden;
-  color: #24485d;
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.text-link {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 4px;
-  padding: 7px 0;
-  border: 0;
-  background: transparent;
-  color: #315f78;
-  font-size: 11px;
-  font-weight: 700;
-  pointer-events: none;
-}
-
-.text-link svg {
-  width: 14px;
-  height: 14px;
 }
 
 .home-section-heading {
@@ -3427,16 +3325,6 @@ svg {
 
   .home-top h1 {
     font-size: 22px;
-  }
-
-  .device-summary {
-    padding: 10px 13px;
-  }
-
-  .signal-orb {
-    flex-basis: 36px;
-    width: 36px;
-    height: 36px;
   }
 
   .home-section-heading {

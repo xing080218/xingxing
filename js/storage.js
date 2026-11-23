@@ -2,9 +2,10 @@
 
 (() => {
   const DB_NAME = String(window.POCKET_LAB_DB_NAME || "pocket-lab");
-  const DB_VERSION = 3;
+  const DB_VERSION = 4;
   const STORES = Object.freeze({
     characters: "characters",
+    groupChats: "groupChats",
     messages: "messages",
     memories: "memories",
     worldBooks: "worldBooks",
@@ -14,6 +15,7 @@
   });
   const USER_DATA_STORES = Object.freeze([
     STORES.characters,
+    STORES.groupChats,
     STORES.messages,
     STORES.memories,
     STORES.worldBooks,
@@ -87,6 +89,9 @@
   function createStores(database, transaction, oldVersion) {
     if (!database.objectStoreNames.contains(STORES.characters)) {
       database.createObjectStore(STORES.characters, { keyPath: "id" });
+    }
+    if (!database.objectStoreNames.contains(STORES.groupChats)) {
+      database.createObjectStore(STORES.groupChats, { keyPath: "id" });
     }
     let messageStore;
     if (!database.objectStoreNames.contains(STORES.messages)) {
@@ -280,6 +285,83 @@
         String(left.name || "").localeCompare(String(right.name || ""), "zh-CN")
       );
     });
+  }
+
+  function normalizeGroupChatRecord(value) {
+    const model = window.PocketLabGroupChatModel;
+    if (model && typeof model.normalizeGroupChat === "function") {
+      return model.normalizeGroupChat(value);
+    }
+
+    const source = value && typeof value === "object" ? value : {};
+    const now = Date.now();
+    return {
+      id: typeof source.id === "string" ? source.id.trim() : "",
+      name:
+        typeof source.name === "string"
+          ? source.name.trim().slice(0, 40)
+          : "",
+      announcement:
+        typeof source.announcement === "string"
+          ? source.announcement.trim().slice(0, 4000)
+          : "",
+      backgroundSetting:
+        typeof source.backgroundSetting === "string"
+          ? source.backgroundSetting.trim().slice(0, 4000)
+          : "",
+      createdAt: Number.isFinite(Number(source.createdAt))
+        ? Number(source.createdAt)
+        : now,
+      updatedAt: Number.isFinite(Number(source.updatedAt))
+        ? Number(source.updatedAt)
+        : now,
+    };
+  }
+
+  function validateGroupChatRecord(value) {
+    const model = window.PocketLabGroupChatModel;
+    const validation =
+      model && typeof model.validateGroupChat === "function"
+        ? model.validateGroupChat(value)
+        : {
+            ok: Boolean(normalizeGroupChatRecord(value).name),
+            errors: {},
+            value: normalizeGroupChatRecord(value),
+          };
+    if (!validation.ok) {
+      const firstError =
+        Object.values(validation.errors || {}).find(Boolean) ||
+        "群聊资料不完整。";
+      throw new Error(firstError);
+    }
+    return normalizeGroupChatRecord(validation.value);
+  }
+
+  async function getGroupChat(groupChatId) {
+    if (!groupChatId) return null;
+    return readOne(STORES.groupChats, String(groupChatId).trim());
+  }
+
+  async function listGroupChats() {
+    const records = await readAll(STORES.groupChats);
+    const normalized = records.map((record) => normalizeGroupChatRecord(record));
+    const model = window.PocketLabGroupChatModel;
+    return model && typeof model.sortGroupChats === "function"
+      ? model.sortGroupChats(normalized)
+      : normalized;
+  }
+
+  async function saveGroupChat(record) {
+    const validation = validateGroupChatRecord(record);
+    const id = requireStableId(validation.id || record?.id, "群聊");
+    const saved = {
+      ...validation,
+      id,
+      createdAt: Number(validation.createdAt) || Date.now(),
+      updatedAt: Date.now(),
+    };
+    await putOne(STORES.groupChats, saved);
+    return saved;
   }
 
   function normalizeWorldBookRecord(value) {
@@ -707,6 +789,23 @@
     return { worldBooks, worldBookIds };
   }
 
+  function prepareImportedGroupChats(records) {
+    assertUniqueRecords(records, "id", "群聊");
+    const groupChats = records.map((record) => {
+      if (!record || typeof record !== "object") {
+        throw new Error("备份中的群聊记录格式不正确。");
+      }
+      const validation = validateGroupChatRecord(record);
+      return {
+        ...validation,
+        id: record.id.trim(),
+        createdAt: Number(validation.createdAt) || Date.now(),
+        updatedAt: Number(validation.updatedAt) || Date.now(),
+      };
+    });
+    return groupChats;
+  }
+
   function prepareImportedCharacters(records, imageIds, worldBookIds) {
     const characterIds = assertUniqueRecords(records, "id", "角色");
     const characters = records.map((record) => {
@@ -800,6 +899,7 @@
     const rawMessages = requireRecordArray(source.messages, "聊天记录");
     const rawMemories = requireRecordArray(source.memories, "记忆");
     const rawWorldBooks = requireRecordArray(source.worldBooks, "世界书");
+    const rawGroupChats = requireRecordArray(source.groupChats, "群聊");
     const rawAppData = requireRecordArray(source.appData, "App 存档");
     const rawImages = requireRecordArray(source.images, "图片");
     const preparedImages = prepareImportedImages(rawImages);
@@ -846,6 +946,7 @@
       messages: preparedMessages.messages,
       memories: prepareImportedMemories(rawMemories),
       worldBooks: preparedWorldBooks.worldBooks,
+      groupChats: prepareImportedGroupChats(rawGroupChats),
       appData: prepareImportedAppData(rawAppData),
       images: preparedImages.images,
     };
@@ -869,6 +970,9 @@
       records.worldBooks.forEach((record) => {
         transaction.objectStore(STORES.worldBooks).put(record);
       });
+      records.groupChats.forEach((record) => {
+        transaction.objectStore(STORES.groupChats).put(record);
+      });
       records.appData.forEach((record) => {
         transaction.objectStore(STORES.appData).put(record);
       });
@@ -882,22 +986,39 @@
       messages: records.messages.length,
       memories: records.memories.length,
       worldBooks: records.worldBooks.length,
+      groupChats: records.groupChats.length,
       appData: records.appData.length,
       images: records.images.length,
     };
   }
 
   async function readAllData() {
-    const [characters, messages, memories, worldBooks, appData, images] =
-      await Promise.all([
+    const [
+      characters,
+      messages,
+      memories,
+      worldBooks,
+      groupChats,
+      appData,
+      images,
+    ] = await Promise.all([
       readAll(STORES.characters),
       getMessages(),
       readAll(STORES.memories),
       readAll(STORES.worldBooks),
+      readAll(STORES.groupChats),
       readAll(STORES.appData),
       readAll(STORES.images),
-      ]);
-    return { characters, messages, memories, worldBooks, appData, images };
+    ]);
+    return {
+      characters,
+      messages,
+      memories,
+      worldBooks,
+      groupChats,
+      appData,
+      images,
+    };
   }
 
   async function migrateLegacyData(input) {
@@ -1133,6 +1254,9 @@
     getCharacter,
     listCharacters,
     saveCharacter,
+    getGroupChat,
+    listGroupChats,
+    saveGroupChat,
     getWorldBook,
     listWorldBooks,
     saveWorldBook,

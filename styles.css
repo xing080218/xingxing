@@ -2290,9 +2290,14 @@ svg {
   gap: 10px;
 }
 
-.character-list-header > div {
+.character-list-header > div:not(.character-add-control) {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.character-add-control {
+  position: relative;
+  flex: 0 0 auto;
 }
 
 .character-add-button {
@@ -2329,6 +2334,83 @@ svg {
   width: 18px;
   height: 18px;
   stroke-width: 2.2;
+}
+
+.character-add-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(250px, calc(100vw - 48px));
+  padding: 6px;
+  border: 1px solid #dbe4e7;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16px 36px rgba(35, 57, 65, 0.2);
+  backdrop-filter: blur(14px);
+}
+
+.character-add-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 10px;
+  color: #26323a;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.character-add-menu-item:hover,
+.character-add-menu-item:focus-visible {
+  background: #f0fafb;
+}
+
+.character-add-menu-item:focus-visible {
+  outline: 2px solid rgba(128, 201, 215, 0.5);
+  outline-offset: -2px;
+}
+
+.character-add-menu-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #619dab;
+  background: #e5f8fa;
+}
+
+.character-add-menu-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.character-add-menu-item > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.character-add-menu-item strong {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.character-add-menu-item small {
+  overflow: hidden;
+  color: #7c858a;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .character-list-scroll {
@@ -2388,6 +2470,20 @@ svg {
   background-color: #7c8a94;
   box-shadow: none;
   font-size: 17px;
+}
+
+.group-chat-list-avatar {
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbe8ec;
+  color: #5b9ca9;
+  background: #e5f8fa;
+}
+
+.group-chat-list-avatar svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 1.8;
 }
 
 .character-list-copy {
@@ -2716,6 +2812,72 @@ svg {
 
 .character-modal .field.has-error textarea {
   border-color: var(--danger);
+}
+
+.group-chat-modal-card {
+  max-width: 520px;
+}
+
+.group-chat-context-field {
+  min-width: 0;
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbfaf6;
+}
+
+.group-chat-context-field legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 5px;
+  color: #323a36;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.group-chat-context-field legend svg {
+  width: 15px;
+  height: 15px;
+  color: var(--jade);
+}
+
+.group-chat-context-help {
+  margin: 0 0 12px;
+  color: #7a766c;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.group-chat-context-field .field {
+  margin-bottom: 12px;
+}
+
+.group-chat-context-field .field:last-child {
+  margin-bottom: 0;
+}
+
+.group-chat-context-field textarea {
+  min-height: 92px;
+  background: #fff;
+}
+
+.field-optional {
+  margin-left: auto;
+  color: #9a958a;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.group-chat-form-error {
+  display: block;
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(180, 67, 55, 0.2);
+  border-radius: 10px;
+  background: #fff3f0;
+  font-size: 10px;
 }
 
 .character-form-actions {

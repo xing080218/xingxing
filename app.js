@@ -59,6 +59,8 @@ const icons = {
   'pen-line': '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   'user-round': '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  'users-round':
+    '<path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/>',
   plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
   'scroll-text':
     '<path d="M8 21h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h4a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2"/><path d="M8 8h8"/><path d="M12 12h4"/><path d="M12 16h4"/>',
@@ -75,6 +77,7 @@ const icons = {
 
 const characterProfile = window.PocketLabCharacterProfile;
 const chatListModel = window.PocketLabChatListModel;
+const groupChatModel = window.PocketLabGroupChatModel;
 const defaultCharacter = {
   ...characterProfile.normalizeCharacter(characterProfile.defaultCharacter),
   avatarUrl: "",
@@ -92,6 +95,7 @@ const state = {
   connected: false,
   toastTimer: null,
   characters: [],
+  groupChats: [],
   worldBooks: [],
   activeCharacterId: defaultCharacter.id,
   character: {
@@ -142,6 +146,7 @@ async function initializeApp() {
     });
     await window.PocketLabSelfProfileApp.init();
     await window.PocketLabWorldBookApp.init();
+    await window.PocketLabGroupChatEditor.init();
     await window.PocketLabBeautify.init({
       onError: reportStorageError,
       onSaved: updateStorageUsage,
@@ -333,8 +338,8 @@ function bindEvents() {
   document.getElementById("open-settings-app").addEventListener("click", () => showView("settings"));
   document.getElementById("beautify-back").addEventListener("click", () => showView("home"));
   elements["character-list-back"].addEventListener("click", () => showView("home"));
-  elements["add-character-from-list"].addEventListener(
-    "click",
+  window.addEventListener(
+    "pocketlab:request-new-character",
     openNewCharacterEditor,
   );
   elements["character-list"].addEventListener(
@@ -433,6 +438,14 @@ function bindEvents() {
   elements["character-persona"].addEventListener("input", () => clearFieldError("character-persona"));
   window.addEventListener("pocketlab:world-books-changed", handleWorldBooksChanged);
   window.addEventListener(
+    "pocketlab:group-chats-changed",
+    handleGroupChatsChanged,
+  );
+  window.addEventListener("pocketlab:toast", (event) => {
+    const message = String(event?.detail?.message || "").trim();
+    if (message) showToast(message);
+  });
+  window.addEventListener(
     "pocketlab:self-profiles-changed",
     handleSelfProfilesChanged,
   );
@@ -510,6 +523,15 @@ function handleWorldBooksChanged(event) {
   const modal = elements["character-modal"];
   if (modal && !modal.classList.contains("is-hidden")) {
     populateCharacterWorldBookOptions(elements["character-world-book"].value);
+  }
+}
+
+function handleGroupChatsChanged(event) {
+  if (Array.isArray(event?.detail?.groupChats)) {
+    state.groupChats = event.detail.groupChats;
+  }
+  if (state.activeView === "characters") {
+    renderCharacterList();
   }
 }
 
@@ -1448,13 +1470,15 @@ async function importBackupFile(event) {
     const result = await window.PocketLabBackup.importJson(text);
     await loadChatFromDatabase();
     await window.PocketLabWorldBookApp.refresh({ silent: true });
+    await window.PocketLabGroupChatEditor.refresh();
+    state.groupChats = await window.PocketLabStorage.listGroupChats();
     await window.PocketLabBeautify.reload();
     renderChat();
     await updateStorageUsage();
     setLocalDataStatus(
       "success",
       "备份导入完成",
-      `已导入 ${result.characters || 0} 个角色、${result.worldBooks || 0} 本世界书、${result.messages || 0} 条聊天、${result.memories || 0} 条记忆、${result.images || 0} 张图片。`,
+      `已导入 ${result.characters || 0} 个角色、${result.groupChats || 0} 个群聊、${result.worldBooks || 0} 本世界书、${result.messages || 0} 条聊天、${result.memories || 0} 条记忆、${result.images || 0} 张图片。`,
       "刷新页面后仍会保留；API Key 没有从备份恢复。",
     );
     showToast("备份已导入，本机数据已刷新。");
@@ -1940,35 +1964,35 @@ async function renderCharacterList() {
   if (!list) return;
   const renderSequence = ++characterListRenderSequence;
 
-  if (!state.characters.length) {
-    list.removeAttribute("aria-busy");
-    list.innerHTML = `
-      <div class="character-list-empty" role="status">
-        <strong>还没有角色</strong>
-        <p>点右上角的加号，创建一个角色开始聊天。</p>
-      </div>
-    `;
-    return;
-  }
-
   const characters = state.characters.slice();
   const loadingRows = characters.map((character) => ({
+    kind: "character",
     character,
     preview: chatListModel.LOADING_PREVIEW,
     timeLabel: "",
     timestamp: 0,
   }));
   list.setAttribute("aria-busy", "true");
-  list.innerHTML = buildCharacterListRowsHtml(loadingRows);
+  list.innerHTML = loadingRows.length
+    ? buildCharacterListRowsHtml(loadingRows)
+    : `
+      <div class="character-list-empty" role="status">
+        <strong>正在读取对话</strong>
+        <p>正在读取角色和群聊，请稍等。</p>
+      </div>
+    `;
   applyCharacterListAvatars(list, characters);
 
   try {
     await messageSaveChain;
-    const messageSets = await Promise.all(
-      characters.map((character) =>
-        window.PocketLabStorage.getMessages(character.id),
+    const [messageSets, groupChats] = await Promise.all([
+      Promise.all(
+        characters.map((character) =>
+          window.PocketLabStorage.getMessages(character.id),
+        ),
       ),
-    );
+      window.PocketLabStorage.listGroupChats(),
+    ]);
     if (
       renderSequence !== characterListRenderSequence ||
       state.activeView !== "characters"
@@ -1976,12 +2000,27 @@ async function renderCharacterList() {
       return;
     }
 
-    const rows = chatListModel.buildCharacterRows(
+    state.groupChats = groupChats;
+    const characterRows = chatListModel.buildCharacterRows(
       characters.map((character, index) => ({
         character,
         messages: messageSets[index],
       })),
+    ).map((row) => ({ ...row, kind: "character" }));
+    const rows = mergeConversationListRows(
+      characterRows,
+      buildGroupChatListRows(groupChats),
     );
+    if (!rows.length) {
+      list.innerHTML = `
+        <div class="character-list-empty" role="status">
+          <strong>还没有角色或群聊</strong>
+          <p>点右上角的加号，创建角色或群聊。</p>
+        </div>
+      `;
+      list.removeAttribute("aria-busy");
+      return;
+    }
     list.innerHTML = buildCharacterListRowsHtml(rows);
     applyCharacterListAvatars(list, characters);
     list.removeAttribute("aria-busy");
@@ -2009,10 +2048,46 @@ async function renderCharacterList() {
   }
 }
 
+function buildGroupChatListRows(groupChats, nowValue = Date.now()) {
+  return (Array.isArray(groupChats) ? groupChats : []).map(
+    (groupChat, originalIndex) => {
+      const timestamp = Math.max(
+        Number(groupChat.updatedAt) || 0,
+        Number(groupChat.createdAt) || 0,
+      );
+      return {
+        kind: "group",
+        groupChat,
+        preview: groupChatModel.getPreview(groupChat),
+        timeLabel: timestamp
+          ? chatListModel.formatListTime(timestamp, nowValue)
+          : "",
+        timestamp,
+        originalIndex,
+      };
+    },
+  );
+}
+
+function mergeConversationListRows(characterRows, groupRows) {
+  return [...characterRows, ...groupRows]
+    .map((row, sortIndex) => ({ ...row, sortIndex }))
+    .sort((left, right) => {
+      if (left.timestamp && right.timestamp) {
+        return (
+          right.timestamp - left.timestamp ||
+          left.sortIndex - right.sortIndex
+        );
+      }
+      if (left.timestamp) return -1;
+      if (right.timestamp) return 1;
+      return left.sortIndex - right.sortIndex;
+    });
+}
+
 function buildCharacterListRowsHtml(rows) {
   return rows
     .map((row) => {
-      const character = row.character;
       const timestamp = Number(row.timestamp) || 0;
       const dateTime = timestamp
         ? new Date(timestamp).toISOString()
@@ -2020,6 +2095,32 @@ function buildCharacterListRowsHtml(rows) {
       const timeHtml = row.timeLabel
         ? `<time class="character-list-time" datetime="${escapeHtml(dateTime)}">${escapeHtml(row.timeLabel)}</time>`
         : "";
+      if (row.kind === "group") {
+        const groupChat = row.groupChat;
+        return `
+          <div class="character-list-row" role="listitem">
+            <button
+              class="character-list-item"
+              type="button"
+              data-group-chat-id="${escapeHtml(groupChat.id)}"
+              aria-label="编辑群聊 ${escapeHtml(groupChat.name)}"
+            >
+              <span class="group-chat-list-avatar character-list-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24">${icons["users-round"]}</svg>
+              </span>
+              <span class="character-list-copy">
+                <span class="character-list-name-row">
+                  <strong>${escapeHtml(groupChat.name)}</strong>
+                  ${timeHtml}
+                </span>
+                <span class="character-list-preview" title="${escapeHtml(row.preview)}">${escapeHtml(row.preview)}</span>
+              </span>
+            </button>
+          </div>
+        `;
+      }
+
+      const character = row.character;
       return `
         <div class="character-list-row" role="listitem">
           <button
@@ -2062,6 +2163,16 @@ function handleCharacterListAction(event) {
       : eventTarget && eventTarget.parentElement;
   if (target && target.closest("[data-retry-character-list]")) {
     renderCharacterList();
+    return;
+  }
+  const groupChatItem = target && target.closest("[data-group-chat-id]");
+  if (
+    groupChatItem &&
+    elements["character-list"].contains(groupChatItem)
+  ) {
+    window.PocketLabGroupChatEditor.openEdit(
+      groupChatItem.dataset.groupChatId,
+    );
     return;
   }
   const item = target && target.closest("[data-character-id]");

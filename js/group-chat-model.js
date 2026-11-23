@@ -30,6 +30,19 @@
       .slice(0, maxLength);
   }
 
+  function normalizeMemberCharacterIds(value) {
+    if (!Array.isArray(value)) return [];
+    const normalized = [];
+    const seen = new Set();
+    value.forEach((entry) => {
+      const id = normalizeStableId(entry);
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      normalized.push(id);
+    });
+    return normalized;
+  }
+
   function normalizeGroupChat(value) {
     const source = value && typeof value === "object" ? value : {};
     const now = Date.now();
@@ -46,6 +59,9 @@
       backgroundSetting: normalizeMultilineText(
         source.backgroundSetting,
         MAX_BACKGROUND_LENGTH,
+      ),
+      memberCharacterIds: normalizeMemberCharacterIds(
+        source.memberCharacterIds,
       ),
       createdAt: Number.isFinite(Number(source.createdAt))
         ? Number(source.createdAt)
@@ -65,6 +81,7 @@
       typeof source.backgroundSetting === "string"
         ? source.backgroundSetting
         : "";
+    const rawMemberCharacterIds = source.memberCharacterIds;
     const errors = {};
 
     if (!rawName) {
@@ -87,6 +104,13 @@
     ) {
       errors.backgroundSetting =
         `群聊背景设定不能超过 ${MAX_BACKGROUND_LENGTH} 个字符。`;
+    }
+
+    if (
+      rawMemberCharacterIds !== undefined &&
+      !Array.isArray(rawMemberCharacterIds)
+    ) {
+      errors.memberCharacterIds = "群成员名单格式不正确。";
     }
 
     return {
@@ -141,6 +165,7 @@
     MAX_BACKGROUND_LENGTH,
     EMPTY_PREVIEW,
     normalizeStableId,
+    normalizeMemberCharacterIds,
     normalizeGroupChat,
     validateGroupChat,
     normalizePreview,

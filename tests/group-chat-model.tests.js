@@ -8,6 +8,7 @@ const normalized = model.normalizeGroupChat({
   name: "  星港调查组  ",
   announcement: "  今晚八点集合。\r\n\r\n不要迟到。  ",
   backgroundSetting: "  废弃星港，终年有雾。  ",
+  memberCharacterIds: ["  character-a  ", "character-b", "character-a", "", null],
   createdAt: 10,
   updatedAt: 20,
 });
@@ -15,6 +16,10 @@ assert.equal(normalized.id, "group-chat-example");
 assert.equal(normalized.name, "星港调查组");
 assert.equal(normalized.announcement, "今晚八点集合。\n\n不要迟到。");
 assert.equal(normalized.backgroundSetting, "废弃星港，终年有雾。");
+assert.deepEqual(normalized.memberCharacterIds, [
+  "character-a",
+  "character-b",
+]);
 assert.equal(normalized.createdAt, 10);
 assert.equal(normalized.updatedAt, 20);
 
@@ -30,6 +35,26 @@ const optionalFields = model.validateGroupChat({ name: "只有名称" });
 assert.equal(optionalFields.ok, true);
 assert.equal(optionalFields.value.announcement, "");
 assert.equal(optionalFields.value.backgroundSetting, "");
+assert.deepEqual(optionalFields.value.memberCharacterIds, []);
+
+assert.deepEqual(
+  model.normalizeMemberCharacterIds([
+    "character-b",
+    " character-a ",
+    "character-b",
+    "",
+    42,
+    null,
+  ]),
+  ["character-b", "character-a"],
+);
+
+const invalidMembers = model.validateGroupChat({
+  name: "星港调查组",
+  memberCharacterIds: "character-a",
+});
+assert.equal(invalidMembers.ok, false);
+assert.match(invalidMembers.errors.memberCharacterIds, /格式/);
 
 const missingName = model.validateGroupChat({ announcement: "公告" });
 assert.equal(missingName.ok, false);

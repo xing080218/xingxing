@@ -24,6 +24,7 @@
     "beautify",
     "guide",
     "chat",
+    "sms",
     "world-books",
     "settings",
   ]);

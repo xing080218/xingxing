@@ -146,6 +146,11 @@ async function initializeApp() {
       onError: reportStorageError,
     });
     await window.PocketLabSelfProfileApp.init();
+    await window.PocketLabSmsApp.init({
+      normalizeError: normalizeConnectionError,
+      onStorageError: reportStorageError,
+      onExit: () => showView("home"),
+    });
     await window.PocketLabWorldBookApp.init();
     await window.PocketLabGroupChatEditor.init();
     await window.PocketLabBeautify.init({
@@ -218,6 +223,7 @@ function cacheElements() {
     "home-view",
     "character-list-view",
     "chat-view",
+    "sms-view",
     "settings-view",
     "beautify-view",
     "world-books-view",
@@ -236,6 +242,7 @@ function cacheElements() {
     "world-books-back",
     "self-profile-back",
     "open-self-profile-app",
+    "open-sms-app",
     "chat-header-avatar",
     "chat-character-name",
     "chat-api-status",
@@ -331,6 +338,9 @@ function bindEvents() {
   document
     .getElementById("open-chat-app")
     .addEventListener("click", () => showView("characters"));
+  elements["open-sms-app"].addEventListener("click", () =>
+    showView("sms"),
+  );
   document
     .getElementById("open-world-books-app")
     .addEventListener("click", () => showView("world-books"));
@@ -469,12 +479,14 @@ function showView(viewName, options = {}) {
     home: elements["home-view"],
     characters: elements["character-list-view"],
     chat: elements["chat-view"],
+    sms: elements["sms-view"],
     settings: elements["settings-view"],
     beautify: elements["beautify-view"],
     "world-books": elements["world-books-view"],
     "self-profile": elements["self-profile-view"],
     guide: elements["guide-view"],
   };
+  window.PocketLabSmsApp?.setActive?.(viewName === "sms");
 
   Object.entries(views).forEach(([name, view]) => {
     view.classList.toggle("is-active", name === viewName);
@@ -483,7 +495,7 @@ function showView(viewName, options = {}) {
 
   if (!options.initial) {
     const scrollArea = views[viewName].querySelector(
-      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .beautify-scroll, .world-book-scroll, .self-profile-scroll",
+      ".character-list-scroll, .settings-scroll, .guide-scroll, .chat-scroll, .sms-scroll, .beautify-scroll, .world-book-scroll, .self-profile-scroll",
     );
     if (scrollArea) scrollArea.scrollTop = 0;
   }
@@ -510,6 +522,10 @@ function showView(viewName, options = {}) {
 
   if (viewName === "self-profile" && window.PocketLabSelfProfileApp) {
     window.PocketLabSelfProfileApp.refresh({ silent: true });
+  }
+
+  if (viewName === "sms" && window.PocketLabSmsApp) {
+    window.PocketLabSmsApp.refresh({ silent: true });
   }
 
   if (viewName === "chat") {
@@ -1577,6 +1593,7 @@ async function toggleCharacterBlock() {
   const currentCharacter = state.character;
   if (!currentCharacter || !currentCharacter.id) return;
 
+  const wasBlocked = currentCharacter.isBlocked === true;
   const nextBlocked = !isCurrentCharacterBlocked();
   state.isSavingCharacter = true;
   updateBatchControls();
@@ -1601,6 +1618,18 @@ async function toggleCharacterBlock() {
       state.characters.push(savedCharacter);
     }
     state.character = savedCharacter;
+    if (!wasBlocked && savedCharacter.isBlocked === true) {
+      window.dispatchEvent(
+        new CustomEvent("pocketlab:character-blocked", {
+          detail: {
+            characterId: savedCharacter.id,
+            characterName: savedCharacter.name,
+            blockEventId: `block-${createId()}`,
+            occurredAt: Date.now(),
+          },
+        }),
+      );
+    }
     renderChat();
     showToast(
       nextBlocked

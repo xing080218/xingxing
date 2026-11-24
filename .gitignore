@@ -5,8 +5,6 @@ outputs/
 *.pid
 *.tmp
 *.bak
-$null
-
 # Local configuration and credentials
 .env
 .env.*

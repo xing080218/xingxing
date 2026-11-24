@@ -18,6 +18,40 @@ function sentRecord(overrides = {}) {
 function runTests() {
   const first = sentRecord();
   const data = model.normalizeSmsData({ messages: [first] });
+  const legacyApology = model.normalizeSmsRecord({
+    id: "sms-legacy",
+    characterId: "character-1",
+    blockEventId: "block-legacy",
+    content: "旧版道歉短信",
+    createdAt: 50,
+    status: model.STATUS.SENT,
+  });
+  assert.equal(legacyApology.role, model.ROLE.ASSISTANT);
+  assert.equal(legacyApology.kind, model.KIND.APOLOGY);
+
+  const userRecord = model.createSmsRecord({
+    id: "sms-user",
+    characterId: "character-1",
+    content: "这是用户发出的短信。",
+    createdAt: 80,
+    status: model.STATUS.SENT,
+    role: model.ROLE.USER,
+    kind: model.KIND.MESSAGE,
+  });
+  assert.equal(userRecord.readAt, 80);
+  assert.equal(
+    model.groupByCharacter({ messages: [userRecord] })[0].unreadCount,
+    0,
+    "User SMS must not increase the unread badge.",
+  );
+  assert.equal(
+    model.prepareRetry({
+      ...userRecord,
+      status: model.STATUS.FAILED,
+    }),
+    null,
+    "Only assistant SMS records can be retried.",
+  );
 
   assert.equal(
     model.shouldTriggerApology({
@@ -130,6 +164,54 @@ function runTests() {
     1,
   );
 
+  const smsContext = model.buildSmsContext(
+    [
+      userRecord,
+      model.createSmsRecord({
+        id: "sms-assistant",
+        characterId: "character-1",
+        content: "这是角色回复。",
+        createdAt: 90,
+        status: model.STATUS.SENT,
+        role: model.ROLE.ASSISTANT,
+        kind: model.KIND.MESSAGE,
+      }),
+      model.createSmsRecord({
+        id: "sms-pending-context",
+        characterId: "character-1",
+        content: "生成中不应进入历史。",
+        createdAt: 100,
+        status: model.STATUS.SENDING,
+        role: model.ROLE.ASSISTANT,
+        kind: model.KIND.MESSAGE,
+      }),
+      model.createSmsRecord({
+        id: "sms-failed-context",
+        characterId: "character-1",
+        content: "失败内容不应进入历史。",
+        createdAt: 110,
+        status: model.STATUS.FAILED,
+        error: {
+          title: "失败",
+          message: "测试失败",
+          nextStep: "重试",
+        },
+        role: model.ROLE.ASSISTANT,
+        kind: model.KIND.MESSAGE,
+      }),
+    ],
+    {
+      historyLimit: 20,
+      excludeIds: ["sms-assistant"],
+    },
+  );
+  assert.deepEqual(smsContext, [
+    {
+      role: model.ROLE.USER,
+      content: "这是用户发出的短信。",
+    },
+  ]);
+
   const filtered = model.buildChatContext(
     [
       { role: "system", content: "不要发送" },
@@ -165,6 +247,25 @@ function runTests() {
     ),
     "正在发送道歉短信…",
   );
+  assert.equal(
+    model.getPreview(
+      model.createSmsRecord({
+        id: "sms-message-sending",
+        characterId: "character-1",
+        status: model.STATUS.SENDING,
+        role: model.ROLE.ASSISTANT,
+        kind: model.KIND.MESSAGE,
+      }),
+    ),
+    "正在回复短信…",
+  );
+  assert.match(
+    model.buildSmsPrompt("占位角色", "今天还好吗？", {
+      hasHistory: true,
+    }),
+    /今天还好吗？/,
+  );
+  assert.equal(model.buildSmsPrompt("占位角色", "   "), "");
 
   console.log("SMS model tests passed.");
 }

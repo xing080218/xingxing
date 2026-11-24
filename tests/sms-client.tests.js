@@ -82,6 +82,34 @@ async function runTests() {
     apiKey: placeholderKey,
     modelName: "placeholder-model",
   };
+  const sentUserSms = model.createSmsRecord({
+    id: "sms-user-placeholder",
+    characterId: character.id,
+    content: "这条短信需要角色认真回复。",
+    createdAt: 300,
+    status: model.STATUS.SENT,
+    readAt: 300,
+    role: model.ROLE.USER,
+    kind: model.KIND.MESSAGE,
+  });
+  const sentAssistantSms = model.createSmsRecord({
+    id: "sms-assistant-placeholder",
+    characterId: character.id,
+    content: "上一条角色短信回复。",
+    createdAt: 301,
+    status: model.STATUS.SENT,
+    role: model.ROLE.ASSISTANT,
+    kind: model.KIND.MESSAGE,
+  });
+  const currentReply = model.createSmsRecord({
+    id: "sms-current-reply-placeholder",
+    characterId: character.id,
+    createdAt: 303,
+    status: model.STATUS.SENDING,
+    role: model.ROLE.ASSISTANT,
+    kind: model.KIND.MESSAGE,
+    replyToId: sentUserSms.id,
+  });
 
   const { client, requests } = loadClient(() =>
     successfulResponse("  “对不起，刚才是我没有认真听你说话。”  "),
@@ -156,6 +184,75 @@ async function runTests() {
   assert.equal("config" in sentBody, false);
   assert.equal(sentBody.worldBook.name, worldBook.name);
   assert.equal(sentBody.userProfile.name, userProfile.name);
+
+  const messageBody = client.buildRequestBody({
+    character,
+    config,
+    messages,
+    worldBook,
+    userProfile,
+    smsMessages: [sentUserSms, sentAssistantSms, currentReply],
+    smsText: sentUserSms.content,
+    excludeSmsRecordIds: [sentUserSms.id, currentReply.id],
+    kind: model.KIND.MESSAGE,
+  });
+  assert.equal(messageBody.apiUrl, config.apiUrl);
+  assert.equal(messageBody.apiKey, placeholderKey);
+  assert.equal(messageBody.characterName, character.name);
+  assert.equal(messageBody.persona, character.persona);
+  assert.equal(messageBody.worldBook.name, worldBook.name);
+  assert.equal(messageBody.userProfile.name, userProfile.name);
+  assert.ok(
+    messageBody.messages.some(
+      (message) => message.content === sentAssistantSms.content,
+    ),
+    "Previous role SMS should be sent as context.",
+  );
+  assert.ok(
+    messageBody.messages.some(
+      (message) => message.content === "刚才我们因为安排争执了。",
+    ),
+    "Recent normal chat should be sent as context.",
+  );
+  assert.match(
+    messageBody.messages.at(-1).content,
+    /通过手机短信和对方聊天/,
+  );
+  assert.match(
+    messageBody.messages.at(-1).content,
+    /这条短信需要角色认真回复/,
+  );
+  assert.doesNotMatch(
+    JSON.stringify(messageBody),
+    /上一条角色短信回复。.*上一条角色短信回复。/,
+    "Excluded SMS history should not be duplicated.",
+  );
+  assert.doesNotMatch(
+    JSON.stringify(messageBody),
+    /sms-user-placeholder|sms-current-reply-placeholder|replyToId/,
+    "Internal SMS IDs must not be sent to the provider.",
+  );
+  for (const internalField of ["kind", "smsText", "smsMessages"]) {
+    assert.equal(internalField in messageBody, false);
+  }
+
+  await client.generateMessage({
+    character,
+    config,
+    messages,
+    worldBook,
+    userProfile,
+    smsMessages: [sentUserSms, sentAssistantSms, currentReply],
+    smsText: sentUserSms.content,
+    excludeSmsRecordIds: [sentUserSms.id, currentReply.id],
+  });
+  assert.equal(requests.length, 2);
+  const sentMessageBody = JSON.parse(requests[1].options.body);
+  assert.match(sentMessageBody.messages.at(-1).content, /通过手机短信/);
+  assert.match(
+    sentMessageBody.messages.at(-1).content,
+    /这条短信需要角色认真回复/,
+  );
 
   assert.throws(
     () =>

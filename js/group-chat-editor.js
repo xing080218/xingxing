@@ -147,6 +147,14 @@
         closeEditor();
       }
     });
+    window.addEventListener(
+      "pocketlab:conversation-tab-changed",
+      (event) => {
+        if (event?.detail?.tab !== "chat" && state.menuOpen) {
+          setMenuOpen(false);
+        }
+      },
+    );
   }
 
   function setMenuOpen(open) {

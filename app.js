@@ -57,6 +57,7 @@ const icons = {
   'alert-triangle': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
   loader: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
   'pen-line': '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>',
+  ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   'user-round': '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   'users-round':
@@ -238,6 +239,7 @@ function cacheElements() {
     "chat-header-avatar",
     "chat-character-name",
     "chat-api-status",
+    "block-character-button",
     "edit-character-button",
     "chat-connection-warning",
     "chat-open-settings",
@@ -248,6 +250,7 @@ function cacheElements() {
     "chat-empty-description",
     "chat-message-list",
     "chat-form",
+    "chat-block-notice",
     "chat-input",
     "send-chat",
     "chat-pending-actions",
@@ -353,6 +356,7 @@ function bindEvents() {
   elements["self-profile-back"].addEventListener("click", () => showView("home"));
   elements["chat-back"].addEventListener("click", () => showView("characters"));
   elements["chat-open-settings"].addEventListener("click", () => showView("settings"));
+  elements["block-character-button"].addEventListener("click", toggleCharacterBlock);
   elements["edit-character-button"].addEventListener("click", openCharacterEditor);
   elements["close-character-modal"].addEventListener("click", closeCharacterEditor);
   elements["cancel-character"].addEventListener("click", closeCharacterEditor);
@@ -1509,10 +1513,24 @@ function readFileAsText(file) {
 
 function updateCharacterUI() {
   const { name, avatarUrl } = state.character;
+  const isBlocked = isCurrentCharacterBlocked();
   elements["chat-character-name"].textContent = name;
   elements["chat-empty-name"].textContent = name;
   applyAvatar(elements["chat-header-avatar"], name, avatarUrl);
   applyAvatar(elements["chat-empty-avatar"], name, avatarUrl);
+  elements["block-character-button"].classList.toggle("is-blocked", isBlocked);
+  elements["block-character-button"].setAttribute(
+    "aria-pressed",
+    String(isBlocked),
+  );
+  elements["block-character-button"].setAttribute(
+    "aria-label",
+    isBlocked ? "解除拉黑当前角色" : "拉黑当前角色",
+  );
+  elements["block-character-button"].title = isBlocked
+    ? "解除拉黑"
+    : "拉黑角色";
+  elements["chat-block-notice"].classList.toggle("is-hidden", !isBlocked);
 }
 
 function applyAvatar(element, name, avatar) {
@@ -1538,12 +1556,65 @@ function getPendingMessages(batchId = "") {
   );
 }
 
+function isCurrentCharacterBlocked() {
+  return state.character?.isBlocked === true;
+}
+
 function isChatInteractionLocked() {
   return (
     state.isReplying ||
     state.isSwitchingCharacter ||
     state.isSavingCharacter
   );
+}
+
+async function toggleCharacterBlock() {
+  if (isChatInteractionLocked()) {
+    showToast("请等待当前回复或保存完成后再切换拉黑状态。");
+    return;
+  }
+
+  const currentCharacter = state.character;
+  if (!currentCharacter || !currentCharacter.id) return;
+
+  const nextBlocked = !isCurrentCharacterBlocked();
+  state.isSavingCharacter = true;
+  updateBatchControls();
+  updateSendButton();
+
+  try {
+    const savedRecord = await queueCharacterSave({
+      ...currentCharacter,
+      isBlocked: nextBlocked,
+    });
+    const savedCharacter = normalizeCharacter(savedRecord);
+    savedCharacter.avatarUrl = currentCharacter.avatarUrl || "";
+    savedCharacter.chatBackgroundUrl =
+      currentCharacter.chatBackgroundUrl || "";
+
+    const existingIndex = state.characters.findIndex(
+      (character) => character.id === savedCharacter.id,
+    );
+    if (existingIndex >= 0) {
+      state.characters.splice(existingIndex, 1, savedCharacter);
+    } else {
+      state.characters.push(savedCharacter);
+    }
+    state.character = savedCharacter;
+    renderChat();
+    showToast(
+      nextBlocked
+        ? `已拉黑 ${savedCharacter.name}，解除拉黑后可继续聊天。`
+        : `已解除对 ${savedCharacter.name} 的拉黑。`,
+    );
+  } catch (error) {
+    reportStorageError(error, "切换角色拉黑状态");
+  } finally {
+    state.isSavingCharacter = false;
+    updateCharacterUI();
+    updateBatchControls();
+    updateSendButton();
+  }
 }
 
 function updateBatchControls() {
@@ -1554,7 +1625,9 @@ function updateBatchControls() {
   elements["chat-pending-actions"].classList.toggle("is-hidden", !hasPending);
   elements["pending-reply-count"].textContent = `${pendingMessages.length} 条消息待总结`;
   elements["reply-pending-batch"].disabled =
-    isChatInteractionLocked() || !state.connected;
+    isChatInteractionLocked() ||
+    isCurrentCharacterBlocked() ||
+    !state.connected;
   elements["batch-reply-label"].textContent = state.isReplying
     ? "正在总结并回复"
     : hasFailedGroup
@@ -1722,6 +1795,7 @@ function buildMessageMenuHtml(message, canEdit) {
 
 function buildRetractionNoticeHtml(turnId, retraction) {
   const isWholeTurn = retraction.mode === "turn";
+  const isBlocked = isCurrentCharacterBlocked();
   const title = isWholeTurn ? "本次对话已撤回" : "回复已撤回";
   const description = isWholeTurn
     ? "这轮的提问和回复都已收起，可以重新生成或彻底删除。"
@@ -1735,7 +1809,7 @@ function buildRetractionNoticeHtml(turnId, retraction) {
         <strong>${title}</strong>
         <p>${description}</p>
         <div class="retraction-actions">
-          <button class="regenerate-button" type="button" data-regenerate-turn-id="${escapeHtml(turnId)}" ${state.isReplying ? "disabled" : ""}>
+          <button class="regenerate-button" type="button" data-regenerate-turn-id="${escapeHtml(turnId)}" ${state.isReplying || isBlocked ? "disabled" : ""}>
             <span data-icon="refresh-cw"></span>
             ${regenerateLabel}
           </button>
@@ -1752,6 +1826,7 @@ function buildRetractionNoticeHtml(turnId, retraction) {
 function buildMessageFailureHtml(message) {
   if (!message.failed || !message.error) return "";
   const isSummaryFailure = Boolean(message.batchId && message.pendingReply);
+  const isBlocked = isCurrentCharacterBlocked();
   return `
     <div class="message-failure">
       <div class="failure-copy">
@@ -1759,7 +1834,7 @@ function buildMessageFailureHtml(message) {
         <p>${escapeHtml(message.error.message)}</p>
         <small>${escapeHtml(message.error.nextStep)}</small>
       </div>
-      <button class="retry-button" type="button" data-retry-message-id="${escapeHtml(message.id)}">
+      <button class="retry-button" type="button" data-retry-message-id="${escapeHtml(message.id)}" ${isBlocked || state.isReplying ? "disabled" : ""}>
         <span data-icon="rotate-ccw"></span>
         ${isSummaryFailure ? "重试总结" : "重试"}
       </button>
@@ -1819,17 +1894,22 @@ function updateSendButton() {
   const pendingMessages = getPendingMessages();
   const groupIsFull = pendingMessages.length >= chatBatchLimits.maxMessages;
   const interactionLocked = isChatInteractionLocked();
+  const isBlocked = isCurrentCharacterBlocked();
   const disabled =
-    !state.connected || interactionLocked || !hasText || groupIsFull;
+    !state.connected || interactionLocked || isBlocked || !hasText || groupIsFull;
   elements["send-chat"].disabled = disabled;
-  elements["chat-input"].disabled = interactionLocked;
+  elements["chat-input"].disabled = interactionLocked || isBlocked;
   elements["send-chat"].classList.toggle(
     "is-loading",
     state.isReplying || state.isSwitchingCharacter,
   );
   elements["send-chat"].setAttribute(
     "aria-label",
-    state.isReplying ? "正在总结并回复" : "发送消息",
+    isBlocked
+      ? "角色已拉黑，请先解除"
+      : state.isReplying
+        ? "正在总结并回复"
+        : "发送消息",
   );
   const iconName =
     state.isReplying || state.isSwitchingCharacter ? "loader" : "arrow-up";
@@ -1839,6 +1919,7 @@ function updateSendButton() {
   }
   elements["add-character-from-list"].disabled = interactionLocked;
   elements["edit-character-button"].disabled = interactionLocked;
+  elements["block-character-button"].disabled = interactionLocked;
 }
 
 function openCharacterEditor() {
@@ -2294,6 +2375,7 @@ async function saveCharacter(event) {
           characterProfile.normalizeMaxConsecutiveMessages(
             elements["character-max-messages"].value,
           ),
+        isBlocked: previousCharacter?.isBlocked === true,
         createdAt: previousCharacter?.createdAt || Date.now(),
       },
       avatarBlob,
@@ -2604,6 +2686,11 @@ function createId() {
 }
 
 function ensureConnectedForChat() {
+  if (isCurrentCharacterBlocked()) {
+    showToast("这个角色已被拉黑，解除拉黑后才能生成回复。");
+    return null;
+  }
+
   const { apiUrl, modelName, apiKey } = window.PocketLabSettings.readApiSettings();
 
   if (state.connected && apiUrl && modelName && apiKey) {
@@ -2862,6 +2949,10 @@ async function regenerateTurn(turnId) {
 
 async function requestSummaryReply(messages, config) {
   if (isChatInteractionLocked()) return;
+  if (isCurrentCharacterBlocked()) {
+    showToast("这个角色已被拉黑，解除拉黑后才能生成回复。");
+    return;
+  }
 
   const requestMessages = messages.filter(
     (message) =>

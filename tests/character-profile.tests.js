@@ -18,6 +18,7 @@ function runTests() {
     worldBookId: "world-book-example",
     selfProfileId: "self-profile-example",
     maxConsecutiveMessages: 7,
+    isBlocked: true,
   });
   assert.equal(character.id, "character-example");
   assert.equal(character.name, "测试角色");
@@ -27,6 +28,7 @@ function runTests() {
   assert.equal(character.worldBookId, "world-book-example");
   assert.equal(character.selfProfileId, "self-profile-example");
   assert.equal(character.maxConsecutiveMessages, 7);
+  assert.equal(character.isBlocked, true);
   assert.equal("userProfile" in character, false);
 
   const fallbackCharacter = profile.normalizeCharacter({}, {
@@ -37,6 +39,9 @@ function runTests() {
   assert.equal(fallbackCharacter.maxConsecutiveMessages, 3);
   assert.equal(fallbackCharacter.worldBookId, "");
   assert.equal(fallbackCharacter.selfProfileId, "");
+  assert.equal(fallbackCharacter.isBlocked, false);
+  assert.equal(profile.defaultCharacter.isBlocked, false);
+  assert.equal(profile.normalizeCharacter({ isBlocked: "true" }).isBlocked, false);
   assert.equal(
     profile.normalizeCharacter({
       selfProfileId: "x".repeat(201),

@@ -27,6 +27,7 @@
     worldBookId: "",
     selfProfileId: "",
     maxConsecutiveMessages: DEFAULT_MAX_CONSECUTIVE_MESSAGES,
+    isBlocked: false,
   });
 
   function normalizeStableId(value, fallback = "") {
@@ -92,6 +93,7 @@
         source.maxConsecutiveMessages,
         fallback.maxConsecutiveMessages,
       ),
+      isBlocked: source.isBlocked === true,
       createdAt: Number.isFinite(Number(source.createdAt))
         ? Number(source.createdAt)
         : now,

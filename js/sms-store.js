@@ -34,38 +34,59 @@
     return enqueue(readStoredData);
   }
 
-  function addIfMissing(record) {
+  function addMany(records) {
     return enqueue(async () => {
-      const normalizedRecord = model.normalizeSmsRecord(record);
-      if (!normalizedRecord) {
+      const normalizedRecords = (Array.isArray(records) ? records : [])
+        .map((record) => model.normalizeSmsRecord(record))
+        .filter(Boolean);
+      if (!normalizedRecords.length) {
         throw new Error("短信记录缺少稳定编号或角色编号。");
       }
 
       const data = await readStoredData();
-      const duplicate = data.messages.find(
-        (item) =>
-          item.id === normalizedRecord.id ||
-          item.blockEventId === normalizedRecord.blockEventId,
-      );
-      if (duplicate) {
+      const addedRecords = [];
+      const existingRecords = [];
+      const nextMessages = [...data.messages];
+      normalizedRecords.forEach((record) => {
+        const duplicate = nextMessages.find(
+          (item) =>
+            item.id === record.id ||
+            (record.blockEventId &&
+              item.blockEventId === record.blockEventId),
+        );
+        if (duplicate) {
+          existingRecords.push(duplicate);
+          return;
+        }
+        nextMessages.push(record);
+        addedRecords.push(record);
+      });
+
+      if (!addedRecords.length) {
         return {
           added: false,
-          record: duplicate,
+          records: existingRecords,
           data,
         };
       }
-
       const nextData = {
         ...data,
-        messages: [...data.messages, normalizedRecord],
+        messages: nextMessages,
       };
       await writeStoredData(nextData);
       return {
         added: true,
-        record: normalizedRecord,
+        records: [...existingRecords, ...addedRecords],
         data: model.normalizeSmsData(nextData),
       };
     });
+  }
+
+  function addIfMissing(record) {
+    return addMany([record]).then((result) => ({
+      ...result,
+      record: result.records[0] || null,
+    }));
   }
 
   function update(recordId, updater) {
@@ -121,6 +142,7 @@
 
   root.PocketLabSmsStore = Object.freeze({
     load,
+    addMany,
     addIfMissing,
     update,
     markRead,

@@ -19,6 +19,10 @@
     messages,
     worldBook = null,
     userProfile = null,
+    smsMessages = [],
+    smsText = "",
+    excludeSmsRecordIds = [],
+    kind = model?.KIND?.APOLOGY,
   }) {
     if (!model || !character || !character.id || !character.name) {
       throw new Error("短信请求缺少角色资料。");
@@ -33,10 +37,33 @@
       throw new Error("短信请求缺少 API 地址、API Key 或模型名。");
     }
 
-    const history = model.buildChatContext(messages);
-    const prompt = model.buildApologyPrompt(character.name, {
-      hasHistory: history.length > 0,
+    const isMessageReply = kind === model.KIND.MESSAGE;
+    const smsHistory = isMessageReply
+      ? model.buildSmsContext(smsMessages, {
+          historyLimit: 12,
+          excludeIds: excludeSmsRecordIds,
+        })
+      : [];
+    const chatHistory = model.buildChatContext(messages, {
+      historyLimit: isMessageReply
+        ? Math.max(0, Math.min(8, 19 - smsHistory.length))
+        : 20,
     });
+    const history = [...chatHistory, ...smsHistory];
+    const prompt = isMessageReply
+      ? model.buildSmsPrompt(character.name, smsText, {
+          hasHistory: history.length > 0,
+        })
+      : model.buildApologyPrompt(character.name, {
+          hasHistory: history.length > 0,
+        });
+    if (!prompt) {
+      throw new Error(
+        isMessageReply
+          ? "短信请求缺少要回复的用户短信。"
+          : "道歉短信请求缺少角色资料。",
+      );
+    }
     const requestMessages = [
       ...history,
       {
@@ -83,8 +110,11 @@
     return error;
   }
 
-  async function generateApology(options = {}) {
-    const requestBody = buildRequestBody(options);
+  async function generateMessage(options = {}) {
+    const requestBody = buildRequestBody({
+      ...options,
+      kind: options.kind || model.KIND.MESSAGE,
+    });
     const timeoutMs =
       Math.max(5000, Number(options.timeoutMs) || DEFAULT_TIMEOUT_MS);
     const controller = new AbortController();
@@ -137,9 +167,17 @@
     }
   }
 
+  function generateApology(options = {}) {
+    return generateMessage({
+      ...options,
+      kind: model.KIND.APOLOGY,
+    });
+  }
+
   root.PocketLabSmsClient = Object.freeze({
     DEFAULT_TIMEOUT_MS,
     buildRequestBody,
+    generateMessage,
     generateApology,
   });
 })(window);

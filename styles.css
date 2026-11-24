@@ -565,12 +565,12 @@ svg {
 
 .app-icon {
   --app-default-surface: linear-gradient(
-    180deg,
-    #3fc0f7 0%,
-    #8ed8fb 55%,
-    #effbff 100%
+    145deg,
+    #f7faff 0%,
+    #d2e7fc 55%,
+    #b5d9f9 100%
   );
-  --app-default-ink: #1f5674;
+  --app-default-ink: #214f68;
   display: grid;
   place-items: center;
   width: 55px;

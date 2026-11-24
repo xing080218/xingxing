@@ -84,13 +84,6 @@
   font-size: calc(var(--global-font-size) - 4px);
 }
 
-.app-beautify {
-  color: #375b68;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.48), transparent 48%),
-    linear-gradient(135deg, var(--cream-deep), #cce9f5);
-}
-
 .home-top h1 {
   font-size: calc(var(--global-font-size) + 12px);
 }

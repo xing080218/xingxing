@@ -4,13 +4,6 @@
   overscroll-behavior: none;
 }
 
-.app-self-profile {
-  color: #405a73;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.48), transparent 48%),
-    linear-gradient(145deg, #fff0bd, #cfeaf7);
-}
-
 .self-profile-view {
   background:
     radial-gradient(circle at 100% 0, rgba(255, 225, 159, 0.28), transparent 40%),

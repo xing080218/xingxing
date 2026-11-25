@@ -512,6 +512,7 @@ function bindEvents() {
 }
 
 function showView(viewName, options = {}) {
+  const previousView = state.activeView;
   if (
     viewName !== "home" &&
     window.PocketLabHomeScreenApp &&
@@ -519,6 +520,7 @@ function showView(viewName, options = {}) {
   ) {
     window.PocketLabHomeScreenApp.exitEditMode();
   }
+  window.PocketLabAppTransition?.cancel();
   state.activeView = viewName;
   const views = {
     home: elements["home-view"],
@@ -583,6 +585,10 @@ function showView(viewName, options = {}) {
     updateChatConnectionUI();
     renderChat();
     window.setTimeout(() => elements["chat-input"].focus(), 180);
+  }
+
+  if (!options.initial && previousView === "home" && viewName !== "home") {
+    window.PocketLabAppTransition?.play(views[viewName]);
   }
 }
 

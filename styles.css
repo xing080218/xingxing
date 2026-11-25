@@ -772,17 +772,33 @@ svg {
 }
 
 .settings-section {
+  width: 100%;
   min-width: 0;
+  padding: 0;
   overflow: hidden;
   border: 1px solid rgba(89, 151, 177, 0.17);
   border-radius: 8px;
+  color: var(--ink);
   background: rgba(255, 255, 255, 0.36);
   box-shadow: 0 8px 24px rgba(54, 112, 138, 0.06);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  transition:
+    background 150ms ease,
+    box-shadow 150ms ease;
 }
 
-.settings-section[open] {
+.settings-section:hover,
+.settings-section:focus-visible {
   background: rgba(255, 255, 255, 0.5);
   box-shadow: 0 12px 30px rgba(54, 112, 138, 0.08);
+}
+
+.settings-section:focus-visible {
+  outline: 3px solid rgba(78, 154, 181, 0.28);
+  outline-offset: 2px;
 }
 
 .settings-section-summary {
@@ -799,25 +815,11 @@ svg {
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background 150ms ease;
 }
 
-.settings-section-summary::-webkit-details-marker {
-  display: none;
-}
-
-.settings-section-summary::marker {
-  content: "";
-}
-
-.settings-section-summary:hover {
+.settings-section:hover .settings-section-summary,
+.settings-section:focus-visible .settings-section-summary {
   background: rgba(255, 255, 255, 0.22);
-}
-
-.settings-section-summary:focus-visible {
-  border-radius: 7px;
-  outline: 3px solid rgba(78, 154, 181, 0.28);
-  outline-offset: -4px;
 }
 
 .settings-section-icon {
@@ -873,20 +875,24 @@ svg {
   stroke-width: 2;
 }
 
-.settings-section[open] .settings-section-summary {
-  min-height: 76px;
-  padding-top: 11px;
-  padding-bottom: 11px;
-}
-
-.settings-section[open] .settings-section-chevron {
-  transform: rotate(90deg);
+.settings-detail {
+  min-width: 0;
+  padding: 15px 14px 16px;
+  border: 1px solid rgba(89, 151, 177, 0.17);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: 0 8px 24px rgba(54, 112, 138, 0.06);
 }
 
 .settings-section-content {
   min-width: 0;
   padding: 0 14px 16px;
   border-top: 1px solid rgba(89, 151, 177, 0.13);
+}
+
+.settings-detail .settings-section-content {
+  padding: 0;
+  border-top: 0;
 }
 
 .settings-section-content .lock-password-panel,
@@ -3508,10 +3514,6 @@ svg {
     font-size: 18px;
   }
 
-  .settings-section[open] .settings-section-summary {
-    min-height: 76px;
-  }
-
   .settings-connection-intro .settings-api-status {
     font-size: 11px;
   }
@@ -3732,9 +3734,6 @@ svg {
     gap: 2px;
   }
 
-  .settings-section[open] .settings-section-summary {
-    min-height: 68px;
-  }
 }
 
 @media (max-width: 360px) {
@@ -3779,7 +3778,7 @@ svg {
     gap: 18px;
   }
 
-  .settings-section-content {
+  .settings-detail {
     padding-right: 11px;
     padding-left: 11px;
   }

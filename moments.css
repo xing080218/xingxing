@@ -74,6 +74,152 @@
   white-space: pre-wrap;
 }
 
+.moment-interactions {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(193, 220, 232, 0.72);
+}
+
+.moment-likes {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  color: #4f7487;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.moment-like-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: #38738d;
+  background: #def4fd;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.moment-comments {
+  display: grid;
+  gap: 5px;
+}
+
+.moment-comment {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #334f5d;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.moment-comment strong {
+  margin-right: 6px;
+  color: #2e6b87;
+  font-size: 11px;
+}
+
+.moment-reactions-pending {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #648698;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.moment-reactions-pending::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #72b7d3;
+  content: "";
+  animation: moment-reaction-pulse 1.1s ease-in-out infinite;
+}
+
+.moment-reaction-error {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0 8px 10px;
+  border-left: 2px solid #d89b9b;
+  color: #714b4b;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 244, 244, 0.7),
+    rgba(255, 244, 244, 0)
+  );
+}
+
+.moment-reaction-error-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.moment-reaction-error-heading strong {
+  color: #704747;
+  font-size: 11px;
+}
+
+.moment-reaction-error-heading span {
+  flex: 0 0 auto;
+  color: #9a6565;
+  font-size: 9px;
+}
+
+.moment-reaction-error p,
+.moment-reaction-error small {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.moment-reaction-error small {
+  color: #866464;
+}
+
+.moment-reaction-error button {
+  justify-self: start;
+  min-width: 62px;
+  min-height: 30px;
+  margin-top: 2px;
+  padding: 0 12px;
+  border: 1px solid rgba(175, 101, 101, 0.28);
+  border-radius: 8px;
+  color: #815050;
+  background: rgba(255, 250, 250, 0.86);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.moment-reaction-error button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+@keyframes moment-reaction-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .moments-state {
   display: grid;
   justify-items: center;
@@ -209,5 +355,13 @@
 
   .moment-card {
     padding: 13px;
+  }
+
+  .moment-interactions {
+    gap: 8px;
+  }
+
+  .moment-reaction-error-heading {
+    align-items: flex-start;
   }
 }

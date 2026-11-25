@@ -62,6 +62,102 @@ function runTests() {
     ["two", "one"],
   );
   assert.equal(normalized.version, model.VERSION);
+  assert.deepEqual(
+    normalized.moments.find((moment) => moment.id === "one").interactions,
+    [],
+    "Legacy Moments must receive an empty interaction list.",
+  );
+
+  let interactionData = model.addMoment(
+    { moments: [] },
+    model.createMoment("用来测试角色互动", {
+      id: "moment-interactions",
+      now: 100,
+    }),
+  );
+  const pendingInteraction = model.createInteraction(
+    {
+      characterId: "character-one",
+      characterName: "角色一",
+    },
+    { now: 110 },
+  );
+  interactionData = model.addInteractions(
+    interactionData,
+    "moment-interactions",
+    [
+      pendingInteraction,
+      {
+        ...pendingInteraction,
+        characterName: "重复角色",
+        updatedAt: 111,
+      },
+      {
+        characterId: "",
+        characterName: "无效角色",
+      },
+    ],
+    120,
+  );
+  assert.equal(
+    model.getMoment(interactionData, "moment-interactions").interactions
+      .length,
+    1,
+    "A Moment must keep only one interaction per character.",
+  );
+  assert.equal(
+    model.getMoment(interactionData, "moment-interactions").interactions[0]
+      .characterName,
+    "重复角色",
+    "The newest duplicate interaction should win.",
+  );
+
+  interactionData = model.updateInteraction(
+    interactionData,
+    "moment-interactions",
+    "character-one",
+    {
+      status: model.INTERACTION_STATUS.SENT,
+      liked: true,
+      comment: "  这条动态很有意思。  ",
+      error: null,
+    },
+    130,
+  );
+  const sentInteraction = model.getMoment(
+    interactionData,
+    "moment-interactions",
+  ).interactions[0];
+  assert.equal(sentInteraction.status, model.INTERACTION_STATUS.SENT);
+  assert.equal(sentInteraction.liked, true);
+  assert.equal(sentInteraction.comment, "这条动态很有意思。");
+  assert.equal(sentInteraction.updatedAt, 130);
+
+  const interrupted = model.recoverInterruptedInteractions(
+    model.updateInteraction(
+      interactionData,
+      "moment-interactions",
+      "character-one",
+      {
+        status: model.INTERACTION_STATUS.PENDING,
+        liked: false,
+        comment: "",
+      },
+      140,
+    ),
+    150,
+  );
+  assert.equal(interrupted.recovered, 1);
+  const interruptedInteraction = model.getMoment(
+    interrupted.data,
+    "moment-interactions",
+  ).interactions[0];
+  assert.equal(
+    interruptedInteraction.status,
+    model.INTERACTION_STATUS.FAILED,
+  );
+  assert.equal(interruptedInteraction.error.title, "角色互动被中断");
+  assert.equal(interruptedInteraction.updatedAt, 150);
 
   assert.throws(
     () => model.createMoment("   "),

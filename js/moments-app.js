@@ -5,25 +5,61 @@
     initialized: false,
     isPublishing: false,
     loadSequence: 0,
+    normalizeError: null,
     posts: [],
+    reactionService: null,
+    retryingInteractions: new Set(),
   };
   const elements = {};
 
-  function init() {
-    if (state.initialized) return Promise.resolve();
+  function init(options = {}) {
+    if (state.initialized) return refresh();
     cacheElements();
     if (
       !elements.feed ||
       !elements.modal ||
       !elements.form ||
-      !root.PocketLabMomentsStore
+      !root.PocketLabMomentsStore ||
+      !root.PocketLabMomentsReactionService
     ) {
       throw new Error("朋友圈页面没有完成加载。");
     }
 
+    state.normalizeError =
+      typeof options.normalizeError === "function"
+        ? options.normalizeError
+        : null;
     bindEvents();
+    state.reactionService = root.PocketLabMomentsReactionService.create({
+      model: root.PocketLabMomentsModel,
+      store: root.PocketLabMomentsStore,
+      client: root.PocketLabMomentsReactionClient,
+      storage: root.PocketLabStorage,
+      normalizeError: state.normalizeError,
+      onChange: (data) => {
+        if (!state.initialized) return;
+        state.posts = data.moments;
+        renderPosts();
+      },
+    });
     state.initialized = true;
-    return refresh();
+    return recoverInterruptedInteractions().then(refresh);
+  }
+
+  async function recoverInterruptedInteractions() {
+    try {
+      await state.reactionService.recoverInterrupted();
+    } catch (error) {
+      root.dispatchEvent(
+        new CustomEvent("pocketlab:toast", {
+          detail: {
+            message:
+              error?.message ||
+              "朋友圈互动状态未能恢复，将重新读取现有内容。",
+          },
+        }),
+      );
+    }
   }
 
   function cacheElements() {
@@ -68,11 +104,25 @@
       if (event.target === elements.modal) closeComposer();
     });
     elements.feed.addEventListener("click", (event) => {
-      const target =
+      const retryFeed =
         event.target instanceof Element
           ? event.target.closest("[data-retry-moments]")
           : null;
-      if (target) refresh();
+      if (retryFeed) {
+        refresh();
+        return;
+      }
+
+      const retryInteraction =
+        event.target instanceof Element
+          ? event.target.closest("[data-retry-moment-interaction]")
+          : null;
+      if (retryInteraction) {
+        retryMomentInteraction(
+          retryInteraction.dataset.momentId || "",
+          retryInteraction.dataset.characterId || "",
+        );
+      }
     });
     root.document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && isComposerOpen()) {
@@ -170,7 +220,186 @@
     content.className = "moment-content";
     content.textContent = post.content;
     article.append(authorRow, content);
+
+    const interactions = createInteractionsPanel(post);
+    if (interactions) article.append(interactions);
     return article;
+  }
+
+  function createInteractionsPanel(post) {
+    const interactions = Array.isArray(post.interactions)
+      ? post.interactions
+      : [];
+    if (!interactions.length) return null;
+
+    const status = root.PocketLabMomentsModel.INTERACTION_STATUS;
+    const sent = interactions.filter(
+      (interaction) => interaction.status === status.SENT,
+    );
+    const pending = interactions.filter(
+      (interaction) => interaction.status === status.PENDING,
+    );
+    const failed = interactions.filter(
+      (interaction) => interaction.status === status.FAILED,
+    );
+    const panel = root.document.createElement("section");
+    panel.className = "moment-interactions";
+    panel.setAttribute("aria-label", "角色互动");
+
+    const liked = sent.filter((interaction) => interaction.liked);
+    if (liked.length) {
+      const likes = root.document.createElement("p");
+      likes.className = "moment-likes";
+      const mark = root.document.createElement("span");
+      mark.className = "moment-like-mark";
+      mark.textContent = "赞";
+      const names = root.document.createElement("span");
+      names.textContent = liked
+        .map((interaction) => interaction.characterName || "角色")
+        .join("、");
+      likes.append(mark, names);
+      panel.append(likes);
+    }
+
+    const comments = sent.filter((interaction) => interaction.comment);
+    if (comments.length) {
+      const list = root.document.createElement("div");
+      list.className = "moment-comments";
+      comments.forEach((interaction) => {
+        const comment = root.document.createElement("p");
+        comment.className = "moment-comment";
+        const name = root.document.createElement("strong");
+        name.textContent = interaction.characterName || "角色";
+        const copy = root.document.createElement("span");
+        copy.textContent = interaction.comment;
+        comment.append(name, copy);
+        list.append(comment);
+      });
+      panel.append(list);
+    }
+
+    if (pending.length) {
+      const loading = root.document.createElement("p");
+      loading.className = "moment-reactions-pending";
+      loading.setAttribute("role", "status");
+      loading.textContent = `${pending
+        .map((interaction) => interaction.characterName || "角色")
+        .join("、")}正在看这条动态…`;
+      panel.append(loading);
+    }
+
+    failed.forEach((interaction) => {
+      const failure = interaction.error || {};
+      const errorBox = root.document.createElement("div");
+      errorBox.className = "moment-reaction-error";
+      errorBox.setAttribute("role", "alert");
+
+      const heading = root.document.createElement("div");
+      heading.className = "moment-reaction-error-heading";
+      const title = root.document.createElement("strong");
+      title.textContent = `${interaction.characterName || "角色"}没有完成互动`;
+      heading.append(title);
+      if (Number(failure.status) > 0) {
+        const httpStatus = root.document.createElement("span");
+        httpStatus.textContent = `HTTP ${Number(failure.status)}`;
+        heading.append(httpStatus);
+      }
+
+      const reason = root.document.createElement("p");
+      reason.textContent = [
+        failure.title,
+        failure.message,
+      ]
+        .filter(Boolean)
+        .join("：") || "模型服务没有返回可显示的原因。";
+      const next = root.document.createElement("small");
+      next.textContent =
+        failure.nextStep ||
+        "检查 API 设置和网络后，点击“重试”。";
+      const retry = root.document.createElement("button");
+      retry.type = "button";
+      retry.dataset.retryMomentInteraction = "";
+      retry.dataset.momentId = post.id;
+      retry.dataset.characterId = interaction.characterId;
+      retry.textContent = state.retryingInteractions.has(
+        createInteractionKey(post.id, interaction.characterId),
+      )
+        ? "正在重试…"
+        : "重试";
+      retry.disabled = state.retryingInteractions.has(
+        createInteractionKey(post.id, interaction.characterId),
+      );
+      errorBox.append(heading, reason, next, retry);
+      panel.append(errorBox);
+    });
+
+    return panel;
+  }
+
+  function createInteractionKey(momentId, characterId) {
+    return `${momentId}\u0000${characterId}`;
+  }
+
+  async function retryMomentInteraction(momentId, characterId) {
+    const service = state.reactionService;
+    const key = createInteractionKey(momentId, characterId);
+    if (!service || !momentId || !characterId || state.retryingInteractions.has(key)) {
+      return;
+    }
+
+    state.retryingInteractions.add(key);
+    renderPosts();
+    try {
+      await service.retryInteraction(momentId, characterId);
+    } catch (error) {
+      const description = describeReactionError(error);
+      root.dispatchEvent(
+        new CustomEvent("pocketlab:toast", {
+          detail: {
+            message: `${description.title}：${description.message}`,
+          },
+        }),
+      );
+    } finally {
+      state.retryingInteractions.delete(key);
+      renderPosts();
+    }
+  }
+
+  async function startCharacterInteractions(momentId) {
+    if (!state.reactionService || !momentId) return;
+    try {
+      await state.reactionService.reactToMoment(momentId);
+    } catch (error) {
+      const description = describeReactionError(error);
+      root.dispatchEvent(
+        new CustomEvent("pocketlab:toast", {
+          detail: {
+            message: `${description.title}：${description.message}`,
+          },
+        }),
+      );
+    }
+  }
+
+  function describeReactionError(error) {
+    if (state.normalizeError) {
+      const normalized = state.normalizeError(error || {});
+      if (normalized && typeof normalized === "object") {
+        return {
+          title: normalized.title || "角色互动失败",
+          message:
+            normalized.message ||
+            "朋友圈已保存，但角色互动没有完成。",
+        };
+      }
+    }
+    return {
+      title: "角色互动失败",
+      message:
+        error?.message ||
+        "朋友圈已保存，但角色互动没有完成。",
+    };
   }
 
   function formatTime(timestamp) {
@@ -266,6 +495,7 @@
           detail: { message: "朋友圈已发布。" },
         }),
       );
+      void startCharacterInteractions(result.moment.id);
     } catch (error) {
       const description = describeStorageError(error, "发布朋友圈");
       showComposerError(
@@ -333,5 +563,9 @@
   root.PocketLabMomentsApp = Object.freeze({
     init,
     refresh,
+    waitForIdle: () =>
+      state.reactionService
+        ? state.reactionService.waitForIdle()
+        : Promise.resolve(),
   });
 })(window);

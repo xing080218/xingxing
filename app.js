@@ -162,7 +162,9 @@ async function initializeApp() {
     await window.PocketLabWorldBookApp.init();
     await window.PocketLabGroupChatEditor.init();
     await window.PocketLabConversationTabs.init();
-    await window.PocketLabMomentsApp.init();
+    await window.PocketLabMomentsApp.init({
+      normalizeError: normalizeConnectionError,
+    });
     await window.PocketLabBeautify.init({
       onError: reportStorageError,
       onSaved: updateStorageUsage,
@@ -1618,11 +1620,17 @@ async function waitForPendingLocalSaves() {
     typeof window.PocketLabMomentsStore.waitForIdle === "function"
       ? window.PocketLabMomentsStore.waitForIdle()
       : Promise.resolve();
+  const momentsReactionWait =
+    window.PocketLabMomentsApp &&
+    typeof window.PocketLabMomentsApp.waitForIdle === "function"
+      ? window.PocketLabMomentsApp.waitForIdle()
+      : Promise.resolve();
   await Promise.all([
     messageSaveChain,
     characterSaveChain,
     appearanceSave,
     momentsSave,
+    momentsReactionWait,
   ]);
 }
 

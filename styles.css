@@ -777,7 +777,7 @@ svg {
   padding: 0;
   overflow: hidden;
   border: 1px solid rgba(89, 151, 177, 0.17);
-  border-radius: 8px;
+  border-radius: 14px;
   color: var(--ink);
   background: rgba(255, 255, 255, 0.36);
   box-shadow: 0 8px 24px rgba(54, 112, 138, 0.06);

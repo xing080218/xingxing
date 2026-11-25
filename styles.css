@@ -761,13 +761,13 @@ svg {
 }
 
 .settings-scroll {
-  padding: 16px 18px 28px;
+  padding: 16px 22px 28px;
 }
 
 .settings-menu {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 24px;
   min-width: 0;
 }
 
@@ -787,13 +787,15 @@ svg {
 
 .settings-section-summary {
   display: grid;
-  place-items: center;
-  min-height: 104px;
-  padding: 20px 16px;
+  grid-template-columns: 40px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 15px;
+  min-height: 78px;
+  padding: 12px 17px;
   color: var(--ink);
   background: transparent;
   list-style: none;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -818,17 +820,67 @@ svg {
   outline-offset: -4px;
 }
 
+.settings-section-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(89, 151, 177, 0.13);
+  border-radius: 50%;
+  color: #557184;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 12px rgba(54, 112, 138, 0.06);
+}
+
+.settings-section-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-section-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
 .settings-section-title {
   max-width: 100%;
   font-size: 18px;
   font-weight: 800;
-  line-height: 1.4;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
+.settings-section-subtitle {
+  color: rgba(35, 70, 92, 0.58);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.settings-section-chevron {
+  display: grid;
+  place-items: center;
+  color: rgba(35, 70, 92, 0.38);
+  transition: transform 180ms ease;
+}
+
+.settings-section-chevron svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
 .settings-section[open] .settings-section-summary {
-  min-height: 72px;
-  padding: 14px 16px 12px;
+  min-height: 76px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+
+.settings-section[open] .settings-section-chevron {
+  transform: rotate(90deg);
 }
 
 .settings-section-content {
@@ -3425,7 +3477,12 @@ svg {
     padding-bottom: calc(17px + env(safe-area-inset-bottom, 0px));
   }
 
-  .settings-scroll,
+  .settings-scroll {
+    padding-right: calc(22px + env(safe-area-inset-right, 0px));
+    padding-left: calc(22px + env(safe-area-inset-left, 0px));
+    padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  }
+
   .guide-scroll,
   .character-list-scroll {
     padding-right: calc(19px + env(safe-area-inset-right, 0px));
@@ -3444,15 +3501,15 @@ svg {
   }
 
   .settings-section-summary {
-    min-height: 96px;
+    min-height: 78px;
   }
 
   .settings-section-title {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .settings-section[open] .settings-section-summary {
-    min-height: 68px;
+    min-height: 76px;
   }
 
   .settings-connection-intro .settings-api-status {
@@ -3644,6 +3701,42 @@ svg {
   }
 }
 
+@media (max-height: 500px) and (min-width: 601px) {
+  .settings-scroll {
+    padding-top: 10px;
+    padding-bottom: 16px;
+  }
+
+  .settings-menu {
+    gap: 10px;
+  }
+
+  .settings-section-summary {
+    grid-template-columns: 36px minmax(0, 1fr) 18px;
+    gap: 12px;
+    min-height: 72px;
+    padding: 10px 15px;
+  }
+
+  .settings-section-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .settings-section-icon svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .settings-section-copy {
+    gap: 2px;
+  }
+
+  .settings-section[open] .settings-section-summary {
+    min-height: 68px;
+  }
+}
+
 @media (max-width: 360px) {
   .home-view {
     padding-right: 14px;
@@ -3663,13 +3756,27 @@ svg {
   }
 
   .settings-section-summary {
-    min-height: 86px;
-    padding-right: 12px;
-    padding-left: 12px;
+    grid-template-columns: 36px minmax(0, 1fr) 18px;
+    gap: 11px;
+    min-height: 76px;
+    padding: 11px 13px;
+  }
+
+  .settings-section-icon {
+    width: 36px;
+    height: 36px;
   }
 
   .settings-section-title {
-    font-size: 18px;
+    font-size: 17px;
+  }
+
+  .settings-section-subtitle {
+    font-size: 12px;
+  }
+
+  .settings-menu {
+    gap: 18px;
   }
 
   .settings-section-content {

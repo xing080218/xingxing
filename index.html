@@ -17,21 +17,21 @@
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/assets/icons/favicon-32.png?v=20261125-03"
+      href="/assets/icons/favicon-32.png?v=20261125-06"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="64x64"
-      href="/assets/icons/favicon-64.png?v=20261125-03"
+      href="/assets/icons/favicon-64.png?v=20261125-06"
     />
     <link
       rel="apple-touch-icon"
       type="image/png"
       sizes="180x180"
-      href="/assets/icons/apple-touch-icon.png?v=20261125-03"
+      href="/assets/icons/apple-touch-icon.png?v=20261125-06"
     />
-    <link rel="manifest" href="/site.webmanifest?v=20261125-03" />
+    <link rel="manifest" href="/site.webmanifest?v=20261125-06" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -216,14 +216,14 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=20261125-03" />
-    <link rel="stylesheet" href="/world-book.css?v=20261125-03" />
-    <link rel="stylesheet" href="/beautify.css?v=20261125-03" />
-    <link rel="stylesheet" href="/self-profile.css?v=20261125-03" />
-    <link rel="stylesheet" href="/home-screen.css?v=20261125-03" />
-    <link rel="stylesheet" href="/group-chat.css?v=20261125-03" />
-    <link rel="stylesheet" href="/sms.css?v=20261125-03" />
-    <link rel="stylesheet" href="/sms-composer.css?v=20261125-03" />
+    <link rel="stylesheet" href="/styles.css?v=20261125-06" />
+    <link rel="stylesheet" href="/world-book.css?v=20261125-06" />
+    <link rel="stylesheet" href="/beautify.css?v=20261125-06" />
+    <link rel="stylesheet" href="/self-profile.css?v=20261125-06" />
+    <link rel="stylesheet" href="/home-screen.css?v=20261125-06" />
+    <link rel="stylesheet" href="/group-chat.css?v=20261125-06" />
+    <link rel="stylesheet" href="/sms.css?v=20261125-06" />
+    <link rel="stylesheet" href="/sms-composer.css?v=20261125-06" />
   </head>
   <body>
     <aside
@@ -244,7 +244,7 @@
         </p>
         <div class="service-warning-actions">
           <button id="service-warning-retry" type="button">重新检查</button>
-          <a href="/mobile-check.html?v=20261125-03">连接检查页</a>
+          <a href="/mobile-check.html?v=20261125-06">连接检查页</a>
         </div>
       </div>
       <button
@@ -260,7 +260,7 @@
     <div class="bootstrap-status" id="bootstrap-status" role="status" aria-live="polite">
       <strong id="bootstrap-title">正在打开濴星语</strong>
       <span id="bootstrap-message">页面已开始加载，正在检查本地服务。</span>
-      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261125-03</span>
+      <span class="bootstrap-build" id="bootstrap-build">启动版本 20261125-06</span>
       <ol class="bootstrap-steps" aria-label="启动检查">
         <li class="bootstrap-step" data-bootstrap-step="page" data-state="ok">
           <span class="bootstrap-step-marker" aria-hidden="true">1</span>
@@ -278,8 +278,8 @@
       <div class="bootstrap-actions">
         <button id="bootstrap-retry" type="button">重新加载</button>
         <button id="bootstrap-details-toggle" type="button" aria-expanded="false">显示诊断信息</button>
-        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261125-03">连接检查页</a>
-        <a href="/connect.html?v=20261125-03">电脑连接入口</a>
+        <a id="bootstrap-check-link" href="/mobile-check.html?v=20261125-06">连接检查页</a>
+        <a href="/connect.html?v=20261125-06">电脑连接入口</a>
       </div>
       <pre class="bootstrap-details is-hidden" id="bootstrap-details" aria-label="启动诊断信息"></pre>
     </div>
@@ -490,236 +490,304 @@
               </section>
 
               <section class="view settings-view" id="settings-view" aria-label="设置" aria-hidden="true">
-                <header class="app-header">
+                <header class="app-header settings-header">
                   <button class="back-button" id="settings-back" type="button" aria-label="返回主屏幕">
                     <span data-icon="chevron-left"></span>
                   </button>
-                  <div>
-                    <p class="eyebrow">SETTINGS</p>
-                    <h1>设置</h1>
-                  </div>
-                  <span class="header-status" id="header-status">
-                    <span class="status-dot"></span>
-                    未连接
-                  </span>
+                  <h1 id="settings-title">设置</h1>
                 </header>
 
                 <div class="settings-scroll">
-                  <section class="lock-password-panel" aria-labelledby="lock-password-title">
-                    <div class="lock-password-heading">
-                      <span class="lock-password-icon" aria-hidden="true">
-                        <span data-icon="lock-keyhole"></span>
-                      </span>
-                      <div class="lock-password-heading-copy">
-                        <p class="eyebrow">LOCK SCREEN</p>
-                        <h2 id="lock-password-title">锁屏密码</h2>
-                      </div>
-                      <label class="settings-switch" aria-label="开启锁屏密码">
-                        <input id="lock-password-enabled" type="checkbox" role="switch" />
-                        <span class="settings-switch-track" aria-hidden="true">
-                          <span></span>
+                  <div class="settings-menu" id="settings-menu" aria-label="设置分类">
+                    <button
+                      class="settings-section"
+                      id="settings-lock-section"
+                      type="button"
+                      aria-controls="settings-lock-page"
+                    >
+                      <span class="settings-section-summary">
+                        <span class="settings-section-icon" aria-hidden="true">
+                          <span data-icon="lock-keyhole"></span>
                         </span>
-                      </label>
-                    </div>
-                    <p class="lock-password-description" id="lock-password-description">
-                      开启后，向上滑动需要输入四位密码才能进入主屏幕。
-                    </p>
-                    <div class="lock-password-actions">
-                      <span id="lock-password-summary">当前使用初始密码 1234。</span>
-                      <button
-                        class="secondary-button lock-password-change-toggle"
-                        id="open-password-change"
-                        type="button"
-                        aria-expanded="false"
-                        aria-controls="password-change-form"
-                      >
-                        更改密码
-                      </button>
-                    </div>
-                    <form class="lock-password-form is-hidden" id="password-change-form" novalidate>
-                      <label class="field">
-                        <span class="field-label">当前密码</span>
-                        <input
-                          id="current-lock-password"
-                          type="password"
-                          inputmode="numeric"
-                          pattern="[0-9]{4}"
-                          maxlength="4"
-                          autocomplete="current-password"
-                          placeholder="输入当前四位密码"
-                        />
-                      </label>
-                      <label class="field">
-                        <span class="field-label">新密码</span>
-                        <input
-                          id="new-lock-password"
-                          type="password"
-                          inputmode="numeric"
-                          pattern="[0-9]{4}"
-                          maxlength="4"
-                          autocomplete="new-password"
-                          placeholder="输入新的四位数字"
-                        />
-                      </label>
-                      <label class="field">
-                        <span class="field-label">确认新密码</span>
-                        <input
-                          id="confirm-lock-password"
-                          type="password"
-                          inputmode="numeric"
-                          pattern="[0-9]{4}"
-                          maxlength="4"
-                          autocomplete="new-password"
-                          placeholder="再次输入新密码"
-                        />
-                      </label>
-                      <p class="lock-password-form-error" id="lock-password-form-error" role="alert"></p>
-                      <div class="lock-password-form-actions">
-                        <button class="secondary-button" id="cancel-password-change" type="button">取消</button>
-                        <button class="primary-button" id="save-lock-password" type="submit">
-                          <span class="button-label">保存新密码</span>
-                          <span class="button-spinner" aria-hidden="true"></span>
-                        </button>
-                      </div>
-                    </form>
-                    <p class="lock-password-status" id="lock-password-status" role="status" aria-live="polite"></p>
-                  </section>
-
-                  <section class="connection-intro">
-                    <div class="intro-icon">
-                      <span data-icon="server-cog"></span>
-                    </div>
-                    <div>
-                      <h2>连接你的模型服务</h2>
-                      <p>支持 OpenAI 兼容接口。可填写 Base URL，也可以填写完整的 chat/completions 地址。</p>
-                    </div>
-                  </section>
-
-                  <form class="settings-form" id="api-form" novalidate>
-                    <label class="field">
-                      <span class="field-label">
-                        <span data-icon="link-2"></span>
-                        接口地址
+                        <span class="settings-section-copy">
+                          <span class="settings-section-title">锁屏设置</span>
+                          <span class="settings-section-subtitle">密码与解锁方式</span>
+                        </span>
+                        <span class="settings-section-chevron" aria-hidden="true">
+                          <span data-icon="chevron-right"></span>
+                        </span>
                       </span>
-                      <input
-                        id="api-url"
-                        name="apiUrl"
-                        type="url"
-                        inputmode="url"
-                        autocomplete="url"
-                        placeholder="https://api.example.com/v1"
-                        spellcheck="false"
-                        required
-                      />
-                      <span class="field-help">例如：https://api.openai.com/v1</span>
-                      <span class="field-error" id="api-url-error"></span>
-                    </label>
-
-                    <label class="field">
-                      <span class="field-label">
-                        <span data-icon="key-round"></span>
-                        API Key
-                      </span>
-                      <span class="input-with-action">
-                        <input
-                          id="api-key"
-                          name="apiKey"
-                          type="password"
-                          autocomplete="off"
-                          placeholder="在此填写你的 API Key"
-                          spellcheck="false"
-                          required
-                        />
-                        <button class="field-action" id="toggle-key" type="button" aria-label="显示 API Key">
-                          <span data-icon="eye"></span>
-                        </button>
-                      </span>
-                      <span class="field-help">不会写入代码、日志或上传文件。</span>
-                      <span class="field-error" id="api-key-error"></span>
-                    </label>
-
-                    <label class="field">
-                      <span class="field-label">
-                        <span data-icon="box"></span>
-                        模型名
-                      </span>
-                      <input
-                        id="model-name"
-                        name="modelName"
-                        type="text"
-                        autocomplete="off"
-                        placeholder="例如：gpt-4.1-mini"
-                        spellcheck="false"
-                        required
-                      />
-                      <span class="field-help">请填写服务商文档中的模型 ID，不要填写展示名称。</span>
-                      <span class="field-error" id="model-name-error"></span>
-                    </label>
-
-                    <button class="primary-button" id="test-connection" type="submit">
-                      <span class="button-label">
-                        <span data-icon="plug-zap"></span>
-                        连接测试
-                      </span>
-                      <span class="button-spinner" aria-hidden="true"></span>
                     </button>
-                  </form>
+                    <div class="settings-detail is-hidden" id="settings-lock-page" aria-hidden="true">
+                      <div class="settings-section-content">
+                        <section class="lock-password-panel" aria-labelledby="lock-password-title">
+                          <div class="lock-password-heading">
+                            <span class="lock-password-icon" aria-hidden="true">
+                              <span data-icon="lock-keyhole"></span>
+                            </span>
+                            <div class="lock-password-heading-copy">
+                              <p class="eyebrow">LOCK SCREEN</p>
+                              <h2 id="lock-password-title">锁屏密码</h2>
+                            </div>
+                            <label class="settings-switch" aria-label="开启锁屏密码">
+                              <input id="lock-password-enabled" type="checkbox" role="switch" />
+                              <span class="settings-switch-track" aria-hidden="true">
+                                <span></span>
+                              </span>
+                            </label>
+                          </div>
+                          <p class="lock-password-description" id="lock-password-description">
+                            开启后，向上滑动需要输入四位密码才能进入主屏幕。
+                          </p>
+                          <div class="lock-password-actions">
+                            <span id="lock-password-summary">当前使用初始密码 1234。</span>
+                            <button
+                              class="secondary-button lock-password-change-toggle"
+                              id="open-password-change"
+                              type="button"
+                              aria-expanded="false"
+                              aria-controls="password-change-form"
+                            >
+                              更改密码
+                            </button>
+                          </div>
+                          <form class="lock-password-form is-hidden" id="password-change-form" novalidate>
+                            <label class="field">
+                              <span class="field-label">当前密码</span>
+                              <input
+                                id="current-lock-password"
+                                type="password"
+                                inputmode="numeric"
+                                pattern="[0-9]{4}"
+                                maxlength="4"
+                                autocomplete="current-password"
+                                placeholder="输入当前四位密码"
+                              />
+                            </label>
+                            <label class="field">
+                              <span class="field-label">新密码</span>
+                              <input
+                                id="new-lock-password"
+                                type="password"
+                                inputmode="numeric"
+                                pattern="[0-9]{4}"
+                                maxlength="4"
+                                autocomplete="new-password"
+                                placeholder="输入新的四位数字"
+                              />
+                            </label>
+                            <label class="field">
+                              <span class="field-label">确认新密码</span>
+                              <input
+                                id="confirm-lock-password"
+                                type="password"
+                                inputmode="numeric"
+                                pattern="[0-9]{4}"
+                                maxlength="4"
+                                autocomplete="new-password"
+                                placeholder="再次输入新密码"
+                              />
+                            </label>
+                            <p class="lock-password-form-error" id="lock-password-form-error" role="alert"></p>
+                            <div class="lock-password-form-actions">
+                              <button class="secondary-button" id="cancel-password-change" type="button">取消</button>
+                              <button class="primary-button" id="save-lock-password" type="submit">
+                                <span class="button-label">保存新密码</span>
+                                <span class="button-spinner" aria-hidden="true"></span>
+                              </button>
+                            </div>
+                          </form>
+                          <p class="lock-password-status" id="lock-password-status" role="status" aria-live="polite"></p>
+                        </section>
+                      </div>
+                    </div>
 
-                  <section class="test-result is-hidden" id="test-result" aria-live="polite">
-                    <div class="result-heading">
-                      <span class="result-icon" id="result-icon">
-                        <span data-icon="circle-check"></span>
+                    <button
+                      class="settings-section"
+                      id="settings-api-section"
+                      type="button"
+                      aria-controls="settings-api-page"
+                    >
+                      <span class="settings-section-summary">
+                        <span class="settings-section-icon" aria-hidden="true">
+                          <span data-icon="server-cog"></span>
+                        </span>
+                        <span class="settings-section-copy">
+                          <span class="settings-section-title">API 模型配置</span>
+                          <span class="settings-section-subtitle">配置 AI 服务商</span>
+                        </span>
+                        <span class="settings-section-chevron" aria-hidden="true">
+                          <span data-icon="chevron-right"></span>
+                        </span>
                       </span>
-                      <div>
-                        <p class="result-kicker" id="result-kicker">连接结果</p>
-                        <h2 id="result-title">等待测试</h2>
-                      </div>
-                    </div>
-                    <p class="result-message" id="result-message"></p>
-                    <dl class="result-meta" id="result-meta"></dl>
-                    <div class="next-step is-hidden" id="next-step">
-                      <span data-icon="lightbulb"></span>
-                      <p id="next-step-text"></p>
-                    </div>
-                  </section>
+                    </button>
+                    <div class="settings-detail is-hidden" id="settings-api-page" aria-hidden="true">
+                      <div class="settings-section-content">
+                        <section class="connection-intro settings-connection-intro">
+                          <div class="intro-icon">
+                            <span data-icon="server-cog"></span>
+                          </div>
+                          <div>
+                            <h2>连接你的模型服务</h2>
+                            <p>支持 OpenAI 兼容接口。可填写 Base URL，也可以填写完整的 chat/completions 地址。</p>
+                            <span class="header-status settings-api-status" id="header-status">
+                              <span class="status-dot"></span>
+                              未连接
+                            </span>
+                          </div>
+                        </section>
 
-                  <section class="local-data-panel" aria-labelledby="local-data-title">
-                    <div class="local-data-heading">
-                      <div class="local-data-icon" aria-hidden="true">
-                        <span data-icon="box"></span>
-                      </div>
-                      <div>
-                        <p class="eyebrow">LOCAL DATA</p>
-                        <h2 id="local-data-title">本机数据</h2>
-                      </div>
-                      <span class="local-data-usage" id="storage-usage">正在检查</span>
-                    </div>
-                    <p class="local-data-description">
-                      聊天、角色、记忆和 App 存档保存在 IndexedDB；头像等图片以 Blob 保存。API Key 不包含在备份中。
-                    </p>
-                    <div class="local-data-actions">
-                      <button class="secondary-button local-data-button" id="export-backup" type="button">
-                        <span data-icon="box"></span>
-                        导出备份
-                      </button>
-                      <button class="secondary-button local-data-button" id="import-backup" type="button">
-                        <span data-icon="arrow-up-right"></span>
-                        导入备份
-                      </button>
-                      <input id="backup-file" type="file" accept="application/json,.json" hidden />
-                    </div>
-                    <div class="local-data-status" id="local-data-status" role="status" aria-live="polite">
-                      <strong id="local-data-status-title">本机数据已准备</strong>
-                      <p id="local-data-status-message">页面运行时会自动检查旧数据并迁移。</p>
-                      <small id="local-data-status-next"></small>
-                    </div>
-                  </section>
+                        <form class="settings-form" id="api-form" novalidate>
+                          <label class="field">
+                            <span class="field-label">
+                              <span data-icon="link-2"></span>
+                              接口地址
+                            </span>
+                            <input
+                              id="api-url"
+                              name="apiUrl"
+                              type="url"
+                              inputmode="url"
+                              autocomplete="url"
+                              placeholder="https://api.example.com/v1"
+                              spellcheck="false"
+                              required
+                            />
+                            <span class="field-help">例如：https://api.openai.com/v1</span>
+                            <span class="field-error" id="api-url-error"></span>
+                          </label>
 
-                  <div class="privacy-note">
-                    <span data-icon="shield-check"></span>
-                    <div>
-                      <strong>本地安全说明</strong>
-                      <p>接口地址和模型名保存在本机浏览器；API Key 只保留在当前标签页，关闭标签页后清除。本机服务只对当前局域网开放。</p>
+                          <label class="field">
+                            <span class="field-label">
+                              <span data-icon="key-round"></span>
+                              API Key
+                            </span>
+                            <span class="input-with-action">
+                              <input
+                                id="api-key"
+                                name="apiKey"
+                                type="password"
+                                autocomplete="off"
+                                placeholder="your-api-key"
+                                spellcheck="false"
+                                required
+                              />
+                              <button class="field-action" id="toggle-key" type="button" aria-label="显示 API Key">
+                                <span data-icon="eye"></span>
+                              </button>
+                            </span>
+                            <span class="field-help">不会写入代码、日志或上传文件。</span>
+                            <span class="field-error" id="api-key-error"></span>
+                          </label>
+
+                          <label class="field">
+                            <span class="field-label">
+                              <span data-icon="box"></span>
+                              模型名
+                            </span>
+                            <input
+                              id="model-name"
+                              name="modelName"
+                              type="text"
+                              autocomplete="off"
+                              placeholder="例如：gpt-4.1-mini"
+                              spellcheck="false"
+                              required
+                            />
+                            <span class="field-help">请填写服务商文档中的模型 ID，不要填写展示名称。</span>
+                            <span class="field-error" id="model-name-error"></span>
+                          </label>
+
+                          <button class="primary-button" id="test-connection" type="submit">
+                            <span class="button-label">
+                              <span data-icon="plug-zap"></span>
+                              连接测试
+                            </span>
+                            <span class="button-spinner" aria-hidden="true"></span>
+                          </button>
+                        </form>
+
+                        <section class="test-result is-hidden" id="test-result" aria-live="polite">
+                          <div class="result-heading">
+                            <span class="result-icon" id="result-icon">
+                              <span data-icon="circle-check"></span>
+                            </span>
+                            <div>
+                              <p class="result-kicker" id="result-kicker">连接结果</p>
+                              <h2 id="result-title">等待测试</h2>
+                            </div>
+                          </div>
+                          <p class="result-message" id="result-message"></p>
+                          <dl class="result-meta" id="result-meta"></dl>
+                          <div class="next-step is-hidden" id="next-step">
+                            <span data-icon="lightbulb"></span>
+                            <p id="next-step-text"></p>
+                          </div>
+                        </section>
+
+                        <div class="privacy-note">
+                          <span data-icon="shield-check"></span>
+                          <div>
+                            <strong>本地安全说明</strong>
+                            <p>接口地址和模型名保存在本机浏览器；API Key 只保留在当前标签页，关闭标签页后清除。本机服务只对当前局域网开放。</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      class="settings-section"
+                      id="settings-backup-section"
+                      type="button"
+                      aria-controls="settings-backup-page"
+                    >
+                      <span class="settings-section-summary">
+                        <span class="settings-section-icon" aria-hidden="true">
+                          <span data-icon="box"></span>
+                        </span>
+                        <span class="settings-section-copy">
+                          <span class="settings-section-title">导入，导出备份</span>
+                          <span class="settings-section-subtitle">本机数据导入与导出</span>
+                        </span>
+                        <span class="settings-section-chevron" aria-hidden="true">
+                          <span data-icon="chevron-right"></span>
+                        </span>
+                      </span>
+                    </button>
+                    <div class="settings-detail is-hidden" id="settings-backup-page" aria-hidden="true">
+                      <div class="settings-section-content">
+                        <section class="local-data-panel" aria-labelledby="local-data-title">
+                          <div class="local-data-heading">
+                            <div class="local-data-icon" aria-hidden="true">
+                              <span data-icon="box"></span>
+                            </div>
+                            <div>
+                              <p class="eyebrow">LOCAL DATA</p>
+                              <h2 id="local-data-title">本机数据</h2>
+                            </div>
+                            <span class="local-data-usage" id="storage-usage">正在检查</span>
+                          </div>
+                          <p class="local-data-description">
+                            聊天、角色、记忆和 App 存档保存在 IndexedDB；头像等图片以 Blob 保存。API Key 不包含在备份中。
+                          </p>
+                          <div class="local-data-actions">
+                            <button class="secondary-button local-data-button" id="export-backup" type="button">
+                              <span data-icon="box"></span>
+                              导出备份
+                            </button>
+                            <button class="secondary-button local-data-button" id="import-backup" type="button">
+                              <span data-icon="arrow-up-right"></span>
+                              导入备份
+                            </button>
+                            <input id="backup-file" type="file" accept="application/json,.json" hidden />
+                          </div>
+                          <div class="local-data-status" id="local-data-status" role="status" aria-live="polite">
+                            <strong id="local-data-status-title">本机数据已准备</strong>
+                            <p id="local-data-status-message">页面运行时会自动检查旧数据并迁移。</p>
+                            <small id="local-data-status-next"></small>
+                          </div>
+                        </section>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1752,35 +1820,35 @@
       </section>
     </main>
 
-    <script src="/js/character-profile.js?v=20261125-03" defer></script>
-    <script src="/js/settings-store.js?v=20261125-03" defer></script>
-    <script src="/js/media.js?v=20261125-03" defer></script>
-    <script src="/js/world-book-model.js?v=20261125-03" defer></script>
-    <script src="/js/group-chat-model.js?v=20261125-03" defer></script>
-    <script src="/js/self-profile-model.js?v=20261125-03" defer></script>
-    <script src="/js/storage.js?v=20261125-03" defer></script>
-    <script src="/js/home-screen-model.js?v=20261125-03" defer></script>
-    <script src="/js/home-screen-store.js?v=20261125-03" defer></script>
-    <script src="/js/home-screen-app.js?v=20261125-03" defer></script>
-    <script src="/js/self-profile-app.js?v=20261125-03" defer></script>
-    <script src="/js/sms-model.js?v=20261125-03" defer></script>
-    <script src="/js/sms-store.js?v=20261125-03" defer></script>
-    <script src="/js/sms-client.js?v=20261125-03" defer></script>
-    <script src="/js/sms-reply-service.js?v=20261125-03" defer></script>
-    <script src="/js/sms-renderer.js?v=20261125-03" defer></script>
-    <script src="/js/sms-app.js?v=20261125-03" defer></script>
-    <script src="/js/appearance-store.js?v=20261125-03" defer></script>
-    <script src="/js/backup.js?v=20261125-03" defer></script>
-    <script src="/bootstrap.js?v=20261125-03" defer></script>
-    <script src="/js/lock-password-store.js?v=20261125-03" defer></script>
-    <script src="/js/lock-screen.js?v=20261125-03" defer></script>
-    <script src="/js/beautify.js?v=20261125-03" defer></script>
-    <script src="/js/chat-summary-mode.js?v=20261125-03" defer></script>
-    <script src="/js/reply-reveal.js?v=20261125-03" defer></script>
-    <script src="/js/world-book-app.js?v=20261125-03" defer></script>
-    <script src="/js/chat-list-model.js?v=20261125-03" defer></script>
-    <script src="/js/group-chat-editor.js?v=20261125-03" defer></script>
-    <script src="/app.js?v=20261125-03" defer></script>
+    <script src="/js/character-profile.js?v=20261125-06" defer></script>
+    <script src="/js/settings-store.js?v=20261125-06" defer></script>
+    <script src="/js/media.js?v=20261125-06" defer></script>
+    <script src="/js/world-book-model.js?v=20261125-06" defer></script>
+    <script src="/js/group-chat-model.js?v=20261125-06" defer></script>
+    <script src="/js/self-profile-model.js?v=20261125-06" defer></script>
+    <script src="/js/storage.js?v=20261125-06" defer></script>
+    <script src="/js/home-screen-model.js?v=20261125-06" defer></script>
+    <script src="/js/home-screen-store.js?v=20261125-06" defer></script>
+    <script src="/js/home-screen-app.js?v=20261125-06" defer></script>
+    <script src="/js/self-profile-app.js?v=20261125-06" defer></script>
+    <script src="/js/sms-model.js?v=20261125-06" defer></script>
+    <script src="/js/sms-store.js?v=20261125-06" defer></script>
+    <script src="/js/sms-client.js?v=20261125-06" defer></script>
+    <script src="/js/sms-reply-service.js?v=20261125-06" defer></script>
+    <script src="/js/sms-renderer.js?v=20261125-06" defer></script>
+    <script src="/js/sms-app.js?v=20261125-06" defer></script>
+    <script src="/js/appearance-store.js?v=20261125-06" defer></script>
+    <script src="/js/backup.js?v=20261125-06" defer></script>
+    <script src="/bootstrap.js?v=20261125-06" defer></script>
+    <script src="/js/lock-password-store.js?v=20261125-06" defer></script>
+    <script src="/js/lock-screen.js?v=20261125-06" defer></script>
+    <script src="/js/beautify.js?v=20261125-06" defer></script>
+    <script src="/js/chat-summary-mode.js?v=20261125-06" defer></script>
+    <script src="/js/reply-reveal.js?v=20261125-06" defer></script>
+    <script src="/js/world-book-app.js?v=20261125-06" defer></script>
+    <script src="/js/chat-list-model.js?v=20261125-06" defer></script>
+    <script src="/js/group-chat-editor.js?v=20261125-06" defer></script>
+    <script src="/app.js?v=20261125-06" defer></script>
     <noscript>
       <div class="bootstrap-status bootstrap-status-error">
         <strong>浏览器没有启用 JavaScript</strong>

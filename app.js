@@ -39,6 +39,7 @@ const icons = {
   'circle-help':
     '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
   'chevron-left': '<path d="m15 18-6-6 6-6"/>',
+  'chevron-right': '<path d="m9 18 6-6-6-6"/>',
   'server-cog':
     '<path d="M4 2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M4 14h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z"/><path d="M6 6h.01"/><path d="M6 18h.01"/><circle cx="17" cy="18" r="2"/><path d="M17 14v1"/><path d="M17 21v1"/><path d="m20.2 16.2-.9.5"/><path d="m14.7 18.3-.9.5"/><path d="m20.2 19.8-.9-.5"/><path d="m14.7 17.7-.9-.5"/>',
   'link-2': '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>',
@@ -90,9 +91,16 @@ const chatBatchLimits = {
   maxPromptCharacters: 15800,
 };
 const apiRequestTimeoutMs = 140000;
+const settingsPageTitles = {
+  menu: "设置",
+  lock: "锁屏设置",
+  api: "API 模型配置",
+  backup: "导入，导出备份",
+};
 
 const state = {
   activeView: "home",
+  settingsPage: "menu",
   connected: false,
   toastTimer: null,
   characters: [],
@@ -237,6 +245,14 @@ function cacheElements() {
     "add-character-from-list",
     "character-list",
     "settings-back",
+    "settings-title",
+    "settings-menu",
+    "settings-lock-section",
+    "settings-api-section",
+    "settings-backup-section",
+    "settings-lock-page",
+    "settings-api-page",
+    "settings-backup-page",
     "guide-back",
     "guide-go-settings",
     "world-books-back",
@@ -348,7 +364,9 @@ function bindEvents() {
     showView("self-profile"),
   );
   document.getElementById("open-guide-app").addEventListener("click", () => showView("guide"));
-  document.getElementById("open-settings-app").addEventListener("click", () => showView("settings"));
+  document
+    .getElementById("open-settings-app")
+    .addEventListener("click", () => showView("settings", { settingsPage: "menu" }));
   document.getElementById("beautify-back").addEventListener("click", () => showView("home"));
   elements["character-list-back"].addEventListener("click", () => showView("home"));
   window.addEventListener(
@@ -359,13 +377,32 @@ function bindEvents() {
     "click",
     handleCharacterListAction,
   );
-  elements["settings-back"].addEventListener("click", () => showView("home"));
+  elements["settings-back"].addEventListener("click", () => {
+    if (state.settingsPage === "menu") {
+      showView("home");
+      return;
+    }
+    showSettingsPage("menu");
+  });
+  elements["settings-lock-section"].addEventListener("click", () =>
+    showSettingsPage("lock"),
+  );
+  elements["settings-api-section"].addEventListener("click", () =>
+    showSettingsPage("api"),
+  );
+  elements["settings-backup-section"].addEventListener("click", () =>
+    showSettingsPage("backup"),
+  );
   elements["guide-back"].addEventListener("click", () => showView("home"));
-  elements["guide-go-settings"].addEventListener("click", () => showView("settings"));
+  elements["guide-go-settings"].addEventListener("click", () =>
+    showView("settings", { settingsPage: "api" }),
+  );
   elements["world-books-back"].addEventListener("click", () => showView("home"));
   elements["self-profile-back"].addEventListener("click", () => showView("home"));
   elements["chat-back"].addEventListener("click", () => showView("characters"));
-  elements["chat-open-settings"].addEventListener("click", () => showView("settings"));
+  elements["chat-open-settings"].addEventListener("click", () =>
+    showView("settings", { settingsPage: "api" }),
+  );
   elements["block-character-button"].addEventListener("click", toggleCharacterBlock);
   elements["edit-character-button"].addEventListener("click", openCharacterEditor);
   elements["close-character-modal"].addEventListener("click", closeCharacterEditor);
@@ -500,6 +537,12 @@ function showView(viewName, options = {}) {
     if (scrollArea) scrollArea.scrollTop = 0;
   }
 
+  if (viewName === "settings") {
+    showSettingsPage(options.settingsPage || "menu", {
+      preserveScroll: Boolean(options.initial),
+    });
+  }
+
   if (viewName === "characters") {
     renderCharacterList();
   }
@@ -532,6 +575,41 @@ function showView(viewName, options = {}) {
     updateChatConnectionUI();
     renderChat();
     window.setTimeout(() => elements["chat-input"].focus(), 180);
+  }
+}
+
+function showSettingsPage(pageName, options = {}) {
+  const resolvedPage = Object.prototype.hasOwnProperty.call(
+    settingsPageTitles,
+    pageName,
+  )
+    ? pageName
+    : "menu";
+  const isMenu = resolvedPage === "menu";
+  state.settingsPage = resolvedPage;
+
+  elements["settings-title"].textContent = settingsPageTitles[resolvedPage];
+  elements["settings-menu"]
+    .querySelectorAll(".settings-section")
+    .forEach((section) => {
+      section.hidden = !isMenu;
+      section.setAttribute("aria-hidden", String(!isMenu));
+    });
+
+  ["lock", "api", "backup"].forEach((name) => {
+    const page = elements[`settings-${name}-page`];
+    const isCurrent = resolvedPage === name;
+    page.classList.toggle("is-hidden", !isCurrent);
+    page.setAttribute("aria-hidden", String(!isCurrent));
+  });
+
+  const backLabel = isMenu ? "返回主屏幕" : "返回设置";
+  elements["settings-back"].setAttribute("aria-label", backLabel);
+  elements["settings-back"].title = backLabel;
+
+  if (!options.preserveScroll) {
+    const scrollArea = elements["settings-view"].querySelector(".settings-scroll");
+    if (scrollArea) scrollArea.scrollTop = 0;
   }
 }
 
@@ -2730,7 +2808,7 @@ function ensureConnectedForChat() {
   window.PocketLabSettings.setConnected(false);
   updateConnectionUI();
   showToast("请先在设置页完成 API 连接。");
-  showView("settings");
+  showView("settings", { settingsPage: "api" });
   window.setTimeout(() => elements["api-url"].focus(), 200);
   return null;
 }

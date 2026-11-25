@@ -3,7 +3,7 @@
 ((root) => {
   const OPEN_CLASS = "is-app-opening";
   const OPEN_ANIMATION = "app-open-zoom";
-  const CLEANUP_FALLBACK_MS = 800;
+  const CLEANUP_FALLBACK_MS = 1100;
 
   let activeTransition = null;
 

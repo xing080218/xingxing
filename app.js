@@ -369,9 +369,10 @@ function bindEvents() {
     .addEventListener("click", () => showView("settings", { settingsPage: "menu" }));
   document
     .getElementById("beautify-back")
-    .addEventListener("click", () =>
-      showView("settings", { settingsPage: "menu" }),
-    );
+    .addEventListener("click", () => {
+      if (window.PocketLabBeautify?.goBack?.()) return;
+      showView("settings", { settingsPage: "menu" });
+    });
   elements["character-list-back"].addEventListener("click", () => showView("home"));
   window.addEventListener(
     "pocketlab:request-new-character",

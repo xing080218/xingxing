@@ -620,6 +620,14 @@
   margin-bottom: 14px;
 }
 
+.beautify-view [data-beautify-page][hidden] {
+  display: none !important;
+}
+
+.beautify-view[data-beautify-current-page="menu"] .beautify-status {
+  display: none;
+}
+
 .beautify-status {
   margin: 5px 0 17px;
   padding: 9px 11px;

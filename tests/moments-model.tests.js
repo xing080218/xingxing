@@ -1,0 +1,75 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const model = require("../js/moments-model.js");
+
+function runTests() {
+  assert.equal(
+    model.validateContent(" \n\t ").ok,
+    false,
+    "Whitespace-only Moments must be rejected.",
+  );
+  assert.equal(
+    model.validateContent("a".repeat(model.MAX_CONTENT_LENGTH)).ok,
+    true,
+  );
+  assert.equal(
+    model.validateContent("a".repeat(model.MAX_CONTENT_LENGTH + 1)).ok,
+    false,
+  );
+  assert.equal(
+    model.validateContent("😀".repeat(model.MAX_CONTENT_LENGTH)).ok,
+    true,
+    "The limit must count Unicode characters instead of UTF-16 units.",
+  );
+
+  const first = model.createMoment("第一条朋友圈", {
+    id: "moment-1",
+    now: 1000,
+  });
+  const second = model.createMoment("第二条朋友圈", {
+    id: "moment-2",
+    now: 2000,
+  });
+  let data = model.addMoment({ moments: [] }, first);
+  data = model.addMoment(data, second);
+  assert.deepEqual(
+    data.moments.map((moment) => moment.id),
+    ["moment-2", "moment-1"],
+    "New Moments must be shown first.",
+  );
+
+  const unsafeText = "<script>alert('xss')</script>\n第二行";
+  assert.equal(
+    model.createMoment(unsafeText, {
+      id: "moment-safe",
+      now: 3000,
+    }).content,
+    unsafeText,
+    "The model must preserve user text for safe textContent rendering.",
+  );
+
+  const normalized = model.normalizeMomentData({
+    moments: [
+      { id: "one", content: "旧", createdAt: 10, updatedAt: 10 },
+      { id: "one", content: "重复", createdAt: 20, updatedAt: 20 },
+      { id: "", content: "没有编号", createdAt: 30, updatedAt: 30 },
+      { id: "two", content: "新", createdAt: 40, updatedAt: 40 },
+    ],
+  });
+  assert.deepEqual(
+    normalized.moments.map((moment) => moment.id),
+    ["two", "one"],
+  );
+  assert.equal(normalized.version, model.VERSION);
+
+  assert.throws(
+    () => model.createMoment("   "),
+    /请写一点想发布的内容/,
+    "Creating an empty Moment must fail with a useful message.",
+  );
+
+  console.log("Moments model tests passed.");
+}
+
+runTests();

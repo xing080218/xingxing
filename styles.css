@@ -806,7 +806,7 @@ svg {
   grid-template-columns: 36px minmax(0, 1fr) 18px;
   align-items: center;
   gap: 12px;
-  min-height: 68px;
+  min-height: 60px;
   padding: 9px 15px;
   color: var(--ink);
   background: transparent;
@@ -3507,7 +3507,7 @@ svg {
   }
 
   .settings-section-summary {
-    min-height: 68px;
+    min-height: 60px;
   }
 
   .settings-section-title {
@@ -3716,7 +3716,7 @@ svg {
   .settings-section-summary {
     grid-template-columns: 36px minmax(0, 1fr) 18px;
     gap: 12px;
-    min-height: 68px;
+    min-height: 60px;
     padding: 9px 15px;
   }
 
@@ -3757,7 +3757,7 @@ svg {
   .settings-section-summary {
     grid-template-columns: 36px minmax(0, 1fr) 18px;
     gap: 11px;
-    min-height: 68px;
+    min-height: 60px;
     padding: 9px 13px;
   }
 

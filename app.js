@@ -324,6 +324,9 @@ function cacheElements() {
     "api-url-error",
     "api-key-error",
     "model-name-error",
+    "api-storage-feedback",
+    "api-storage-feedback-text",
+    "clear-api-settings",
     "lock-password-enabled",
     "lock-password-description",
     "lock-password-summary",
@@ -473,9 +476,13 @@ function bindEvents() {
 
   elements["toggle-key"].addEventListener("click", toggleKeyVisibility);
   elements["api-form"].addEventListener("submit", handleConnectionTest);
-  elements["api-url"].addEventListener("input", () => clearFieldError("api-url"));
-  elements["api-key"].addEventListener("input", () => clearFieldError("api-key"));
-  elements["model-name"].addEventListener("input", () => clearFieldError("model-name"));
+  elements["api-url"].addEventListener("input", handleApiSettingsInput);
+  elements["api-key"].addEventListener("input", handleApiSettingsInput);
+  elements["model-name"].addEventListener("input", handleApiSettingsInput);
+  elements["clear-api-settings"].addEventListener(
+    "click",
+    handleClearApiSettings,
+  );
   elements["lock-password-enabled"].addEventListener("change", handleLockPasswordToggle);
   elements["open-password-change"].addEventListener("click", openPasswordChangeForm);
   elements["cancel-password-change"].addEventListener("click", () => closePasswordChangeForm());
@@ -749,10 +756,38 @@ async function restoreSettings() {
   elements["api-key"].value = settings.apiKey;
   state.connected =
     settings.connected && Boolean(settings.apiUrl && settings.modelName && settings.apiKey);
+  let storageError = settings.storageError;
   if (!state.connected && settings.connected) {
-    window.PocketLabSettings.setConnected(false);
+    storageError =
+      window.PocketLabSettings.setConnected(false) || storageError;
   }
   updateConnectionUI();
+
+  if (storageError) {
+    setApiStorageFeedback(
+      "error",
+      describeApiStorageError(storageError, "读取已保存的 API 配置"),
+    );
+  } else if (state.connected) {
+    setApiStorageFeedback(
+      "success",
+      "已恢复当前浏览器保存的 API 配置和连接状态，刷新后无需重新填写。",
+    );
+  } else if (
+    settings.apiUrl ||
+    settings.modelName ||
+    settings.apiKey
+  ) {
+    setApiStorageFeedback(
+      "success",
+      "已恢复当前浏览器保存的 API 配置；配置有变化时请重新连接测试。",
+    );
+  } else {
+    setApiStorageFeedback(
+      "",
+      "填写后会自动保存在当前浏览器，刷新页面仍会保留。",
+    );
+  }
 }
 
 function restoreLockPasswordSettings() {
@@ -990,16 +1025,107 @@ async function handlePasswordChange(event) {
   }
 }
 
-function saveSettings() {
+function saveSettings(options = {}) {
+  const feedbackMessage =
+    typeof options.feedbackMessage === "string"
+      ? options.feedbackMessage
+      : "API 配置已保存在当前浏览器，刷新页面后仍会保留。";
   const error = window.PocketLabSettings.saveApiSettings({
     apiUrl: elements["api-url"].value,
     modelName: elements["model-name"].value,
     apiKey: elements["api-key"].value,
   });
-  if (!error) return true;
 
-  reportStorageError(error, "保存 API 设置", "settings");
-  return false;
+  state.connected = false;
+  updateConnectionUI();
+  if (options.hideResult) {
+    hideConnectionTestResult();
+  }
+
+  if (error) {
+    setApiStorageFeedback(
+      "error",
+      describeApiStorageError(error, "保存 API 配置"),
+    );
+    return error;
+  }
+
+  setApiStorageFeedback("success", feedbackMessage);
+  return null;
+}
+
+function handleApiSettingsInput(event) {
+  clearFieldError(event.currentTarget.id);
+  saveSettings({
+    hideResult: true,
+    feedbackMessage:
+      "配置已自动保存在当前浏览器。修改配置后，请重新点击“连接测试”。",
+  });
+}
+
+function handleClearApiSettings() {
+  if (elements["test-connection"].getAttribute("aria-busy") === "true") {
+    return;
+  }
+  const confirmed = window.confirm(
+    "确定清除当前浏览器保存的接口地址、API Key、模型名和连接状态吗？",
+  );
+  if (!confirmed) return;
+
+  const error = window.PocketLabSettings.clearApiSettings();
+  if (error) {
+    setApiStorageFeedback(
+      "error",
+      describeApiStorageError(error, "清除已保存的 API 配置"),
+    );
+    showToast("API 配置没有清除，请查看设置页提示。");
+    return;
+  }
+
+  elements["api-url"].value = "";
+  elements["api-key"].value = "";
+  elements["model-name"].value = "";
+  elements["api-key"].type = "password";
+  elements["toggle-key"].setAttribute("aria-label", "显示 API Key");
+  elements["toggle-key"].innerHTML = '<span data-icon="eye"></span>';
+  hydrateIcons();
+  ["api-url", "api-key", "model-name"].forEach(clearFieldError);
+  state.connected = false;
+  updateConnectionUI();
+  hideConnectionTestResult();
+  setApiStorageFeedback(
+    "success",
+    "当前浏览器保存的 API 配置和连接状态已清除。",
+  );
+  showToast("已清除保存的 API 配置。");
+  elements["api-url"].focus();
+}
+
+function setApiStorageFeedback(kind, message) {
+  const feedback = elements["api-storage-feedback"];
+  if (!feedback || !elements["api-storage-feedback-text"]) return;
+  feedback.className = "api-storage-feedback";
+  if (kind) feedback.classList.add(`is-${kind}`);
+  elements["api-storage-feedback-text"].textContent = message;
+}
+
+function describeApiStorageError(error, action) {
+  const errorName = String(error && error.name ? error.name : "").trim();
+  let reason = "浏览器拒绝了本地存储读写";
+  if (/QuotaExceededError|NS_ERROR_DOM_QUOTA_REACHED/i.test(errorName)) {
+    reason = "浏览器本地存储空间不足";
+  } else if (/SecurityError|NotAllowedError/i.test(errorName)) {
+    reason = "浏览器禁止了当前网址使用本地存储";
+  }
+  const errorLabel = errorName ? `（${errorName}）` : "";
+  return `${action}失败：${reason}${errorLabel}。下一步：允许此网站保存本地数据，退出无痕或受限浏览模式，并确认浏览器存储空间充足后重试。`;
+}
+
+function hideConnectionTestResult() {
+  if (!elements["test-result"]) return;
+  elements["test-result"].className = "test-result is-hidden";
+  elements["result-meta"].innerHTML = "";
+  elements["next-step"].classList.add("is-hidden");
 }
 
 async function restoreChat() {
@@ -3478,7 +3604,10 @@ async function handleConnectionTest(event) {
   const apiUrl = elements["api-url"].value.trim();
   const apiKey = elements["api-key"].value.trim();
   const modelName = elements["model-name"].value.trim();
-  saveSettings();
+  const settingsSaveError = saveSettings({
+    feedbackMessage:
+      "配置已保存在当前浏览器，正在验证并保存连接状态。",
+  });
   setLoading(true);
   showTestingResult();
 
@@ -3500,12 +3629,31 @@ async function handleConnectionTest(event) {
 
     if (response.ok && payload.ok) {
       state.connected = true;
-      window.PocketLabSettings.setConnected(true);
+      const connectionStorageError = window.PocketLabSettings.setConnected(
+        settingsSaveError ? false : true,
+      );
       updateConnectionUI();
       showResultSuccess(payload);
+      if (settingsSaveError) {
+        setApiStorageFeedback(
+          "error",
+          `${describeApiStorageError(settingsSaveError, "保存 API 配置")}模型本次已连通，但刷新后配置可能丢失。`,
+        );
+      } else {
+        setApiStorageFeedback(
+          connectionStorageError ? "error" : "success",
+          connectionStorageError
+            ? describeApiStorageError(
+                connectionStorageError,
+                "保存连接成功状态",
+              )
+            : "连接成功，API 配置和连接状态都已保存在当前浏览器，刷新后仍会保留。",
+        );
+      }
     } else {
       state.connected = false;
-      window.PocketLabSettings.setConnected(false);
+      const connectionStorageError =
+        window.PocketLabSettings.setConnected(false);
       updateConnectionUI();
       const error = normalizeConnectionError(payload.error);
       showResultError(
@@ -3514,10 +3662,30 @@ async function handleConnectionTest(event) {
         error.nextStep,
         response.status,
       );
+      if (settingsSaveError) {
+        setApiStorageFeedback(
+          "error",
+          describeApiStorageError(settingsSaveError, "保存 API 配置"),
+        );
+      } else if (connectionStorageError) {
+        setApiStorageFeedback(
+          "error",
+          describeApiStorageError(
+            connectionStorageError,
+            "保存连接失败状态",
+          ),
+        );
+      } else {
+        setApiStorageFeedback(
+          "success",
+          "连接测试未通过，但接口地址、API Key 和模型名仍保存在当前浏览器，修正后可直接重试。",
+        );
+      }
     }
   } catch (error) {
     state.connected = false;
-    window.PocketLabSettings.setConnected(false);
+    const connectionStorageError =
+      window.PocketLabSettings.setConnected(false);
     updateConnectionUI();
     if (error.name === "AbortError") {
       showResultError(
@@ -3533,6 +3701,25 @@ async function handleConnectionTest(event) {
         `确认启动窗口仍在运行，再刷新 ${window.location.origin} 重试。`,
       );
     }
+    if (settingsSaveError) {
+      setApiStorageFeedback(
+        "error",
+        describeApiStorageError(settingsSaveError, "保存 API 配置"),
+      );
+    } else if (connectionStorageError) {
+      setApiStorageFeedback(
+        "error",
+        describeApiStorageError(
+          connectionStorageError,
+          "保存连接失败状态",
+        ),
+      );
+    } else {
+      setApiStorageFeedback(
+        "success",
+        "连接测试未完成，但接口地址、API Key 和模型名仍保存在当前浏览器，检查网络后可直接重试。",
+      );
+    }
   } finally {
     window.clearTimeout(timeout);
     setLoading(false);
@@ -3540,7 +3727,15 @@ async function handleConnectionTest(event) {
 }
 
 function setLoading(isLoading) {
-  elements["test-connection"].disabled = isLoading;
+  [
+    elements["test-connection"],
+    elements["api-url"],
+    elements["api-key"],
+    elements["model-name"],
+    elements["clear-api-settings"],
+  ].forEach((control) => {
+    control.disabled = isLoading;
+  });
   elements["test-connection"].classList.toggle("is-loading", isLoading);
   elements["test-connection"].setAttribute("aria-busy", String(isLoading));
 }

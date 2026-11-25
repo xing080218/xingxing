@@ -7,10 +7,33 @@
     lock: "锁屏背景",
     chat: "聊天背景",
   };
+  const BEAUTIFY_PAGES = {
+    menu: {
+      eyebrow: "APPEARANCE",
+      title: "美化",
+      backLabel: "返回设置",
+    },
+    phone: {
+      eyebrow: "WHOLE PHONE",
+      title: "整体手机",
+      backLabel: "返回美化",
+    },
+    layout: {
+      eyebrow: "ICONS & LAYOUT",
+      title: "图标布局",
+      backLabel: "返回美化",
+    },
+    "chat-style": {
+      eyebrow: "CHAT APPEARANCE",
+      title: "聊天外观",
+      backLabel: "返回美化",
+    },
+  };
 
   const state = {
     initialized: false,
     settings: null,
+    activePage: "menu",
     backgroundUrls: {
       home: "",
       lock: "",
@@ -41,6 +64,9 @@
     [
       "beautify-view",
       "beautify-scroll",
+      "beautify-eyebrow",
+      "beautify-title",
+      "beautify-back",
       "beautify-status",
       "beautify-status-title",
       "beautify-status-message",
@@ -363,19 +389,45 @@
     }
   }
 
-  function bindMainTabs() {
+  function showPage(pageName, options = {}) {
+    const resolvedPage = Object.prototype.hasOwnProperty.call(
+      BEAUTIFY_PAGES,
+      pageName,
+    )
+      ? pageName
+      : "menu";
+    const pageMeta = BEAUTIFY_PAGES[resolvedPage];
+    state.activePage = resolvedPage;
+
+    if (elements["beautify-view"]) {
+      elements["beautify-view"].dataset.beautifyCurrentPage = resolvedPage;
+    }
+    document.querySelectorAll("[data-beautify-page]").forEach((page) => {
+      const isCurrent = page.dataset.beautifyPage === resolvedPage;
+      page.hidden = !isCurrent;
+      page.setAttribute("aria-hidden", String(!isCurrent));
+    });
+
+    if (elements["beautify-eyebrow"]) {
+      elements["beautify-eyebrow"].textContent = pageMeta.eyebrow;
+    }
+    if (elements["beautify-title"]) {
+      elements["beautify-title"].textContent = pageMeta.title;
+    }
+    if (elements["beautify-back"]) {
+      elements["beautify-back"].setAttribute("aria-label", pageMeta.backLabel);
+      elements["beautify-back"].title = pageMeta.backLabel;
+    }
+
+    if (!options.preserveScroll) {
+      elements["beautify-scroll"]?.scrollTo({ top: 0 });
+    }
+  }
+
+  function bindNavigation() {
     document.querySelectorAll("[data-beautify-main]").forEach((button) => {
       button.addEventListener("click", () => {
-        const panel = button.dataset.beautifyMain;
-        document.querySelectorAll("[data-beautify-main]").forEach((item) => {
-          const selected = item === button;
-          item.classList.toggle("is-active", selected);
-          item.setAttribute("aria-selected", String(selected));
-        });
-        document.querySelectorAll("[data-beautify-panel]").forEach((item) => {
-          item.hidden = item.dataset.beautifyPanel !== panel;
-        });
-        elements["beautify-scroll"]?.scrollTo({ top: 0, behavior: "smooth" });
+        showPage(button.dataset.beautifyMain);
       });
     });
 
@@ -415,7 +467,7 @@
     elements["beautify-chat-size"]?.addEventListener("change", () => {
       flushPendingSettings().catch(() => {});
     });
-    bindMainTabs();
+    bindNavigation();
   }
 
   async function init(options = {}) {
@@ -481,7 +533,14 @@
   }
 
   function refresh() {
+    showPage("menu");
     applyAllSettings();
+  }
+
+  function goBack() {
+    if (state.activePage === "menu") return false;
+    showPage("menu");
+    return true;
   }
 
   window.PocketLabBeautify = {
@@ -490,6 +549,10 @@
     flush: flushPendingSettings,
     refresh,
     getBackgroundUrl,
+    goBack,
+    getCurrentPage() {
+      return state.activePage;
+    },
     getSettings() {
       return state.settings ? cloneSettings(state.settings) : null;
     },

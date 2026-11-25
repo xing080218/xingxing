@@ -123,6 +123,32 @@ async function runTests() {
     /系统提示不能进入历史|已经撤回|生成失败|等待中的消息/,
   );
 
+  const photoOnlyMoment = {
+    id: "moment-photo-placeholder",
+    content: "",
+    imageIds: [
+      "moment-photo-alpha",
+      "moment-photo-beta",
+    ],
+  };
+  const photoBody = client.buildRequestBody({
+    character,
+    config,
+    moment: photoOnlyMoment,
+  });
+  const photoPrompt = photoBody.messages.at(-1).content;
+  assert.match(
+    photoPrompt,
+    /动态包含 2 张照片/,
+    "A photo-only Moment must still produce a character prompt.",
+  );
+  assert.match(photoPrompt, /这条动态没有文字/);
+  assert.doesNotMatch(
+    JSON.stringify(photoBody),
+    /moment-photo-alpha|moment-photo-beta|data:image|base64/iu,
+    "Photo IDs and image payloads must never be sent to the model.",
+  );
+
   assert.deepEqual(
     {
       ...client.parseReaction(
@@ -185,6 +211,15 @@ async function runTests() {
         moment,
       }),
     /角色人设为空/,
+  );
+  assert.throws(
+    () =>
+      client.buildRequestBody({
+        character,
+        config,
+        moment: { id: "empty", content: "", imageIds: [] },
+      }),
+    /缺少动态文字或照片/,
   );
 
   const { client: failingClient } = loadClient(() => ({

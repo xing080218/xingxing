@@ -12,8 +12,9 @@
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, () => {
   const APP_DATA_ID = "moments.v1";
-  const VERSION = 2;
+  const VERSION = 3;
   const MAX_CONTENT_LENGTH = 2000;
+  const MAX_IMAGE_COUNT = 9;
   const MAX_COMMENT_LENGTH = 600;
   const INTERACTION_STATUS = Object.freeze({
     PENDING: "pending",
@@ -72,6 +73,67 @@
       ok: true,
       error: "",
       value: normalized,
+    };
+  }
+
+  function normalizeUniqueImageIds(value, maxCount) {
+    const seen = new Set();
+    const imageIds = [];
+    (Array.isArray(value) ? value : []).forEach((item) => {
+      const id = normalizeStableId(item);
+      if (!id || seen.has(id) || imageIds.length >= maxCount) return;
+      seen.add(id);
+      imageIds.push(id);
+    });
+    return imageIds;
+  }
+
+  function normalizeImageIds(value) {
+    return normalizeUniqueImageIds(value, MAX_IMAGE_COUNT);
+  }
+
+  function normalizeImageResourceIds(value) {
+    return normalizeUniqueImageIds(value, Number.POSITIVE_INFINITY);
+  }
+
+  function validateMoment(value, imageIdsValue = []) {
+    const normalized = typeof value === "string"
+      ? value.replace(/\r\n?/gu, "\n").trim()
+      : "";
+    const characters = Array.from(normalized);
+    const rawImageIds = Array.isArray(imageIdsValue) ? imageIdsValue : [];
+    const imageIds = normalizeImageIds(rawImageIds);
+
+    if (rawImageIds.length > MAX_IMAGE_COUNT) {
+      return {
+        ok: false,
+        error: `每条朋友圈最多添加 ${MAX_IMAGE_COUNT} 张照片。`,
+        content: characters.slice(0, MAX_CONTENT_LENGTH).join(""),
+        imageIds: imageIds.slice(0, MAX_IMAGE_COUNT),
+      };
+    }
+    if (characters.length > MAX_CONTENT_LENGTH) {
+      return {
+        ok: false,
+        error: `朋友圈内容不能超过 ${MAX_CONTENT_LENGTH} 个字符。`,
+        content: characters.slice(0, MAX_CONTENT_LENGTH).join(""),
+        imageIds,
+      };
+    }
+    if (!characters.length && !imageIds.length) {
+      return {
+        ok: false,
+        error: "请写一点想发布的内容，或添加至少一张照片。",
+        content: "",
+        imageIds: [],
+      };
+    }
+
+    return {
+      ok: true,
+      error: "",
+      content: normalized,
+      imageIds,
     };
   }
 
@@ -140,6 +202,7 @@
     return {
       id: normalizeStableId(source.id),
       content: normalizeContent(source.content),
+      imageIds: normalizeImageIds(source.imageIds),
       createdAt: normalizeTimestamp(source.createdAt, now),
       updatedAt: normalizeTimestamp(source.updatedAt, now),
       interactions: normalizeInteractions(source.interactions, now),
@@ -168,7 +231,13 @@
 
     (Array.isArray(source.moments) ? source.moments : []).forEach((record) => {
       const moment = normalizeMoment(record);
-      if (!moment.id || !moment.content || seenIds.has(moment.id)) return;
+      if (
+        !moment.id ||
+        (!moment.content && !moment.imageIds.length) ||
+        seenIds.has(moment.id)
+      ) {
+        return;
+      }
       seenIds.add(moment.id);
       moments.push(moment);
     });
@@ -190,8 +259,19 @@
     return `moment-${now}-${fallbackIdSequence}`;
   }
 
+  function createImageId() {
+    if (
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+    ) {
+      return `moment-photo-${crypto.randomUUID()}`;
+    }
+    fallbackIdSequence += 1;
+    return `moment-photo-${Date.now()}-${fallbackIdSequence}`;
+  }
+
   function createMoment(value, options = {}) {
-    const validation = validateContent(value);
+    const validation = validateMoment(value, options.imageIds);
     if (!validation.ok) {
       const error = new Error(validation.error);
       error.code = "INVALID_MOMENT_CONTENT";
@@ -202,7 +282,8 @@
     const id = normalizeStableId(options.id) || createId(now);
     return {
       id,
-      content: validation.value,
+      content: validation.content,
+      imageIds: validation.imageIds,
       createdAt: now,
       updatedAt: now,
       interactions: [],
@@ -211,8 +292,11 @@
 
   function addMoment(data, moment) {
     const normalizedMoment = normalizeMoment(moment);
-    if (!normalizedMoment.id || !normalizedMoment.content) {
-      throw new Error("朋友圈记录缺少稳定编号或内容。");
+    if (
+      !normalizedMoment.id ||
+      (!normalizedMoment.content && !normalizedMoment.imageIds.length)
+    ) {
+      throw new Error("朋友圈记录缺少稳定编号、正文或照片。");
     }
     const normalizedData = normalizeMomentData(data);
     return normalizeMomentData({
@@ -376,17 +460,22 @@
     APP_DATA_ID,
     VERSION,
     MAX_CONTENT_LENGTH,
+    MAX_IMAGE_COUNT,
     MAX_COMMENT_LENGTH,
     INTERACTION_STATUS,
     normalizeStableId,
     normalizeContent,
+    normalizeImageIds,
+    normalizeImageResourceIds,
     normalizeComment,
     validateContent,
+    validateMoment,
     normalizeInteraction,
     normalizeInteractions,
     normalizeMoment,
     normalizeMomentData,
     sortMoments,
+    createImageId,
     createMoment,
     addMoment,
     getMoment,

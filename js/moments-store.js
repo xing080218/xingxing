@@ -47,6 +47,55 @@
     });
   }
 
+  function addInteractions(momentId, interactions) {
+    return enqueue(async () => {
+      const data = await readStoredData();
+      const nextData = model.addInteractions(
+        data,
+        momentId,
+        interactions,
+      );
+      await writeStoredData(nextData);
+      return {
+        data: nextData,
+        moment: model.getMoment(nextData, momentId),
+      };
+    });
+  }
+
+  function updateInteraction(momentId, characterId, changes) {
+    return enqueue(async () => {
+      const data = await readStoredData();
+      const nextData = model.updateInteraction(
+        data,
+        momentId,
+        characterId,
+        changes,
+      );
+      await writeStoredData(nextData);
+      const moment = model.getMoment(nextData, momentId);
+      return {
+        data: nextData,
+        moment,
+        interaction:
+          moment?.interactions.find(
+            (interaction) => interaction.characterId === characterId,
+          ) || null,
+      };
+    });
+  }
+
+  function recoverInterruptedInteractions() {
+    return enqueue(async () => {
+      const data = await readStoredData();
+      const recovered = model.recoverInterruptedInteractions(data);
+      if (recovered.recovered) {
+        await writeStoredData(recovered.data);
+      }
+      return recovered;
+    });
+  }
+
   function waitForIdle() {
     return writeQueue;
   }
@@ -54,6 +103,9 @@
   root.PocketLabMomentsStore = Object.freeze({
     load,
     publish,
+    addInteractions,
+    updateInteraction,
+    recoverInterruptedInteractions,
     waitForIdle,
   });
 })(window);

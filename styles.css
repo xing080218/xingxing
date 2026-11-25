@@ -728,6 +728,142 @@ svg {
   padding: 19px 19px 26px;
 }
 
+.settings-header {
+  gap: 16px;
+  padding: 13px 18px 12px;
+  border-bottom-color: rgba(83, 145, 171, 0.16);
+  background: rgba(234, 248, 254, 0.74);
+}
+
+.settings-header .back-button {
+  flex-basis: 34px;
+  width: 34px;
+  height: 34px;
+  margin-left: -8px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.settings-header .back-button:hover {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.settings-header .back-button svg {
+  width: 25px;
+  height: 25px;
+}
+
+.settings-header h1 {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.settings-scroll {
+  padding: 16px 18px 28px;
+}
+
+.settings-menu {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.settings-section {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(89, 151, 177, 0.17);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.36);
+  box-shadow: 0 8px 24px rgba(54, 112, 138, 0.06);
+}
+
+.settings-section[open] {
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 12px 30px rgba(54, 112, 138, 0.08);
+}
+
+.settings-section-summary {
+  display: grid;
+  place-items: center;
+  min-height: 104px;
+  padding: 20px 16px;
+  color: var(--ink);
+  background: transparent;
+  list-style: none;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease;
+}
+
+.settings-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-section-summary::marker {
+  content: "";
+}
+
+.settings-section-summary:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.settings-section-summary:focus-visible {
+  border-radius: 7px;
+  outline: 3px solid rgba(78, 154, 181, 0.28);
+  outline-offset: -4px;
+}
+
+.settings-section-title {
+  max-width: 100%;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.settings-section[open] .settings-section-summary {
+  min-height: 72px;
+  padding: 14px 16px 12px;
+}
+
+.settings-section-content {
+  min-width: 0;
+  padding: 0 14px 16px;
+  border-top: 1px solid rgba(89, 151, 177, 0.13);
+}
+
+.settings-section-content .lock-password-panel,
+.settings-section-content .local-data-panel {
+  margin: 0;
+  padding: 16px 1px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.settings-section-content .connection-intro {
+  padding: 15px 1px 18px;
+}
+
+.settings-connection-intro > div:last-child {
+  min-width: 0;
+}
+
+.settings-connection-intro .settings-api-status {
+  width: fit-content;
+  margin: 10px 0 0;
+  font-size: 9px;
+}
+
+.settings-section-content .privacy-note {
+  margin-top: 18px;
+}
+
 .lock-password-panel {
   margin: 0 0 20px;
   padding: 15px;
@@ -3297,6 +3433,32 @@ svg {
     padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
   }
 
+  .settings-header {
+    gap: 14px;
+    padding-right: calc(17px + env(safe-area-inset-right, 0px));
+    padding-left: calc(17px + env(safe-area-inset-left, 0px));
+  }
+
+  .settings-header h1 {
+    font-size: 25px;
+  }
+
+  .settings-section-summary {
+    min-height: 96px;
+  }
+
+  .settings-section-title {
+    font-size: 20px;
+  }
+
+  .settings-section[open] .settings-section-summary {
+    min-height: 68px;
+  }
+
+  .settings-connection-intro .settings-api-status {
+    font-size: 11px;
+  }
+
   .chat-composer {
     padding-bottom: calc(19px + env(safe-area-inset-bottom, 0px));
   }
@@ -3498,6 +3660,21 @@ svg {
 
   .lock-password-panel {
     padding: 13px;
+  }
+
+  .settings-section-summary {
+    min-height: 86px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .settings-section-title {
+    font-size: 18px;
+  }
+
+  .settings-section-content {
+    padding-right: 11px;
+    padding-left: 11px;
   }
 
   .lock-password-actions {

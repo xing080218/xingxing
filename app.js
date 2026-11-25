@@ -39,6 +39,7 @@ const icons = {
   'circle-help':
     '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
   'chevron-left': '<path d="m15 18-6-6 6-6"/>',
+  'chevron-right': '<path d="m9 18 6-6-6-6"/>',
   'server-cog':
     '<path d="M4 2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M4 14h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z"/><path d="M6 6h.01"/><path d="M6 18h.01"/><circle cx="17" cy="18" r="2"/><path d="M17 14v1"/><path d="M17 21v1"/><path d="m20.2 16.2-.9.5"/><path d="m14.7 18.3-.9.5"/><path d="m20.2 19.8-.9-.5"/><path d="m14.7 17.7-.9-.5"/>',
   'link-2': '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>',

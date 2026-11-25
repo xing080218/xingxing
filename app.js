@@ -249,6 +249,7 @@ function cacheElements() {
     "settings-menu",
     "settings-lock-section",
     "settings-api-section",
+    "settings-beautify-section",
     "settings-backup-section",
     "settings-lock-page",
     "settings-api-page",
@@ -350,7 +351,6 @@ function cacheElements() {
 }
 
 function bindEvents() {
-  document.getElementById("open-beautify-app").addEventListener("click", () => showView("beautify"));
   document
     .getElementById("open-chat-app")
     .addEventListener("click", () => showView("characters"));
@@ -367,7 +367,11 @@ function bindEvents() {
   document
     .getElementById("open-settings-app")
     .addEventListener("click", () => showView("settings", { settingsPage: "menu" }));
-  document.getElementById("beautify-back").addEventListener("click", () => showView("home"));
+  document
+    .getElementById("beautify-back")
+    .addEventListener("click", () =>
+      showView("settings", { settingsPage: "menu" }),
+    );
   elements["character-list-back"].addEventListener("click", () => showView("home"));
   window.addEventListener(
     "pocketlab:request-new-character",
@@ -389,6 +393,9 @@ function bindEvents() {
   );
   elements["settings-api-section"].addEventListener("click", () =>
     showSettingsPage("api"),
+  );
+  elements["settings-beautify-section"].addEventListener("click", () =>
+    showView("beautify"),
   );
   elements["settings-backup-section"].addEventListener("click", () =>
     showSettingsPage("backup"),

@@ -574,7 +574,7 @@
   }
 }
 
-/* 美化 App */
+/* 美化设置 */
 .beautify-view {
   color: var(--beautify-ink);
   background: var(--app-sky-blue);

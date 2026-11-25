@@ -43,7 +43,6 @@ function runTests() {
   assert.deepEqual(defaultLayout, {
     version: 4,
     homeSlots: withEmptySlots([
-      "beautify",
       "guide",
       "chat",
       "sms",
@@ -65,7 +64,7 @@ function runTests() {
       null,
       null,
       null,
-      "beautify",
+      "sms",
       null,
       null,
       null,
@@ -79,7 +78,7 @@ function runTests() {
   );
   assert.equal(
     twelveSlotLayout.homeSlots[8],
-    "beautify",
+    "sms",
     "Apps that already fit inside the first 16 slots must keep their position.",
   );
   assertAllAppsOnce(twelveSlotLayout);
@@ -93,7 +92,6 @@ function runTests() {
       version: 3,
       homeSlots: withEmptySlots(
         [
-          "beautify",
           "guide",
           "chat",
           "world-books",
@@ -121,7 +119,6 @@ function runTests() {
     rowFiveAppIds,
   );
   assert.deepEqual(rowFiveLayout.homeSlots, withEmptySlots([
-    "beautify",
     "guide",
     "chat",
     "world-books",
@@ -170,33 +167,32 @@ function runTests() {
   );
 
   assert.deepEqual(
-    model.moveAppToHomeSlot(defaultLayout, "beautify", 8),
+    model.moveAppToHomeSlot(defaultLayout, "guide", 8),
     {
       version: 4,
       homeSlots: withEmptySlots([
         null,
-        "guide",
         "chat",
         "sms",
         "world-books",
         "settings",
         null,
         null,
-        "beautify",
+        null,
+        "guide",
       ]),
       dockOrder: ["self-profile"],
     },
   );
 
   assert.deepEqual(
-    model.moveAppToHomeSlot(defaultLayout, "beautify", 2),
+    model.moveAppToHomeSlot(defaultLayout, "guide", 2),
     {
       version: 4,
       homeSlots: withEmptySlots([
+        "sms",
         "chat",
         "guide",
-        "beautify",
-        "sms",
         "world-books",
         "settings",
       ]),
@@ -209,7 +205,6 @@ function runTests() {
     {
       version: 4,
       homeSlots: withEmptySlots([
-        "beautify",
         "guide",
         "chat",
         "sms",
@@ -224,12 +219,12 @@ function runTests() {
     {
       version: 4,
       homeSlots: withEmptySlots([
-        "beautify",
         "guide",
         "chat",
         "sms",
         "world-books",
         "settings",
+        null,
         null,
         null,
         "self-profile",
@@ -244,23 +239,22 @@ function runTests() {
       version: 4,
       homeSlots: withEmptySlots([
         "self-profile",
-        "guide",
         "chat",
         "sms",
         "world-books",
         "settings",
       ]),
-      dockOrder: ["beautify"],
+      dockOrder: ["guide"],
     },
   );
 
   const fullDockLayout = model.normalizeLayout({
     version: 3,
-    homeSlots: withEmptySlots(["beautify", "guide"]),
+    homeSlots: withEmptySlots(["guide"]),
     dockOrder: ["self-profile", "settings", "chat", "world-books"],
   });
   assert.deepEqual(
-    model.moveAppToDock(fullDockLayout, "beautify"),
+    model.moveAppToDock(fullDockLayout, "guide"),
     fullDockLayout,
   );
   assertAllAppsOnce(fullDockLayout);
@@ -278,7 +272,6 @@ function runTests() {
       homeSlots: withEmptySlots([
         "chat",
         "settings",
-        "beautify",
         "guide",
         "sms",
         "world-books",
@@ -301,7 +294,6 @@ function runTests() {
       homeSlots: withEmptySlots([
         "chat",
         "world-books",
-        "beautify",
         "guide",
         "sms",
       ]),
@@ -322,11 +314,10 @@ function runTests() {
       version: 4,
       homeSlots: withEmptySlots([
         "chat",
-        "beautify",
         "guide",
         "sms",
-        "settings",
         "world-books",
+        "settings",
       ]),
       dockOrder: ["self-profile"],
     },
@@ -349,7 +340,7 @@ function runTests() {
     ),
     {
       version: 4,
-      homeSlots: withEmptySlots(["beautify", "guide", "sms"]),
+      homeSlots: withEmptySlots(["guide", "sms"]),
       dockOrder: ["self-profile", "settings", "chat", "world-books"],
     },
   );
@@ -365,7 +356,6 @@ function runTests() {
     {
       version: 4,
       homeSlots: withEmptySlots([
-        "beautify",
         "chat",
         "guide",
         "sms",

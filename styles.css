@@ -407,7 +407,7 @@ svg {
 }
 
 .view.is-active.is-app-opening {
-  animation: app-open-zoom 240ms cubic-bezier(0.2, 0.82, 0.28, 1) both;
+  animation: app-open-zoom 460ms cubic-bezier(0.2, 0.82, 0.28, 1) both;
   transform-origin: 50% 50%;
   transition: none;
   will-change: opacity, transform;

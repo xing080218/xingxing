@@ -17,21 +17,21 @@
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/assets/icons/favicon-32.png?v=20261125-11"
+      href="/assets/icons/favicon-32.png?v=20261125-12"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="64x64"
-      href="/assets/icons/favicon-64.png?v=20261125-11"
+      href="/assets/icons/favicon-64.png?v=20261125-12"
     />
     <link
       rel="apple-touch-icon"
       type="image/png"
       sizes="180x180"
-      href="/assets/icons/apple-touch-icon.png?v=20261125-11"
+      href="/assets/icons/apple-touch-icon.png?v=20261125-12"
     />
-    <link rel="manifest" href="/site.webmanifest?v=20261125-11" />
+    <link rel="manifest" href="/site.webmanifest?v=20261125-12" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -216,14 +216,14 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=20261125-11" />
-    <link rel="stylesheet" href="/world-book.css?v=20261125-11" />
-    <link rel="stylesheet" href="/beautify.css?v=20261125-11" />
-    <link rel="stylesheet" href="/self-profile.css?v=20261125-11" />
-    <link rel="stylesheet" href="/home-screen.css?v=20261125-11" />
-    <link rel="stylesheet" href="/group-chat.css?v=20261125-11" />
-    <link rel="stylesheet" href="/sms.css?v=20261125-11" />
-    <link rel="stylesheet" href="/sms-composer.css?v=20261125-11" />
+    <link rel="stylesheet" href="/styles.css?v=20261125-12" />
+    <link rel="stylesheet" href="/world-book.css?v=20261125-12" />
+    <link rel="stylesheet" href="/beautify.css?v=20261125-12" />
+    <link rel="stylesheet" href="/self-profile.css?v=20261125-12" />
+    <link rel="stylesheet" href="/home-screen.css?v=20261125-12" />
+    <link rel="stylesheet" href="/group-chat.css?v=20261125-12" />
+    <link rel="stylesheet" href="/sms.css?v=20261125-12" />
+    <link rel="stylesheet" href="/sms-composer.css?v=20261125-12" />
   </head>
   <body>
     <aside
@@ -244,7 +244,7 @@
         </p>
         <div class="service-warning-actions">
           <button id="service-warning-retry" type="button">重新检查</button>
-          <a href="/mobile-check.html?v=20261125-11">连接检查页</a>
+          <a href="/mobile-check.html?v=20261125-12">连接检查页</a>
         </div>
       </div>
       <button
@@ -260,7 +260,7 @@
     <div class="bootstrap-status" id="bootstrap-status" role="status" aria-live="polite">
       <strong id="bootstrap-title">正在打开濴星语</strong>
       <span id="bootstrap-message">页面已开始加载，正在检查本地服务。</span>
-          <span class="bootstrap-build" id="bootstrap-build">启动版本 20261125-11</span>
+          <span class="bootstrap-build" id="bootstrap-build">启动版本 20261125-12</span>
       <ol class="bootstrap-steps" aria-label="启动检查">
         <li class="bootstrap-step" data-bootstrap-step="page" data-state="ok">
           <span class="bootstrap-step-marker" aria-hidden="true">1</span>
@@ -278,8 +278,8 @@
       <div class="bootstrap-actions">
         <button id="bootstrap-retry" type="button">重新加载</button>
         <button id="bootstrap-details-toggle" type="button" aria-expanded="false">显示诊断信息</button>
-          <a id="bootstrap-check-link" href="/mobile-check.html?v=20261125-11">连接检查页</a>
-          <a href="/connect.html?v=20261125-11">电脑连接入口</a>
+          <a id="bootstrap-check-link" href="/mobile-check.html?v=20261125-12">连接检查页</a>
+          <a href="/connect.html?v=20261125-12">电脑连接入口</a>
       </div>
       <pre class="bootstrap-details is-hidden" id="bootstrap-details" aria-label="启动诊断信息"></pre>
     </div>
@@ -1032,34 +1032,64 @@
                 <div class="beautify-scroll" id="beautify-scroll">
                   <nav class="beautify-main-tabs" role="tablist" aria-label="美化分类">
                     <button
-                      class="beautify-main-tab is-active"
+                      class="settings-section beautify-main-tab is-active"
                       type="button"
                       role="tab"
                       aria-selected="true"
                       data-beautify-main="phone"
                     >
-                      <span data-icon="smartphone"></span>
-                      <span>整体手机</span>
+                      <span class="settings-section-summary">
+                        <span class="settings-section-icon" aria-hidden="true">
+                          <span data-icon="smartphone"></span>
+                        </span>
+                        <span class="settings-section-copy">
+                          <span class="settings-section-title">整体手机</span>
+                          <span class="settings-section-subtitle">背景与字体</span>
+                        </span>
+                        <span class="settings-section-chevron" aria-hidden="true">
+                          <span data-icon="chevron-right"></span>
+                        </span>
+                      </span>
                     </button>
                     <button
-                      class="beautify-main-tab"
+                      class="settings-section beautify-main-tab"
                       type="button"
                       role="tab"
                       aria-selected="false"
                       data-beautify-main="layout"
                     >
-                      <span data-icon="layout-grid"></span>
-                      <span>图标布局</span>
+                      <span class="settings-section-summary">
+                        <span class="settings-section-icon" aria-hidden="true">
+                          <span data-icon="layout-grid"></span>
+                        </span>
+                        <span class="settings-section-copy">
+                          <span class="settings-section-title">图标布局</span>
+                          <span class="settings-section-subtitle">主屏幕图标样式</span>
+                        </span>
+                        <span class="settings-section-chevron" aria-hidden="true">
+                          <span data-icon="chevron-right"></span>
+                        </span>
+                      </span>
                     </button>
                     <button
-                      class="beautify-main-tab"
+                      class="settings-section beautify-main-tab"
                       type="button"
                       role="tab"
                       aria-selected="false"
                       data-beautify-main="chat-style"
                     >
-                      <span data-icon="message-square-text"></span>
-                      <span>聊天外观</span>
+                      <span class="settings-section-summary">
+                        <span class="settings-section-icon" aria-hidden="true">
+                          <span data-icon="message-square-text"></span>
+                        </span>
+                        <span class="settings-section-copy">
+                          <span class="settings-section-title">聊天外观</span>
+                          <span class="settings-section-subtitle">聊天气泡与聊天样式</span>
+                        </span>
+                        <span class="settings-section-chevron" aria-hidden="true">
+                          <span data-icon="chevron-right"></span>
+                        </span>
+                      </span>
                     </button>
                   </nav>
 
@@ -1829,35 +1859,35 @@
       </section>
     </main>
 
-    <script src="/js/character-profile.js?v=20261125-11" defer></script>
-    <script src="/js/settings-store.js?v=20261125-11" defer></script>
-    <script src="/js/media.js?v=20261125-11" defer></script>
-    <script src="/js/world-book-model.js?v=20261125-11" defer></script>
-    <script src="/js/group-chat-model.js?v=20261125-11" defer></script>
-    <script src="/js/self-profile-model.js?v=20261125-11" defer></script>
-    <script src="/js/storage.js?v=20261125-11" defer></script>
-    <script src="/js/home-screen-model.js?v=20261125-11" defer></script>
-    <script src="/js/home-screen-store.js?v=20261125-11" defer></script>
-    <script src="/js/home-screen-app.js?v=20261125-11" defer></script>
-    <script src="/js/self-profile-app.js?v=20261125-11" defer></script>
-    <script src="/js/sms-model.js?v=20261125-11" defer></script>
-    <script src="/js/sms-store.js?v=20261125-11" defer></script>
-    <script src="/js/sms-client.js?v=20261125-11" defer></script>
-    <script src="/js/sms-reply-service.js?v=20261125-11" defer></script>
-    <script src="/js/sms-renderer.js?v=20261125-11" defer></script>
-    <script src="/js/sms-app.js?v=20261125-11" defer></script>
-    <script src="/js/appearance-store.js?v=20261125-11" defer></script>
-    <script src="/js/backup.js?v=20261125-11" defer></script>
-    <script src="/bootstrap.js?v=20261125-11" defer></script>
-    <script src="/js/lock-password-store.js?v=20261125-11" defer></script>
-    <script src="/js/lock-screen.js?v=20261125-11" defer></script>
-    <script src="/js/beautify.js?v=20261125-11" defer></script>
-    <script src="/js/chat-summary-mode.js?v=20261125-11" defer></script>
-    <script src="/js/reply-reveal.js?v=20261125-11" defer></script>
-    <script src="/js/world-book-app.js?v=20261125-11" defer></script>
-    <script src="/js/chat-list-model.js?v=20261125-11" defer></script>
-    <script src="/js/group-chat-editor.js?v=20261125-11" defer></script>
-    <script src="/app.js?v=20261125-11" defer></script>
+    <script src="/js/character-profile.js?v=20261125-12" defer></script>
+    <script src="/js/settings-store.js?v=20261125-12" defer></script>
+    <script src="/js/media.js?v=20261125-12" defer></script>
+    <script src="/js/world-book-model.js?v=20261125-12" defer></script>
+    <script src="/js/group-chat-model.js?v=20261125-12" defer></script>
+    <script src="/js/self-profile-model.js?v=20261125-12" defer></script>
+    <script src="/js/storage.js?v=20261125-12" defer></script>
+    <script src="/js/home-screen-model.js?v=20261125-12" defer></script>
+    <script src="/js/home-screen-store.js?v=20261125-12" defer></script>
+    <script src="/js/home-screen-app.js?v=20261125-12" defer></script>
+    <script src="/js/self-profile-app.js?v=20261125-12" defer></script>
+    <script src="/js/sms-model.js?v=20261125-12" defer></script>
+    <script src="/js/sms-store.js?v=20261125-12" defer></script>
+    <script src="/js/sms-client.js?v=20261125-12" defer></script>
+    <script src="/js/sms-reply-service.js?v=20261125-12" defer></script>
+    <script src="/js/sms-renderer.js?v=20261125-12" defer></script>
+    <script src="/js/sms-app.js?v=20261125-12" defer></script>
+    <script src="/js/appearance-store.js?v=20261125-12" defer></script>
+    <script src="/js/backup.js?v=20261125-12" defer></script>
+    <script src="/bootstrap.js?v=20261125-12" defer></script>
+    <script src="/js/lock-password-store.js?v=20261125-12" defer></script>
+    <script src="/js/lock-screen.js?v=20261125-12" defer></script>
+    <script src="/js/beautify.js?v=20261125-12" defer></script>
+    <script src="/js/chat-summary-mode.js?v=20261125-12" defer></script>
+    <script src="/js/reply-reveal.js?v=20261125-12" defer></script>
+    <script src="/js/world-book-app.js?v=20261125-12" defer></script>
+    <script src="/js/chat-list-model.js?v=20261125-12" defer></script>
+    <script src="/js/group-chat-editor.js?v=20261125-12" defer></script>
+    <script src="/app.js?v=20261125-12" defer></script>
     <noscript>
       <div class="bootstrap-status bootstrap-status-error">
         <strong>浏览器没有启用 JavaScript</strong>

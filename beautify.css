@@ -577,14 +577,12 @@
 /* 美化 App */
 .beautify-view {
   color: var(--beautify-ink);
-  background:
-    linear-gradient(152deg, rgba(255, 244, 201, 0.42), transparent 38%),
-    linear-gradient(160deg, #fffdf5 0%, #f4fbfe 62%, #e8f7fc 100%);
+  background: var(--app-sky-blue);
 }
 
 .beautify-header {
-  border-bottom-color: rgba(56, 95, 109, 0.13);
-  background: rgba(255, 252, 239, 0.9);
+  border-bottom-color: var(--app-sky-blue-line);
+  background: var(--app-sky-blue-glass);
 }
 
 .beautify-header-mark {
@@ -596,7 +594,7 @@
   border: 1px solid rgba(54, 101, 118, 0.13);
   border-radius: 8px;
   color: #3e6879;
-  background: linear-gradient(135deg, var(--cream), var(--ice));
+  background: linear-gradient(135deg, #f7fdff, var(--ice));
 }
 
 .beautify-header-mark svg {
@@ -622,7 +620,11 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
   padding: 9px 0;
-  background: linear-gradient(180deg, #fffdf5 78%, rgba(255, 253, 245, 0));
+  background: linear-gradient(
+    180deg,
+    var(--app-sky-blue) 78%,
+    rgba(234, 248, 254, 0)
+  );
 }
 
 .beautify-main-tab {
@@ -748,7 +750,7 @@
 
 .beautify-phone-tab.is-active {
   color: #234b5c;
-  background: #fffef8;
+  background: #f7fdff;
   box-shadow: 0 2px 8px rgba(41, 78, 91, 0.09);
 }
 
@@ -969,7 +971,7 @@
   border: 1px solid rgba(47, 88, 104, 0.13);
   border-radius: 6px;
   color: #264e5d;
-  background: #fffef8;
+  background: #f7fdff;
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 800;
@@ -1130,7 +1132,7 @@
 .chat-view {
   background-color: var(--ice);
   background-image:
-    linear-gradient(180deg, rgba(255, 250, 231, 0.3), rgba(28, 57, 69, 0.28)),
+    linear-gradient(180deg, rgba(234, 248, 254, 0.22), rgba(28, 57, 69, 0.28)),
     var(--default-phone-wallpaper);
   background-position: center;
   background-repeat: no-repeat;
@@ -1140,7 +1142,7 @@
 .chat-view.has-custom-background {
   background-color: var(--ice);
   background-image:
-    linear-gradient(180deg, rgba(255, 250, 231, 0.3), rgba(28, 57, 69, 0.28)),
+    linear-gradient(180deg, rgba(234, 248, 254, 0.22), rgba(28, 57, 69, 0.28)),
     var(--chat-background-image);
   background-position: center;
   background-repeat: no-repeat;
@@ -1150,7 +1152,7 @@
 .chat-view.has-character-background {
   background-color: var(--ice);
   background-image:
-    linear-gradient(180deg, rgba(255, 250, 231, 0.3), rgba(28, 57, 69, 0.28)),
+    linear-gradient(180deg, rgba(234, 248, 254, 0.22), rgba(28, 57, 69, 0.28)),
     var(--character-chat-background-image);
   background-position: center;
   background-repeat: no-repeat;
@@ -1158,7 +1160,7 @@
 }
 
 .chat-view .chat-header {
-  background: rgba(255, 253, 247, 0.9);
+  background: var(--app-sky-blue-glass);
 }
 
 .chat-view .chat-scroll {
@@ -1166,7 +1168,7 @@
 }
 
 .chat-view .chat-composer {
-  background: rgba(255, 253, 247, 0.93);
+  background: var(--app-sky-blue-glass);
 }
 
 @media (max-width: 600px) {

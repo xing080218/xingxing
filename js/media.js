@@ -132,26 +132,27 @@
     });
   }
 
-  function resizeWallpaperToBlob(file, options = {}) {
+  function resizeContainedImageToBlob(file, options = {}) {
     const maxDimension = Number(options.maxDimension) || 1600;
     const quality = Number(options.quality) || 0.82;
+    const label = String(options.label || "壁纸");
 
     return new Promise((resolve, reject) => {
       if (!isBlob(file)) {
-        reject(new Error("壁纸文件无法读取。"));
+        reject(new Error(`${label}文件无法读取。`));
         return;
       }
 
       const reader = new FileReader();
-      reader.onerror = () => reject(new Error("壁纸读取失败。"));
+      reader.onerror = () => reject(new Error(`${label}读取失败。`));
       reader.onload = () => {
         const image = new Image();
-        image.onerror = () => reject(new Error("壁纸图片解析失败。"));
+        image.onerror = () => reject(new Error(`${label}图片解析失败。`));
         image.onload = () => {
           const width = Number(image.naturalWidth);
           const height = Number(image.naturalHeight);
           if (!width || !height) {
-            reject(new Error("壁纸图片尺寸无效。"));
+            reject(new Error(`${label}图片尺寸无效。`));
             return;
           }
 
@@ -161,7 +162,7 @@
           canvas.height = Math.max(1, Math.round(height * scale));
           const context = canvas.getContext("2d");
           if (!context) {
-            reject(new Error("浏览器无法处理壁纸图片。"));
+            reject(new Error(`浏览器无法处理${label}图片。`));
             return;
           }
           context.fillStyle = "#f5f2ea";
@@ -170,7 +171,7 @@
 
           const finish = (blob) => {
             if (!blob) {
-              reject(new Error("浏览器无法压缩壁纸图片。"));
+              reject(new Error(`浏览器无法压缩${label}图片。`));
               return;
             }
             resolve(blob);
@@ -192,6 +193,24 @@
     });
   }
 
+  function resizeWallpaperToBlob(file, options = {}) {
+    return resizeContainedImageToBlob(file, {
+      ...options,
+      maxDimension: Number(options.maxDimension) || 1600,
+      quality: Number(options.quality) || 0.82,
+      label: "壁纸",
+    });
+  }
+
+  function resizeMomentPhotoToBlob(file, options = {}) {
+    return resizeContainedImageToBlob(file, {
+      ...options,
+      maxDimension: Number(options.maxDimension) || 1800,
+      quality: Number(options.quality) || 0.84,
+      label: "朋友圈照片",
+    });
+  }
+
   window.PocketLabMedia = {
     isBlob,
     readAsDataUrl,
@@ -200,5 +219,6 @@
     revokeObjectUrl,
     resizeImageToBlob,
     resizeWallpaperToBlob,
+    resizeMomentPhotoToBlob,
   };
 })();

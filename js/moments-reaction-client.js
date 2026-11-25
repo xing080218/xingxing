@@ -37,7 +37,18 @@
   function buildMomentPrompt(character, moment) {
     const characterName = String(character?.name || "").trim();
     const content = String(moment?.content || "").trim();
-    if (!characterName || !content) return "";
+    const imageCount = Array.isArray(moment?.imageIds)
+      ? new Set(
+          moment.imageIds.filter(
+            (id) => typeof id === "string" && id.trim(),
+          ),
+        ).size
+      : 0;
+    if (!characterName || (!content && !imageCount)) return "";
+    const photoContext = imageCount
+      ? `动态包含 ${imageCount} 张照片；照片本身没有以文字形式传输，请只回应用户可见的文字信息，不要猜测或描述照片画面。`
+      : "";
+    const momentContext = content || "这条动态没有文字，只发布了照片。";
     return [
       `你正在扮演“${characterName}”，刚刚在朋友圈看到用户“我”发布了下面的动态。`,
       "请结合角色人设、世界书和本人设定，像日常使用社交软件一样自然地点赞并留下一句评论。",
@@ -45,8 +56,11 @@
       "只返回一个 JSON 对象，不要使用 Markdown 代码块，也不要添加解释。",
       '格式必须是：{"liked":true,"comment":"符合角色口吻的简短评论"}',
       "动态内容如下：",
-      content,
-    ].join("\n");
+      momentContext,
+      photoContext,
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 
   function buildRequestBody({
@@ -75,7 +89,7 @@
 
     const prompt = buildMomentPrompt(character, moment);
     if (!prompt) {
-      throw new Error("朋友圈请求缺少动态内容。");
+      throw new Error("朋友圈请求缺少动态文字或照片。");
     }
 
     const history = buildRecentContext(messages);

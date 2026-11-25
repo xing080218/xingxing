@@ -6,6 +6,10 @@
     isPublishing: false,
     loadSequence: 0,
     normalizeError: null,
+    photoController: null,
+    photoLoadingIds: new Set(),
+    photoResourceGeneration: 0,
+    photoResources: new Map(),
     posts: [],
     reactionService: null,
     retryingInteractions: new Set(),
@@ -20,7 +24,9 @@
       !elements.modal ||
       !elements.form ||
       !root.PocketLabMomentsStore ||
-      !root.PocketLabMomentsReactionService
+      !root.PocketLabMomentsReactionService ||
+      !root.PocketLabMomentsPhotoUI ||
+      !root.PocketLabMedia
     ) {
       throw new Error("朋友圈页面没有完成加载。");
     }
@@ -29,6 +35,39 @@
       typeof options.normalizeError === "function"
         ? options.normalizeError
         : null;
+    state.photoController =
+      root.PocketLabMomentsPhotoUI.createComposerController({
+        media: root.PocketLabMedia,
+        model: root.PocketLabMomentsModel,
+        input: elements["moments-photo-input"],
+        trigger: elements["add-moment-photos"],
+        preview: elements["moments-photo-preview"],
+        countLabel: elements["moments-photo-count"],
+        onChange: () => {
+          clearComposerError();
+          syncComposerActions();
+        },
+        onBusyChange: syncComposerActions,
+        onError: (description) => {
+          const title = description?.title || "照片处理失败";
+          const message =
+            description?.message || "浏览器没有返回照片处理失败的原因。";
+          const nextStep =
+            description?.nextStep ||
+            "换一张较小的 PNG、JPG 或 WebP 照片后重试。";
+          if (isComposerOpen()) {
+            showComposerError(title, message, nextStep);
+            return;
+          }
+          root.dispatchEvent(
+            new CustomEvent("pocketlab:toast", {
+              detail: {
+                message: `${title}：${message}`,
+              },
+            }),
+          );
+        },
+      });
     bindEvents();
     state.reactionService = root.PocketLabMomentsReactionService.create({
       model: root.PocketLabMomentsModel,
@@ -71,6 +110,10 @@
       "moments-composer-form",
       "moments-content",
       "moments-character-count",
+      "add-moment-photos",
+      "moments-photo-input",
+      "moments-photo-preview",
+      "moments-photo-count",
       "moments-form-error",
       "moments-form-error-title",
       "moments-form-error-message",
@@ -137,6 +180,7 @@
           return;
         }
         closeComposer({ force: true });
+        releaseAllPhotoResources();
       },
     );
   }
@@ -144,6 +188,7 @@
   async function refresh() {
     if (!state.initialized) return;
     const sequence = ++state.loadSequence;
+    releaseAllPhotoResources();
     renderLoading();
     try {
       const data = await root.PocketLabMomentsStore.load();
@@ -172,6 +217,7 @@
   function renderPosts() {
     setFeedBusy(false);
     if (!state.posts.length) {
+      prunePhotoResources([]);
       const empty = root.document.createElement("div");
       empty.className = "moments-state moments-empty";
       const mark = root.document.createElement("span");
@@ -187,8 +233,11 @@
       return;
     }
 
+    const activeImageIds = collectActiveImageIds();
+    prunePhotoResources(activeImageIds);
     const cards = state.posts.map(createPostCard);
     elements.feed.replaceChildren(...cards);
+    void ensurePhotoResources(activeImageIds);
   }
 
   function createPostCard(post) {
@@ -216,10 +265,24 @@
     identity.append(name, time);
     authorRow.append(avatar, identity);
 
-    const content = root.document.createElement("p");
-    content.className = "moment-content";
-    content.textContent = post.content;
-    article.append(authorRow, content);
+    article.append(authorRow);
+    if (post.content) {
+      const content = root.document.createElement("p");
+      content.className = "moment-content";
+      content.textContent = post.content;
+      article.append(content);
+    }
+
+    const photoGrid =
+      root.PocketLabMomentsPhotoUI.createFeedPhotoGrid(
+        post.imageIds,
+        state.photoResources,
+        {
+          media: root.PocketLabMedia,
+          model: root.PocketLabMomentsModel,
+        },
+      );
+    if (photoGrid) article.append(photoGrid);
 
     const interactions = createInteractionsPanel(post);
     if (interactions) article.append(interactions);
@@ -414,6 +477,102 @@
     }).format(date);
   }
 
+  function collectActiveImageIds() {
+    const active = new Set();
+    state.posts.forEach((post) => {
+      root.PocketLabMomentsModel.normalizeImageIds(post.imageIds).forEach(
+        (id) => active.add(id),
+      );
+    });
+    return [...active];
+  }
+
+  function prunePhotoResources(activeImageIds) {
+    const active = new Set(activeImageIds);
+    const unused = new Map();
+    state.photoResources.forEach((resource, id) => {
+      if (active.has(id)) return;
+      unused.set(id, resource);
+      state.photoResources.delete(id);
+    });
+    if (unused.size) {
+      root.PocketLabMomentsPhotoUI.releasePhotoResources(unused, {
+        media: root.PocketLabMedia,
+      });
+    }
+  }
+
+  function releaseAllPhotoResources() {
+    state.photoResourceGeneration += 1;
+    state.photoLoadingIds.clear();
+    root.PocketLabMomentsPhotoUI.releasePhotoResources(
+      state.photoResources,
+      {
+        media: root.PocketLabMedia,
+      },
+    );
+  }
+
+  async function ensurePhotoResources(imageIdsValue) {
+    const imageIds = root.PocketLabMomentsModel.normalizeImageResourceIds(
+      imageIdsValue,
+    );
+    const missing = imageIds.filter(
+      (id) =>
+        !state.photoResources.has(id) &&
+        !state.photoLoadingIds.has(id),
+    );
+    if (!missing.length) return;
+
+    const generation = state.photoResourceGeneration;
+    missing.forEach((id) => state.photoLoadingIds.add(id));
+    let loadedResources = new Map();
+    try {
+      loadedResources =
+        await root.PocketLabMomentsPhotoUI.loadPhotoResources(missing, {
+          media: root.PocketLabMedia,
+          model: root.PocketLabMomentsModel,
+          store: root.PocketLabMomentsStore,
+        });
+    } catch (error) {
+      missing.forEach((id) => {
+        loadedResources.set(id, {
+          url: "",
+          error,
+        });
+      });
+    } finally {
+      if (generation === state.photoResourceGeneration) {
+        missing.forEach((id) => state.photoLoadingIds.delete(id));
+      }
+    }
+
+    if (generation !== state.photoResourceGeneration) {
+      root.PocketLabMomentsPhotoUI.releasePhotoResources(
+        loadedResources,
+        {
+          media: root.PocketLabMedia,
+        },
+      );
+      return;
+    }
+
+    const active = new Set(collectActiveImageIds());
+    loadedResources.forEach((resource, id) => {
+      if (!active.has(id)) {
+        root.PocketLabMomentsPhotoUI.releasePhotoResources(
+          new Map([[id, resource]]),
+          {
+            media: root.PocketLabMedia,
+          },
+        );
+        return;
+      }
+      state.photoResources.set(id, resource);
+    });
+    renderPosts();
+  }
+
   function renderLoadError(error) {
     setFeedBusy(false);
     const description = describeStorageError(error, "读取朋友圈");
@@ -440,9 +599,11 @@
 
   function openComposer() {
     if (isComposerOpen()) return;
-    clearComposerError();
     elements.form.reset();
+    state.photoController?.clear();
+    clearComposerError();
     updateCharacterCount();
+    syncComposerActions();
     elements.modal.classList.remove("is-hidden");
     elements.modal.setAttribute("aria-hidden", "false");
     root.setTimeout(() => elements.textarea.focus(), 50);
@@ -454,6 +615,7 @@
     elements.modal.classList.add("is-hidden");
     elements.modal.setAttribute("aria-hidden", "true");
     clearComposerError();
+    clearComposerDraft();
     if (!options.force) {
       elements["publish-moment"]?.focus();
     }
@@ -468,15 +630,17 @@
 
   async function handlePublish(event) {
     event.preventDefault();
-    if (state.isPublishing) return;
-    const validation = root.PocketLabMomentsModel.validateContent(
+    if (state.isPublishing || state.photoController?.isBusy()) return;
+    const photos = state.photoController?.getPhotos() || [];
+    const validation = root.PocketLabMomentsModel.validateMoment(
       elements.textarea.value,
+      photos.map((photo) => photo.id),
     );
     if (!validation.ok) {
       showComposerError(
         "还不能发布",
         validation.error,
-        "内容需要为 1–2000 个字符；修改后再点“发布”。",
+        "可以填写文字、添加照片，或同时发布；照片最多 9 张，文字最多 2000 个字符。",
       );
       elements.textarea.focus();
       return;
@@ -485,7 +649,10 @@
     setPublishing(true);
     clearComposerError();
     try {
-      const result = await root.PocketLabMomentsStore.publish(validation.value);
+      const result = await root.PocketLabMomentsStore.publish(
+        validation.content,
+        photos,
+      );
       state.posts = result.data.moments;
       renderPosts();
       closeComposer({ force: true });
@@ -512,12 +679,29 @@
     state.isPublishing = Boolean(isPublishing);
     elements.form.setAttribute("aria-busy", String(state.isPublishing));
     elements.textarea.disabled = state.isPublishing;
-    elements["close-moments-composer"].disabled = state.isPublishing;
-    elements["cancel-moments-composer"].disabled = state.isPublishing;
-    elements["submit-moment"].disabled = state.isPublishing;
-    elements["submit-moment-label"].textContent = state.isPublishing
+    state.photoController?.setDisabled(state.isPublishing);
+    syncComposerActions();
+  }
+
+  function syncComposerActions() {
+    const publishing = state.isPublishing;
+    const processingPhotos = Boolean(state.photoController?.isBusy());
+    elements["close-moments-composer"].disabled = publishing;
+    elements["cancel-moments-composer"].disabled = publishing;
+    elements["submit-moment"].disabled =
+      publishing || processingPhotos;
+    elements["submit-moment-label"].textContent = publishing
       ? "发布中…"
-      : "发布";
+      : processingPhotos
+        ? "正在处理照片…"
+        : "发布";
+  }
+
+  function clearComposerDraft() {
+    elements.form.reset();
+    state.photoController?.clear();
+    updateCharacterCount();
+    syncComposerActions();
   }
 
   function handleContentInput() {

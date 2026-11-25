@@ -1,0 +1,367 @@
+.moments-feed-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 17px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #d7d9dd transparent;
+}
+
+.moments-feed {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.moment-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(210, 230, 240, 0.9);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 8px 20px rgba(80, 126, 148, 0.06);
+}
+
+.moment-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.moment-author-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  color: #3c7189;
+  background: linear-gradient(145deg, #f7fbff, #c9e8fa);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.moment-author-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.moment-author-copy strong {
+  overflow: hidden;
+  color: #2c5266;
+  font-size: 13px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moment-author-copy time {
+  color: #8aa3af;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.moment-content {
+  margin: 11px 1px 0;
+  overflow-wrap: anywhere;
+  color: #263e4b;
+  font-size: 14px;
+  line-height: 1.72;
+  white-space: pre-wrap;
+}
+
+.moment-interactions {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(193, 220, 232, 0.72);
+}
+
+.moment-likes {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  color: #4f7487;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.moment-like-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  color: #38738d;
+  background: #def4fd;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.moment-comments {
+  display: grid;
+  gap: 5px;
+}
+
+.moment-comment {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #334f5d;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.moment-comment strong {
+  margin-right: 6px;
+  color: #2e6b87;
+  font-size: 11px;
+}
+
+.moment-reactions-pending {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #648698;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.moment-reactions-pending::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #72b7d3;
+  content: "";
+  animation: moment-reaction-pulse 1.1s ease-in-out infinite;
+}
+
+.moment-reaction-error {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0 8px 10px;
+  border-left: 2px solid #d89b9b;
+  color: #714b4b;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 244, 244, 0.7),
+    rgba(255, 244, 244, 0)
+  );
+}
+
+.moment-reaction-error-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.moment-reaction-error-heading strong {
+  color: #704747;
+  font-size: 11px;
+}
+
+.moment-reaction-error-heading span {
+  flex: 0 0 auto;
+  color: #9a6565;
+  font-size: 9px;
+}
+
+.moment-reaction-error p,
+.moment-reaction-error small {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.moment-reaction-error small {
+  color: #866464;
+}
+
+.moment-reaction-error button {
+  justify-self: start;
+  min-width: 62px;
+  min-height: 30px;
+  margin-top: 2px;
+  padding: 0 12px;
+  border: 1px solid rgba(175, 101, 101, 0.28);
+  border-radius: 8px;
+  color: #815050;
+  background: rgba(255, 250, 250, 0.86);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.moment-reaction-error button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+@keyframes moment-reaction-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.moments-state {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 48px 18px;
+  color: #71848f;
+  text-align: center;
+}
+
+.moments-state strong {
+  color: #31576b;
+  font-size: 14px;
+}
+
+.moments-state p {
+  max-width: 250px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.moments-empty-mark {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 50%;
+  color: #4b7c92;
+  background: linear-gradient(145deg, #f8fcff, #cce9f9);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.moments-state-error button {
+  min-height: 38px;
+  margin-top: 4px;
+  padding: 0 18px;
+  border: 1px solid rgba(75, 145, 173, 0.24);
+  border-radius: 9px;
+  color: #376f88;
+  background: #e5f6fd;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.moments-composer-card {
+  max-width: 520px;
+}
+
+.moments-composer-note {
+  margin: -5px 0 13px;
+  color: #71838d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.moments-content-field textarea {
+  min-height: 154px;
+  resize: vertical;
+}
+
+.moments-content-meta {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 5px;
+  color: #82949e;
+  font-size: 10px;
+}
+
+.moments-content-meta .is-over-limit {
+  color: #b55858;
+}
+
+.moments-form-error {
+  margin: 11px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(198, 113, 113, 0.24);
+  border-radius: 10px;
+  color: #714848;
+  background: rgba(255, 244, 244, 0.82);
+}
+
+.moments-form-error strong {
+  display: block;
+  font-size: 12px;
+}
+
+.moments-form-error p,
+.moments-form-error small {
+  display: block;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.moments-form-error small {
+  color: #8a6262;
+}
+
+.moments-composer-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+  gap: 9px;
+  margin-top: 15px;
+}
+
+.moments-composer-actions button {
+  min-height: 44px;
+}
+
+@media (max-width: 600px) {
+  .moments-feed-scroll {
+    padding-right: calc(19px + env(safe-area-inset-right, 0px));
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(19px + env(safe-area-inset-left, 0px));
+  }
+
+  .moments-content-field textarea {
+    min-height: 166px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .moments-feed-scroll {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+
+  .moment-card {
+    padding: 13px;
+  }
+
+  .moment-interactions {
+    gap: 8px;
+  }
+
+  .moment-reaction-error-heading {
+    align-items: flex-start;
+  }
+}

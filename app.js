@@ -161,6 +161,10 @@ async function initializeApp() {
     });
     await window.PocketLabWorldBookApp.init();
     await window.PocketLabGroupChatEditor.init();
+    await window.PocketLabConversationTabs.init();
+    await window.PocketLabMomentsApp.init({
+      normalizeError: normalizeConnectionError,
+    });
     await window.PocketLabBeautify.init({
       onError: reportStorageError,
       onSaved: updateStorageUsage,
@@ -554,6 +558,9 @@ function showView(viewName, options = {}) {
   }
 
   if (viewName === "characters") {
+    window.PocketLabConversationTabs?.setActiveTab?.("chat", {
+      emit: false,
+    });
     renderCharacterList();
   }
 
@@ -1583,6 +1590,7 @@ async function importBackupFile(event) {
     await loadChatFromDatabase();
     await window.PocketLabWorldBookApp.refresh({ silent: true });
     await window.PocketLabGroupChatEditor.refresh();
+    await window.PocketLabMomentsApp.refresh();
     state.groupChats = await window.PocketLabStorage.listGroupChats();
     await window.PocketLabBeautify.reload();
     renderChat();
@@ -1607,7 +1615,23 @@ async function waitForPendingLocalSaves() {
     window.PocketLabBeautify && typeof window.PocketLabBeautify.flush === "function"
       ? window.PocketLabBeautify.flush()
       : Promise.resolve();
-  await Promise.all([messageSaveChain, characterSaveChain, appearanceSave]);
+  const momentsSave =
+    window.PocketLabMomentsStore &&
+    typeof window.PocketLabMomentsStore.waitForIdle === "function"
+      ? window.PocketLabMomentsStore.waitForIdle()
+      : Promise.resolve();
+  const momentsReactionWait =
+    window.PocketLabMomentsApp &&
+    typeof window.PocketLabMomentsApp.waitForIdle === "function"
+      ? window.PocketLabMomentsApp.waitForIdle()
+      : Promise.resolve();
+  await Promise.all([
+    messageSaveChain,
+    characterSaveChain,
+    appearanceSave,
+    momentsSave,
+    momentsReactionWait,
+  ]);
 }
 
 function readFileAsText(file) {

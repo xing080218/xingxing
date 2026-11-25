@@ -3306,6 +3306,10 @@ svg {
   transform: translateY(0);
 }
 
+.phone-screen:has(.character-list-view.is-active) .toast {
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
 .home-indicator {
   position: absolute;
   z-index: 45;

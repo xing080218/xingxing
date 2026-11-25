@@ -3,7 +3,7 @@
 ((root) => {
   const OPEN_CLASS = "is-app-opening";
   const OPEN_ANIMATION = "app-open-zoom";
-  const CLEANUP_DELAY_MS = 400;
+  const CLEANUP_FALLBACK_MS = 800;
 
   let activeTransition = null;
 
@@ -46,7 +46,7 @@
     view.classList.add(OPEN_CLASS);
     transition.timer = root.setTimeout(
       () => release(transition),
-      CLEANUP_DELAY_MS,
+      CLEANUP_FALLBACK_MS,
     );
   }
 

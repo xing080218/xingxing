@@ -21,7 +21,6 @@
   const LEGACY_SLOT_LIMIT = 64;
   const DOCK_MAX_APPS = 4;
   const DEFAULT_HOME_ORDER = Object.freeze([
-    "beautify",
     "guide",
     "chat",
     "sms",

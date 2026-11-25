@@ -17,21 +17,21 @@
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/assets/icons/favicon-32.png?v=20261125-18"
+      href="/assets/icons/favicon-32.png?v=20261125-21"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="64x64"
-      href="/assets/icons/favicon-64.png?v=20261125-18"
+      href="/assets/icons/favicon-64.png?v=20261125-21"
     />
     <link
       rel="apple-touch-icon"
       type="image/png"
       sizes="180x180"
-      href="/assets/icons/apple-touch-icon.png?v=20261125-18"
+      href="/assets/icons/apple-touch-icon.png?v=20261125-21"
     />
-    <link rel="manifest" href="/site.webmanifest?v=20261125-18" />
+    <link rel="manifest" href="/site.webmanifest?v=20261125-21" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -216,14 +216,16 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=20261125-18" />
-    <link rel="stylesheet" href="/world-book.css?v=20261125-18" />
-    <link rel="stylesheet" href="/beautify.css?v=20261125-18" />
-    <link rel="stylesheet" href="/self-profile.css?v=20261125-18" />
-    <link rel="stylesheet" href="/home-screen.css?v=20261125-18" />
-    <link rel="stylesheet" href="/group-chat.css?v=20261125-18" />
-    <link rel="stylesheet" href="/sms.css?v=20261125-18" />
-    <link rel="stylesheet" href="/sms-composer.css?v=20261125-18" />
+    <link rel="stylesheet" href="/styles.css?v=20261125-21" />
+    <link rel="stylesheet" href="/world-book.css?v=20261125-21" />
+    <link rel="stylesheet" href="/beautify.css?v=20261125-21" />
+    <link rel="stylesheet" href="/self-profile.css?v=20261125-21" />
+    <link rel="stylesheet" href="/home-screen.css?v=20261125-21" />
+    <link rel="stylesheet" href="/group-chat.css?v=20261125-21" />
+    <link rel="stylesheet" href="/sms.css?v=20261125-21" />
+    <link rel="stylesheet" href="/sms-composer.css?v=20261125-21" />
+    <link rel="stylesheet" href="/conversation-tabs.css?v=20261125-21" />
+    <link rel="stylesheet" href="/moments.css?v=20261125-21" />
   </head>
   <body>
     <aside
@@ -244,7 +246,7 @@
         </p>
         <div class="service-warning-actions">
           <button id="service-warning-retry" type="button">重新检查</button>
-          <a href="/mobile-check.html?v=20261125-18">连接检查页</a>
+          <a href="/mobile-check.html?v=20261125-21">连接检查页</a>
         </div>
       </div>
       <button
@@ -260,7 +262,7 @@
     <div class="bootstrap-status" id="bootstrap-status" role="status" aria-live="polite">
       <strong id="bootstrap-title">正在打开濴星语</strong>
       <span id="bootstrap-message">页面已开始加载，正在检查本地服务。</span>
-          <span class="bootstrap-build" id="bootstrap-build">启动版本 20261125-18</span>
+          <span class="bootstrap-build" id="bootstrap-build">启动版本 20261125-21</span>
       <ol class="bootstrap-steps" aria-label="启动检查">
         <li class="bootstrap-step" data-bootstrap-step="page" data-state="ok">
           <span class="bootstrap-step-marker" aria-hidden="true">1</span>
@@ -278,8 +280,8 @@
       <div class="bootstrap-actions">
         <button id="bootstrap-retry" type="button">重新加载</button>
         <button id="bootstrap-details-toggle" type="button" aria-expanded="false">显示诊断信息</button>
-          <a id="bootstrap-check-link" href="/mobile-check.html?v=20261125-18">连接检查页</a>
-          <a href="/connect.html?v=20261125-18">电脑连接入口</a>
+          <a id="bootstrap-check-link" href="/mobile-check.html?v=20261125-21">连接检查页</a>
+          <a href="/connect.html?v=20261125-21">电脑连接入口</a>
       </div>
       <pre class="bootstrap-details is-hidden" id="bootstrap-details" aria-label="启动诊断信息"></pre>
     </div>
@@ -802,14 +804,14 @@
                 </div>
               </section>
 
-              <section class="view character-list-view" id="character-list-view" aria-label="对话">
+              <section class="view character-list-view" id="character-list-view" aria-label="对话与朋友圈">
                 <header class="app-header character-list-header">
                   <button class="back-button" id="character-list-back" type="button" aria-label="返回主屏幕">
                     <span data-icon="chevron-left"></span>
                   </button>
                   <div>
-                    <p class="eyebrow" id="conversation-app-eyebrow">CHARACTERS</p>
-                    <h1 id="conversation-app-title">人物列表</h1>
+                    <p class="eyebrow" id="conversation-app-eyebrow">CHATS</p>
+                    <h1 id="conversation-app-title">对话</h1>
                   </div>
                   <div class="character-add-control">
                     <button
@@ -856,11 +858,73 @@
                       </button>
                     </div>
                   </div>
+                  <button
+                    class="conversation-publish-button is-hidden"
+                    id="publish-moment"
+                    type="button"
+                    aria-label="发布朋友圈"
+                    aria-haspopup="dialog"
+                    aria-controls="moments-composer-modal"
+                    title="发布朋友圈"
+                  >
+                    <span data-icon="plus"></span>
+                  </button>
                 </header>
 
-                <div class="character-list-scroll" id="character-list-scroll">
-                  <div class="character-list" id="character-list" role="list"></div>
+                <div class="conversation-tab-panels">
+                  <div
+                    class="conversation-tab-panel"
+                    id="conversation-chat-panel"
+                    data-conversation-panel="chat"
+                    role="tabpanel"
+                    aria-labelledby="conversation-chat-tab"
+                  >
+                    <div class="character-list-scroll" id="character-list-scroll">
+                      <div class="character-list" id="character-list" role="list"></div>
+                    </div>
+                  </div>
+
+                  <div
+                    class="conversation-tab-panel is-hidden"
+                    id="conversation-moments-panel"
+                    data-conversation-panel="moments"
+                    role="tabpanel"
+                    aria-labelledby="conversation-moments-tab"
+                    aria-hidden="true"
+                  >
+                    <div class="moments-feed-scroll" id="moments-feed-scroll">
+                      <div class="moments-feed" id="moments-feed" role="feed" aria-busy="true"></div>
+                    </div>
+                  </div>
                 </div>
+
+                <nav class="conversation-bottom-tabs" role="tablist" aria-label="对话应用分组">
+                  <button
+                    class="conversation-tab-button is-active"
+                    id="conversation-chat-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="conversation-chat-panel"
+                    data-conversation-tab="chat"
+                  >
+                    <span data-icon="message-circle"></span>
+                    <span>对话</span>
+                  </button>
+                  <button
+                    class="conversation-tab-button"
+                    id="conversation-moments-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="conversation-moments-panel"
+                    data-conversation-tab="moments"
+                    tabindex="-1"
+                  >
+                    <span data-icon="image-plus"></span>
+                    <span>朋友圈</span>
+                  </button>
+                </nav>
               </section>
 
               <section class="view chat-view" id="chat-view" aria-label="角色聊天">
@@ -1866,6 +1930,73 @@
               </div>
             </div>
 
+              <div
+                class="character-modal moments-composer-modal is-hidden"
+                id="moments-composer-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="moments-composer-title"
+                aria-hidden="true"
+              >
+                <div class="character-modal-card moments-composer-card">
+                  <div class="character-modal-header">
+                    <div>
+                      <p class="eyebrow">NEW MOMENT</p>
+                      <h2 id="moments-composer-title">发布朋友圈</h2>
+                    </div>
+                    <button
+                      class="round-icon-button modal-close-button"
+                      id="close-moments-composer"
+                      type="button"
+                      aria-label="关闭朋友圈发布"
+                    >
+                      <span data-icon="x"></span>
+                    </button>
+                  </div>
+
+                  <form id="moments-composer-form" novalidate>
+                    <p class="moments-composer-note">写下此刻想分享的内容，发布后会保存在本机。</p>
+                    <label class="field moments-content-field">
+                      <span class="field-label">
+                        <span data-icon="pen-line"></span>
+                        朋友圈内容
+                      </span>
+                      <textarea
+                        id="moments-content"
+                        rows="7"
+                        autocomplete="off"
+                        placeholder="今天想记录什么？"
+                        aria-describedby="moments-character-count"
+                        required
+                      ></textarea>
+                      <span class="moments-content-meta">
+                        <span id="moments-character-count">0 / 2000</span>
+                      </span>
+                    </label>
+
+                    <div
+                      class="moments-form-error is-hidden"
+                      id="moments-form-error"
+                      role="alert"
+                    >
+                      <strong id="moments-form-error-title">发布失败</strong>
+                      <p id="moments-form-error-message"></p>
+                      <small id="moments-form-error-next"></small>
+                    </div>
+
+                    <div class="moments-composer-actions">
+                      <button class="secondary-button" id="cancel-moments-composer" type="button">取消</button>
+                      <button class="primary-button" id="submit-moment" type="submit">
+                        <span class="button-label">
+                          <span data-icon="check"></span>
+                          <span id="submit-moment-label">发布</span>
+                        </span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
             <div class="toast" id="toast" role="status" aria-live="polite"></div>
             <div class="home-indicator" aria-hidden="true"></div>
           </div>
@@ -1877,36 +2008,40 @@
       </section>
     </main>
 
-    <script src="/js/character-profile.js?v=20261125-18" defer></script>
-    <script src="/js/settings-store.js?v=20261125-18" defer></script>
-    <script src="/js/media.js?v=20261125-18" defer></script>
-    <script src="/js/world-book-model.js?v=20261125-18" defer></script>
-    <script src="/js/group-chat-model.js?v=20261125-18" defer></script>
-    <script src="/js/self-profile-model.js?v=20261125-18" defer></script>
-    <script src="/js/storage.js?v=20261125-18" defer></script>
-    <script src="/js/home-screen-model.js?v=20261125-18" defer></script>
-    <script src="/js/home-screen-store.js?v=20261125-18" defer></script>
-    <script src="/js/home-screen-app.js?v=20261125-18" defer></script>
-    <script src="/js/self-profile-app.js?v=20261125-18" defer></script>
-    <script src="/js/sms-model.js?v=20261125-18" defer></script>
-    <script src="/js/sms-store.js?v=20261125-18" defer></script>
-    <script src="/js/sms-client.js?v=20261125-18" defer></script>
-    <script src="/js/sms-reply-service.js?v=20261125-18" defer></script>
-    <script src="/js/sms-renderer.js?v=20261125-18" defer></script>
-    <script src="/js/sms-app.js?v=20261125-18" defer></script>
-    <script src="/js/appearance-store.js?v=20261125-18" defer></script>
-    <script src="/js/backup.js?v=20261125-18" defer></script>
-    <script src="/bootstrap.js?v=20261125-18" defer></script>
-    <script src="/js/lock-password-store.js?v=20261125-18" defer></script>
-    <script src="/js/lock-screen.js?v=20261125-18" defer></script>
-    <script src="/js/beautify.js?v=20261125-18" defer></script>
-    <script src="/js/chat-summary-mode.js?v=20261125-18" defer></script>
-    <script src="/js/reply-reveal.js?v=20261125-18" defer></script>
-    <script src="/js/world-book-app.js?v=20261125-18" defer></script>
-    <script src="/js/chat-list-model.js?v=20261125-18" defer></script>
-    <script src="/js/group-chat-editor.js?v=20261125-18" defer></script>
-    <script src="/js/app-transition.js?v=20261125-18" defer></script>
-    <script src="/app.js?v=20261125-18" defer></script>
+    <script src="/js/character-profile.js?v=20261125-21" defer></script>
+    <script src="/js/settings-store.js?v=20261125-21" defer></script>
+    <script src="/js/media.js?v=20261125-21" defer></script>
+    <script src="/js/world-book-model.js?v=20261125-21" defer></script>
+    <script src="/js/group-chat-model.js?v=20261125-21" defer></script>
+    <script src="/js/self-profile-model.js?v=20261125-21" defer></script>
+    <script src="/js/storage.js?v=20261125-21" defer></script>
+    <script src="/js/home-screen-model.js?v=20261125-21" defer></script>
+    <script src="/js/home-screen-store.js?v=20261125-21" defer></script>
+    <script src="/js/home-screen-app.js?v=20261125-21" defer></script>
+    <script src="/js/self-profile-app.js?v=20261125-21" defer></script>
+    <script src="/js/sms-model.js?v=20261125-21" defer></script>
+    <script src="/js/sms-store.js?v=20261125-21" defer></script>
+    <script src="/js/sms-client.js?v=20261125-21" defer></script>
+    <script src="/js/sms-reply-service.js?v=20261125-21" defer></script>
+    <script src="/js/sms-renderer.js?v=20261125-21" defer></script>
+    <script src="/js/sms-app.js?v=20261125-21" defer></script>
+    <script src="/js/appearance-store.js?v=20261125-21" defer></script>
+    <script src="/js/backup.js?v=20261125-21" defer></script>
+    <script src="/bootstrap.js?v=20261125-21" defer></script>
+    <script src="/js/lock-password-store.js?v=20261125-21" defer></script>
+    <script src="/js/lock-screen.js?v=20261125-21" defer></script>
+    <script src="/js/beautify.js?v=20261125-21" defer></script>
+    <script src="/js/chat-summary-mode.js?v=20261125-21" defer></script>
+    <script src="/js/reply-reveal.js?v=20261125-21" defer></script>
+    <script src="/js/world-book-app.js?v=20261125-21" defer></script>
+    <script src="/js/chat-list-model.js?v=20261125-21" defer></script>
+    <script src="/js/group-chat-editor.js?v=20261125-21" defer></script>
+    <script src="/js/moments-model.js?v=20261125-21" defer></script>
+    <script src="/js/moments-store.js?v=20261125-21" defer></script>
+    <script src="/js/conversation-tabs.js?v=20261125-21" defer></script>
+    <script src="/js/moments-app.js?v=20261125-21" defer></script>
+    <script src="/js/app-transition.js?v=20261125-21" defer></script>
+    <script src="/app.js?v=20261125-21" defer></script>
     <noscript>
       <div class="bootstrap-status bootstrap-status-error">
         <strong>浏览器没有启用 JavaScript</strong>

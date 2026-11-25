@@ -1,0 +1,132 @@
+.conversation-tab-panels {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.conversation-tab-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.conversation-bottom-tabs {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px 24px 17px;
+  border-top: 1px solid rgba(146, 194, 218, 0.34);
+  background: rgba(240, 251, 255, 0.82);
+  box-shadow: 0 -8px 20px rgba(83, 134, 158, 0.06);
+  backdrop-filter: blur(18px);
+}
+
+.conversation-tab-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #7294a5;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.conversation-tab-button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.9;
+}
+
+.conversation-tab-button:hover {
+  color: #47788f;
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.conversation-tab-button.is-active {
+  border-color: rgba(197, 227, 239, 0.88);
+  color: #356f8a;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.conversation-tab-button:active {
+  transform: scale(0.98);
+}
+
+.conversation-tab-button:focus-visible {
+  outline: 2px solid rgba(83, 157, 187, 0.42);
+  outline-offset: 1px;
+}
+
+.conversation-publish-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 37px;
+  width: 37px;
+  height: 37px;
+  padding: 0;
+  border: 1px solid #d5f3f3;
+  border-radius: 12px;
+  color: #80c9d7;
+  background: #dcfeff;
+  cursor: pointer;
+}
+
+.conversation-publish-button:hover {
+  border-color: #bfe8ec;
+  color: #6fbecd;
+  background: #d2f8fa;
+}
+
+.conversation-publish-button:focus-visible {
+  outline: 2px solid rgba(128, 201, 215, 0.42);
+  outline-offset: 2px;
+}
+
+.conversation-publish-button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+
+@media (max-width: 600px) {
+  .conversation-bottom-tabs {
+    padding-right: calc(24px + env(safe-area-inset-right, 0px));
+    padding-bottom: calc(17px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(24px + env(safe-area-inset-left, 0px));
+  }
+
+  .conversation-publish-button {
+    flex-basis: 42px;
+    width: 42px;
+    height: 42px;
+  }
+}
+
+@media (max-width: 360px) {
+  .conversation-bottom-tabs {
+    gap: 6px;
+    padding-right: calc(18px + env(safe-area-inset-right, 0px));
+    padding-left: calc(18px + env(safe-area-inset-left, 0px));
+  }
+}

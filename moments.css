@@ -74,6 +74,64 @@
   white-space: pre-wrap;
 }
 
+.moment-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  width: min(100%, 330px);
+  margin-top: 10px;
+}
+
+.moment-photo-grid[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+  width: min(100%, 280px);
+}
+
+.moment-photo-grid[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 270px);
+}
+
+.moment-photo-grid[data-count="4"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 280px);
+}
+
+.moment-photo-tile {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #e5f3f8;
+}
+
+.moment-photo-grid[data-count="1"] .moment-photo-tile {
+  aspect-ratio: 4 / 3;
+}
+
+.moment-photo-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.moment-photo-failure {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  color: #78929e;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72), transparent),
+    #dceef5;
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: center;
+}
+
 .moment-interactions {
   display: grid;
   gap: 9px;
@@ -294,6 +352,104 @@
 
 .moments-content-meta .is-over-limit {
   color: #b55858;
+}
+
+.moments-photo-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 10px;
+}
+
+.moments-photo-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.moments-photo-count {
+  flex: 0 0 auto;
+  color: #78909c;
+  font-size: 10px;
+}
+
+.moments-photo-count.is-at-limit {
+  color: #3d7e99;
+  font-weight: 700;
+}
+
+.moments-add-photo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgba(92, 157, 183, 0.25);
+  border-radius: 9px;
+  color: #3d7188;
+  background: rgba(231, 247, 253, 0.88);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.moments-add-photo-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.moment-photo-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  min-width: 0;
+}
+
+.moment-photo-preview.is-empty {
+  display: none;
+}
+
+.moment-photo-preview-item {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  margin: 0;
+  border-radius: 8px;
+  background: #e5f3f8;
+}
+
+.moment-photo-preview-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.moment-photo-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(30, 52, 62, 0.72);
+  font: 700 17px/1 "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.moment-photo-remove:disabled {
+  cursor: wait;
+  opacity: 0.5;
 }
 
 .moments-form-error {

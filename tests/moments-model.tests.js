@@ -23,6 +23,48 @@ function runTests() {
     "The limit must count Unicode characters instead of UTF-16 units.",
   );
 
+  const nineImageIds = Array.from(
+    { length: model.MAX_IMAGE_COUNT },
+    (_, index) => `photo-${index + 1}`,
+  );
+  const twelveImageIds = Array.from(
+    { length: model.MAX_IMAGE_COUNT + 3 },
+    (_, index) => `photo-${index + 1}`,
+  );
+  assert.deepEqual(
+    model.normalizeImageResourceIds(twelveImageIds),
+    twelveImageIds,
+    "Loading photos across multiple Moments must not apply the per-Moment photo limit.",
+  );
+  assert.deepEqual(
+    model.normalizeImageIds(twelveImageIds),
+    nineImageIds,
+    "Each individual Moment must still keep at most nine photo IDs.",
+  );
+  const photoOnlyValidation = model.validateMoment("", nineImageIds);
+  assert.equal(
+    photoOnlyValidation.ok,
+    true,
+    "A Moment with photos and no text must be valid.",
+  );
+  assert.equal(photoOnlyValidation.content, "");
+  assert.equal(photoOnlyValidation.imageIds.length, model.MAX_IMAGE_COUNT);
+  assert.equal(
+    model.validateMoment("", [...nineImageIds, "photo-10"]).ok,
+    false,
+    "A Moment with more than nine photos must be rejected.",
+  );
+  assert.deepEqual(
+    model.validateMoment("", ["photo-a", "photo-a", "photo-b"]).imageIds,
+    ["photo-a", "photo-b"],
+    "Duplicate photo IDs must be removed in stable order.",
+  );
+  assert.equal(
+    model.validateMoment("有文字也有照片", ["photo-a"]).ok,
+    true,
+    "A Moment with text and photos must remain valid.",
+  );
+
   const first = model.createMoment("第一条朋友圈", {
     id: "moment-1",
     now: 1000,
@@ -39,6 +81,24 @@ function runTests() {
     "New Moments must be shown first.",
   );
 
+  const photoOnlyMoment = model.createMoment("", {
+    id: "moment-photo-only",
+    imageIds: ["photo-only-a", "photo-only-b"],
+    now: 2500,
+  });
+  assert.equal(photoOnlyMoment.content, "");
+  assert.deepEqual(photoOnlyMoment.imageIds, [
+    "photo-only-a",
+    "photo-only-b",
+  ]);
+  const mixedMoment = model.createMoment("混合动态", {
+    id: "moment-mixed",
+    imageIds: ["photo-mixed"],
+    now: 2600,
+  });
+  assert.equal(mixedMoment.content, "混合动态");
+  assert.deepEqual(mixedMoment.imageIds, ["photo-mixed"]);
+
   const unsafeText = "<script>alert('xss')</script>\n第二行";
   assert.equal(
     model.createMoment(unsafeText, {
@@ -54,14 +114,37 @@ function runTests() {
       { id: "one", content: "旧", createdAt: 10, updatedAt: 10 },
       { id: "one", content: "重复", createdAt: 20, updatedAt: 20 },
       { id: "", content: "没有编号", createdAt: 30, updatedAt: 30 },
-      { id: "two", content: "新", createdAt: 40, updatedAt: 40 },
+      {
+        id: "two",
+        content: "新",
+        imageIds: ["photo-two", "photo-two"],
+        createdAt: 40,
+        updatedAt: 40,
+      },
+      {
+        id: "photo-only",
+        content: "",
+        imageIds: ["photo-only"],
+        createdAt: 50,
+        updatedAt: 50,
+      },
     ],
   });
   assert.deepEqual(
     normalized.moments.map((moment) => moment.id),
-    ["two", "one"],
+    ["photo-only", "two", "one"],
   );
   assert.equal(normalized.version, model.VERSION);
+  assert.deepEqual(
+    normalized.moments.find((moment) => moment.id === "two").imageIds,
+    ["photo-two"],
+    "Stored photo IDs must be normalized and deduplicated.",
+  );
+  assert.deepEqual(
+    normalized.moments.find((moment) => moment.id === "one").imageIds,
+    [],
+    "Legacy text Moments must receive an empty photo list.",
+  );
   assert.deepEqual(
     normalized.moments.find((moment) => moment.id === "one").interactions,
     [],
@@ -161,7 +244,7 @@ function runTests() {
 
   assert.throws(
     () => model.createMoment("   "),
-    /请写一点想发布的内容/,
+    /请写一点想发布的内容，或添加至少一张照片/,
     "Creating an empty Moment must fail with a useful message.",
   );
 

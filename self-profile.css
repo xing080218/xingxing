@@ -6,9 +6,9 @@
 
 .self-profile-view {
   background:
-    radial-gradient(circle at 100% 0, rgba(255, 225, 159, 0.28), transparent 40%),
-    radial-gradient(circle at 0 100%, rgba(162, 214, 232, 0.32), transparent 48%),
-    var(--paper);
+    radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.62), transparent 40%),
+    radial-gradient(circle at 0 100%, rgba(162, 214, 232, 0.26), transparent 48%),
+    var(--app-sky-blue);
 }
 
 .self-profile-header {
@@ -55,7 +55,7 @@
   height: 37px;
   border-radius: 12px;
   color: #4e6571;
-  background: linear-gradient(145deg, #fff0bd, #d5edf7);
+  background: linear-gradient(145deg, #f7fdff, #d5edf7);
 }
 
 .self-profile-intro-icon svg {
@@ -142,7 +142,7 @@
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: rgba(255, 253, 248, 0.86);
+  background: rgba(255, 255, 255, 0.76);
   box-shadow: 0 6px 16px rgba(52, 72, 64, 0.055);
 }
 
@@ -166,7 +166,7 @@
   height: 40px;
   border-radius: 13px;
   color: #4c6170;
-  background: linear-gradient(145deg, #fff0bd, #d2ebf5);
+  background: linear-gradient(145deg, #f7fdff, #d2ebf5);
   font-size: 15px;
   font-weight: 800;
 }
@@ -241,7 +241,7 @@
 }
 
 .self-profile-card-actions button:hover:not(:disabled) {
-  background: #fffdf8;
+  background: #f2fbff;
 }
 
 .self-profile-card-actions .self-profile-current-action {
@@ -264,7 +264,7 @@
   border: 1px dashed rgba(52, 87, 76, 0.27);
   border-radius: 14px;
   color: var(--ink-soft);
-  background: rgba(255, 253, 248, 0.56);
+  background: var(--app-sky-blue-glass-soft);
   text-align: center;
 }
 

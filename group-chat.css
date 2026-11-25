@@ -219,7 +219,7 @@
   padding: 17px;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 19px;
-  background: var(--paper);
+  background: var(--app-sky-blue);
   box-shadow: 0 24px 55px rgba(10, 21, 16, 0.32);
 }
 

@@ -848,7 +848,7 @@ svg {
 
 .settings-section-title {
   max-width: 100%;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -856,7 +856,7 @@ svg {
 
 .settings-section-subtitle {
   color: rgba(35, 70, 92, 0.58);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -3511,7 +3511,7 @@ svg {
   }
 
   .settings-section-title {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .settings-connection-intro .settings-api-status {
@@ -3767,11 +3767,11 @@ svg {
   }
 
   .settings-section-title {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .settings-section-subtitle {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .settings-menu {

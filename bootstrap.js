@@ -1,7 +1,7 @@
 "use strict";
 
 (() => {
-  const BUILD = "20261125-06";
+  const BUILD = "20261125-07";
   const HEALTH_TIMEOUT_MS = 6500;
   const APP_START_TIMEOUT_MS = 9000;
 

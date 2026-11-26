@@ -24,6 +24,8 @@
   ]);
   const PRIMARY_CHARACTER_ID = "primary-character";
   const MIGRATION_META_KEY = "legacy-local-storage-migration";
+  const CHARACTER_LIST_INITIALIZED_META_KEY =
+    "character-list-initialized";
   const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
   const MAX_TOTAL_IMAGE_BYTES = 100 * 1024 * 1024;
 
@@ -584,6 +586,135 @@
     return saved;
   }
 
+  async function deleteCharacter(characterId) {
+    const id = requireStableId(characterId, "角色");
+    const deletionModel = window.PocketLabCharacterDeletionModel;
+    if (!deletionModel) {
+      throw new Error("角色删除组件没有完成加载，请刷新页面后重试。");
+    }
+
+    const character = await getCharacter(id);
+    if (!character) {
+      throw new Error(
+        "要删除的角色已经不存在。请关闭编辑器并刷新角色列表。",
+      );
+    }
+
+    await runWriteTransaction(
+      [
+        STORES.characters,
+        STORES.messages,
+        STORES.memories,
+        STORES.groupChats,
+        STORES.appData,
+      ],
+      (transaction) => {
+        transaction.objectStore(STORES.characters).delete(id);
+
+        const messageStore = transaction.objectStore(STORES.messages);
+        const messageCursorRequest = messageStore
+          .index("by-character")
+          .openKeyCursor(IDBKeyRange.only(id));
+        messageCursorRequest.onsuccess = () => {
+          const cursor = messageCursorRequest.result;
+          if (!cursor) return;
+          messageStore.delete(cursor.primaryKey);
+          cursor.continue();
+        };
+
+        const memoryStore = transaction.objectStore(STORES.memories);
+        const memoryCursorRequest = memoryStore.openCursor();
+        memoryCursorRequest.onsuccess = () => {
+          const cursor = memoryCursorRequest.result;
+          if (!cursor) return;
+          if (
+            cursor.value &&
+            typeof cursor.value.characterId === "string" &&
+            cursor.value.characterId.trim() === id
+          ) {
+            cursor.delete();
+          }
+          cursor.continue();
+        };
+
+        const groupChatStore = transaction.objectStore(STORES.groupChats);
+        const groupChatCursorRequest = groupChatStore.openCursor();
+        groupChatCursorRequest.onsuccess = () => {
+          const cursor = groupChatCursorRequest.result;
+          if (!cursor) return;
+          const [nextRecord] =
+            deletionModel.removeCharacterFromGroupChats(
+              [cursor.value],
+              id,
+            );
+          if (nextRecord !== cursor.value) {
+            cursor.update(nextRecord);
+          }
+          cursor.continue();
+        };
+
+        const appDataStore = transaction.objectStore(STORES.appData);
+        const smsRequest = appDataStore.get(
+          deletionModel.SMS_APP_DATA_ID,
+        );
+        smsRequest.onsuccess = () => {
+          const record = smsRequest.result;
+          if (!record) return;
+          const nextData =
+            deletionModel.removeCharacterFromSmsData(record.data, id);
+          if (nextData === record.data) return;
+          appDataStore.put({
+            ...record,
+            data: nextData,
+            updatedAt: Date.now(),
+          });
+        };
+
+        const momentsRequest = appDataStore.get(
+          deletionModel.MOMENTS_APP_DATA_ID,
+        );
+        momentsRequest.onsuccess = () => {
+          const record = momentsRequest.result;
+          if (!record) return;
+          const nextData =
+            deletionModel.removeCharacterFromMomentData(record.data, id);
+          if (nextData === record.data) return;
+          appDataStore.put({
+            ...record,
+            data: nextData,
+            updatedAt: Date.now(),
+          });
+        };
+      },
+    );
+
+    const imageIds = [
+      character.avatarId,
+      character.chatBackgroundImageId,
+    ].filter(
+      (imageId, index, records) =>
+        typeof imageId === "string" &&
+        imageId.trim() &&
+        records.indexOf(imageId) === index,
+    );
+    const imageCleanupErrors = [];
+    for (const imageId of imageIds) {
+      try {
+        await deleteImageIfUnused(imageId);
+      } catch (error) {
+        imageCleanupErrors.push({
+          imageId,
+          error,
+        });
+      }
+    }
+
+    return {
+      character,
+      imageCleanupErrors,
+    };
+  }
+
   function normalizeMessageOrder(messages) {
     return messages.map((message, index) => ({
       ...message,
@@ -991,7 +1122,9 @@
 
   async function importRecords(input) {
     const records = prepareImportRecords(input);
-    await runWriteTransaction(USER_DATA_STORES, (transaction) => {
+    await runWriteTransaction(
+      [...USER_DATA_STORES, STORES.meta],
+      (transaction) => {
       USER_DATA_STORES.forEach((storeName) => {
         transaction.objectStore(storeName).clear();
       });
@@ -1016,7 +1149,13 @@
       records.images.forEach((record) => {
         transaction.objectStore(STORES.images).put(record);
       });
-    });
+        transaction.objectStore(STORES.meta).put({
+          key: CHARACTER_LIST_INITIALIZED_META_KEY,
+          value: true,
+          updatedAt: Date.now(),
+        });
+      },
+    );
 
     return {
       characters: records.characters.length,
@@ -1285,12 +1424,15 @@
     stores: STORES,
     primaryCharacterId: PRIMARY_CHARACTER_ID,
     migrationMetaKey: MIGRATION_META_KEY,
+    characterListInitializedMetaKey:
+      CHARACTER_LIST_INITIALIZED_META_KEY,
     open,
     createId,
     readAll,
     getCharacter,
     listCharacters,
     saveCharacter,
+    deleteCharacter,
     getGroupChat,
     listGroupChats,
     saveGroupChat,

@@ -1844,6 +1844,15 @@
 
                     <div class="character-form-actions">
                       <button class="secondary-button" id="cancel-character" type="button">取消</button>
+                      <button
+                        class="delete-character-button is-hidden"
+                        id="delete-character-button"
+                        type="button"
+                        aria-label="删除角色"
+                        title="删除角色"
+                      >
+                        <span data-icon="trash-2"></span>
+                      </button>
                       <button class="primary-button" id="save-character" type="submit">
                         <span class="button-label">
                           <span data-icon="check"></span>
@@ -1852,6 +1861,40 @@
                       </button>
                     </div>
                   </form>
+                </div>
+
+                <div
+                  class="delete-character-confirm is-hidden"
+                  id="delete-character-confirm"
+                  role="alertdialog"
+                  aria-modal="true"
+                  aria-labelledby="delete-character-confirm-title"
+                  aria-describedby="delete-character-confirm-message"
+                >
+                  <div class="delete-character-confirm-card">
+                    <div class="delete-character-confirm-heading">
+                      <span class="delete-character-confirm-icon" data-icon="trash-2" aria-hidden="true"></span>
+                      <div>
+                        <p class="eyebrow">DELETE CHARACTER</p>
+                        <h2 id="delete-character-confirm-title">删除这个角色？</h2>
+                      </div>
+                    </div>
+                    <p class="delete-character-confirm-message" id="delete-character-confirm-message"></p>
+                    <div class="delete-character-confirm-error is-hidden" id="delete-character-confirm-error" role="alert">
+                      <strong id="delete-character-confirm-error-title"></strong>
+                      <p id="delete-character-confirm-error-message"></p>
+                      <p id="delete-character-confirm-error-next"></p>
+                    </div>
+                    <div class="delete-character-confirm-actions">
+                      <button class="secondary-button" id="cancel-delete-character" type="button">取消</button>
+                      <button class="danger-button" id="confirm-delete-character" type="button">
+                        <span class="button-label">
+                          <span data-icon="trash-2"></span>
+                          <span id="delete-character-confirm-label">删除角色</span>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2060,6 +2103,7 @@
     <script src="/js/world-book-model.js?v=20261126-01" defer></script>
     <script src="/js/group-chat-model.js?v=20261126-01" defer></script>
     <script src="/js/self-profile-model.js?v=20261126-01" defer></script>
+    <script src="/js/character-deletion-model.js?v=20261126-01" defer></script>
     <script src="/js/storage.js?v=20261126-01" defer></script>
     <script src="/js/home-screen-model.js?v=20261126-01" defer></script>
     <script src="/js/home-screen-store.js?v=20261126-01" defer></script>

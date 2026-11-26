@@ -85,6 +85,12 @@ const defaultCharacter = {
   avatarUrl: "",
   chatBackgroundUrl: "",
 };
+const emptyCharacter = Object.freeze({
+  ...defaultCharacter,
+  id: "",
+  name: "未选择角色",
+  persona: "",
+});
 
 const chatBatchLimits = {
   maxMessages: 20,
@@ -106,13 +112,14 @@ const state = {
   characters: [],
   groupChats: [],
   worldBooks: [],
-  activeCharacterId: defaultCharacter.id,
+  activeCharacterId: "",
   character: {
-    ...defaultCharacter,
+    ...emptyCharacter,
   },
   messages: [],
   isReplying: false,
   isSwitchingCharacter: false,
+  isDeletingCharacter: false,
   replyReveal: {
     messageId: "",
     visibleCount: 0,
@@ -127,7 +134,7 @@ const state = {
   chatBackgroundDraftUrl: "",
   chatBackgroundDraftOwnsUrl: false,
   characterEditorMode: "edit",
-  editingCharacterId: defaultCharacter.id,
+  editingCharacterId: "",
   localDataStatusKind: "idle",
   localDataErrorSource: "",
 };
@@ -309,6 +316,16 @@ function cacheElements() {
     "cancel-character",
     "save-character",
     "save-character-label",
+    "delete-character-button",
+    "delete-character-confirm",
+    "cancel-delete-character",
+    "confirm-delete-character",
+    "delete-character-confirm-label",
+    "delete-character-confirm-message",
+    "delete-character-confirm-error",
+    "delete-character-confirm-error-title",
+    "delete-character-confirm-error-message",
+    "delete-character-confirm-error-next",
     "export-backup",
     "import-backup",
     "backup-file",
@@ -423,8 +440,33 @@ function bindEvents() {
   elements["close-character-modal"].addEventListener("click", closeCharacterEditor);
   elements["cancel-character"].addEventListener("click", closeCharacterEditor);
   elements["character-modal"].addEventListener("click", (event) => {
-    if (event.target === elements["character-modal"]) closeCharacterEditor();
+    if (
+      event.target === elements["character-modal"] &&
+      !isDeleteCharacterConfirmOpen()
+    ) {
+      closeCharacterEditor();
+    }
   });
+  elements["delete-character-button"].addEventListener(
+    "click",
+    openDeleteCharacterConfirm,
+  );
+  elements["cancel-delete-character"].addEventListener(
+    "click",
+    closeDeleteCharacterConfirm,
+  );
+  elements["confirm-delete-character"].addEventListener(
+    "click",
+    deleteEditingCharacter,
+  );
+  elements["delete-character-confirm"].addEventListener(
+    "click",
+    (event) => {
+      if (event.target === elements["delete-character-confirm"]) {
+        closeDeleteCharacterConfirm();
+      }
+    },
+  );
   elements["character-form"].addEventListener("submit", saveCharacter);
   elements["avatar-file"].addEventListener("change", handleAvatarFile);
   elements["clear-avatar"].addEventListener("click", clearAvatarDraft);
@@ -463,6 +505,11 @@ function bindEvents() {
       document.querySelectorAll("details.message-menu[open]").forEach((menu) => {
         menu.removeAttribute("open");
       });
+      if (state.isDeletingCharacter) return;
+      if (isDeleteCharacterConfirmOpen()) {
+        closeDeleteCharacterConfirm();
+        return;
+      }
       if (!elements["character-modal"].classList.contains("is-hidden")) {
         closeCharacterEditor();
       }
@@ -501,7 +548,9 @@ function bindEvents() {
     clearFieldError("character-name");
     applyAvatar(
       elements["character-avatar-preview"],
-      elements["character-name"].value || state.character.name,
+      elements["character-name"].value ||
+        state.character?.name ||
+        "新角色",
       state.avatarDraftUrl,
     );
   });
@@ -523,6 +572,10 @@ function bindEvents() {
 }
 
 function showView(viewName, options = {}) {
+  if (viewName === "chat" && !state.activeCharacterId) {
+    showToast("还没有可聊天的角色，请先创建角色。");
+    viewName = "characters";
+  }
   const previousView = state.activeView;
   if (
     viewName !== "home" &&
@@ -1197,7 +1250,8 @@ async function restoreChat() {
   } catch (error) {
     if (!migrationError) migrationError = error;
     releaseCharacterAvatar();
-    state.character = createDefaultCharacter();
+    state.activeCharacterId = "";
+    state.character = createEmptyCharacter();
     state.messages = [];
   }
 
@@ -1263,15 +1317,46 @@ async function restoreChat() {
 
 async function loadChatFromDatabase() {
   let savedCharacters = await window.PocketLabStorage.listCharacters();
-  const worldBooks = await window.PocketLabStorage.listWorldBooks();
-  if (!savedCharacters.length) {
+  const [worldBooks, characterListInitialized] = await Promise.all([
+    window.PocketLabStorage.listWorldBooks(),
+    window.PocketLabStorage.getMeta(
+      window.PocketLabStorage.characterListInitializedMetaKey,
+    ),
+  ]);
+  if (
+    !savedCharacters.length &&
+    characterListInitialized !== true
+  ) {
     const defaultRecord = await window.PocketLabStorage.saveCharacter(
       createDefaultCharacter(),
     );
+    await window.PocketLabStorage.setMeta(
+      window.PocketLabStorage.characterListInitializedMetaKey,
+      true,
+    );
     savedCharacters = [defaultRecord];
+  } else if (
+    savedCharacters.length &&
+    characterListInitialized !== true
+  ) {
+    await window.PocketLabStorage.setMeta(
+      window.PocketLabStorage.characterListInitializedMetaKey,
+      true,
+    );
   }
 
   const characters = await Promise.all(savedCharacters.map(hydrateCharacter));
+  if (!characters.length) {
+    releaseCharacterMedia();
+    state.characters = [];
+    state.worldBooks = worldBooks;
+    state.activeCharacterId = "";
+    state.character = createEmptyCharacter();
+    state.messages = [];
+    window.PocketLabSettings.saveActiveCharacterId("");
+    applyCharacterChatBackground();
+    return;
+  }
   const storedActiveId = window.PocketLabSettings.readActiveCharacterId();
   const nextActiveCharacter =
     characters.find((character) => character.id === storedActiveId) ||
@@ -1358,6 +1443,10 @@ function createDefaultCharacter() {
     ...defaultCharacter,
     id: window.PocketLabStorage.primaryCharacterId,
   });
+}
+
+function createEmptyCharacter() {
+  return { ...emptyCharacter };
 }
 
 function releaseCharacterMedia() {
@@ -1565,6 +1654,7 @@ function isLatestTurn(turnId) {
 
 function persistMessages() {
   const characterId = state.activeCharacterId;
+  if (!characterId) return Promise.resolve(false);
   const snapshot = state.messages.slice(-300).map((message) => ({
     ...message,
     characterId,
@@ -1751,12 +1841,18 @@ async function waitForPendingLocalSaves() {
     typeof window.PocketLabMomentsApp.waitForIdle === "function"
       ? window.PocketLabMomentsApp.waitForIdle()
       : Promise.resolve();
+  const smsSave =
+    window.PocketLabSmsStore &&
+    typeof window.PocketLabSmsStore.waitForIdle === "function"
+      ? window.PocketLabSmsStore.waitForIdle()
+      : Promise.resolve();
   await Promise.all([
     messageSaveChain,
     characterSaveChain,
     appearanceSave,
     momentsSave,
     momentsReactionWait,
+    smsSave,
   ]);
 }
 
@@ -1770,7 +1866,9 @@ function readFileAsText(file) {
 }
 
 function updateCharacterUI() {
-  const { name, avatarUrl } = state.character;
+  const character = state.character || createEmptyCharacter();
+  const { name, avatarUrl } = character;
+  const hasCharacter = Boolean(state.activeCharacterId && character.id);
   const isBlocked = isCurrentCharacterBlocked();
   elements["chat-character-name"].textContent = name;
   elements["chat-empty-name"].textContent = name;
@@ -1781,6 +1879,7 @@ function updateCharacterUI() {
     "aria-pressed",
     String(isBlocked),
   );
+  elements["block-character-button"].disabled = !hasCharacter;
   elements["block-character-button"].setAttribute(
     "aria-label",
     isBlocked ? "解除拉黑当前角色" : "拉黑当前角色",
@@ -1822,7 +1921,8 @@ function isChatInteractionLocked() {
   return (
     state.isReplying ||
     state.isSwitchingCharacter ||
-    state.isSavingCharacter
+    state.isSavingCharacter ||
+    state.isDeletingCharacter
   );
 }
 
@@ -1892,12 +1992,16 @@ function updateBatchControls() {
   const pendingMessages = getPendingMessages();
   const hasPending = pendingMessages.length > 0;
   const hasFailedGroup = pendingMessages.some((message) => message.failed);
+  const hasCharacter = Boolean(
+    state.activeCharacterId && state.character?.id,
+  );
 
   elements["chat-pending-actions"].classList.toggle("is-hidden", !hasPending);
   elements["pending-reply-count"].textContent = `${pendingMessages.length} 条消息待总结`;
   elements["reply-pending-batch"].disabled =
     isChatInteractionLocked() ||
     isCurrentCharacterBlocked() ||
+    !hasCharacter ||
     !state.connected;
   elements["batch-reply-label"].textContent = state.isReplying
     ? "正在总结并回复"
@@ -2162,12 +2266,20 @@ function resizeChatInput() {
 function updateSendButton() {
   if (!elements["send-chat"]) return;
   const hasText = Boolean(elements["chat-input"].value.trim());
+  const hasCharacter = Boolean(
+    state.activeCharacterId && state.character?.id,
+  );
   const pendingMessages = getPendingMessages();
   const groupIsFull = pendingMessages.length >= chatBatchLimits.maxMessages;
   const interactionLocked = isChatInteractionLocked();
   const isBlocked = isCurrentCharacterBlocked();
   const disabled =
-    !state.connected || interactionLocked || isBlocked || !hasText || groupIsFull;
+    !hasCharacter ||
+    !state.connected ||
+    interactionLocked ||
+    isBlocked ||
+    !hasText ||
+    groupIsFull;
   elements["send-chat"].disabled = disabled;
   elements["chat-input"].disabled = interactionLocked || isBlocked;
   elements["send-chat"].classList.toggle(
@@ -2189,13 +2301,20 @@ function updateSendButton() {
     elements["send-chat"].dataset.iconState = iconName;
   }
   elements["add-character-from-list"].disabled = interactionLocked;
-  elements["edit-character-button"].disabled = interactionLocked;
-  elements["block-character-button"].disabled = interactionLocked;
+  elements["edit-character-button"].disabled =
+    interactionLocked || !hasCharacter;
+  elements["block-character-button"].disabled =
+    interactionLocked || !hasCharacter;
 }
 
 function openCharacterEditor() {
   if (isChatInteractionLocked()) {
     showToast("请等待当前回复或保存完成后再编辑角色。");
+    return;
+  }
+  if (!state.activeCharacterId || !state.character?.id) {
+    showToast("请先从角色列表选择要编辑的角色。");
+    showView("characters");
     return;
   }
   showCharacterEditor(state.character, "edit");
@@ -2223,6 +2342,7 @@ function openNewCharacterEditor() {
 function showCharacterEditor(character, mode, options = {}) {
   releaseAvatarDraft();
   releaseChatBackgroundDraft();
+  closeDeleteCharacterConfirm({ shouldFocus: false, force: true });
   const isNew = mode === "new";
   state.characterEditorMode = isNew ? "new" : "edit";
   state.editingCharacterId = character.id;
@@ -2240,6 +2360,11 @@ function showCharacterEditor(character, mode, options = {}) {
   elements["save-character-label"].textContent = isNew
     ? "创建并开始聊天"
     : "保存角色";
+  elements["character-form"].classList.toggle("is-new", isNew);
+  elements["delete-character-button"].classList.toggle(
+    "is-hidden",
+    isNew,
+  );
   elements["character-name"].value = options.blankFields ? "" : character.name;
   elements["character-persona"].value = options.blankFields
     ? ""
@@ -2266,6 +2391,8 @@ function showCharacterEditor(character, mode, options = {}) {
 }
 
 function closeCharacterEditor(shouldFocus = true) {
+  if (state.isDeletingCharacter) return;
+  closeDeleteCharacterConfirm({ shouldFocus: false, force: true });
   releaseAvatarDraft();
   releaseChatBackgroundDraft();
   elements["character-modal"].classList.add("is-hidden");
@@ -2275,6 +2402,176 @@ function closeCharacterEditor(shouldFocus = true) {
       ? elements["add-character-from-list"]
       : elements["edit-character-button"];
   if (focusTarget) focusTarget.focus();
+}
+
+function isDeleteCharacterConfirmOpen() {
+  return !elements["delete-character-confirm"].classList.contains(
+    "is-hidden",
+  );
+}
+
+function clearDeleteCharacterConfirmError() {
+  elements["delete-character-confirm-error"].classList.add("is-hidden");
+  elements["delete-character-confirm-error-title"].textContent = "";
+  elements["delete-character-confirm-error-message"].textContent = "";
+  elements["delete-character-confirm-error-next"].textContent = "";
+}
+
+function showDeleteCharacterConfirmError(error) {
+  const description = window.PocketLabStorage.describeError(
+    error,
+    "删除角色",
+  );
+  elements["delete-character-confirm-error-title"].textContent =
+    description.title;
+  elements["delete-character-confirm-error-message"].textContent =
+    description.message;
+  elements["delete-character-confirm-error-next"].textContent =
+    description.nextStep;
+  elements["delete-character-confirm-error"].classList.remove("is-hidden");
+}
+
+function openDeleteCharacterConfirm() {
+  if (isChatInteractionLocked()) return;
+  if (state.characterEditorMode !== "edit") return;
+  const character = state.characters.find(
+    (item) => item.id === state.editingCharacterId,
+  );
+  if (!character) {
+    showToast("这个角色已经不存在，请关闭编辑器并刷新列表。");
+    return;
+  }
+
+  clearDeleteCharacterConfirmError();
+  elements["delete-character-confirm-message"].textContent =
+    `确定删除“${character.name}”吗？角色资料、聊天记录、记忆、短信和朋友圈互动都会被清理，删除后无法恢复。群聊会保留，但会移除这个角色。`;
+  elements["delete-character-confirm"].classList.remove("is-hidden");
+  elements["delete-character-confirm"].setAttribute("aria-hidden", "false");
+  window.setTimeout(() => elements["cancel-delete-character"].focus(), 40);
+}
+
+function closeDeleteCharacterConfirm(options = {}) {
+  const force = options && options.force === true;
+  const shouldFocus = !options || options.shouldFocus !== false;
+  if (state.isDeletingCharacter && !force) return;
+  if (!isDeleteCharacterConfirmOpen()) return;
+
+  elements["delete-character-confirm"].classList.add("is-hidden");
+  elements["delete-character-confirm"].setAttribute("aria-hidden", "true");
+  clearDeleteCharacterConfirmError();
+  if (
+    shouldFocus &&
+    !elements["character-modal"].classList.contains("is-hidden")
+  ) {
+    elements["delete-character-button"].focus();
+  }
+}
+
+function setCharacterDeletionBusy(isBusy) {
+  elements["character-modal"].setAttribute("aria-busy", String(isBusy));
+  elements["delete-character-confirm"].setAttribute(
+    "aria-busy",
+    String(isBusy),
+  );
+  elements["character-form"]
+    .querySelectorAll("input, textarea, select, button")
+    .forEach((control) => {
+      control.disabled = isBusy;
+    });
+  elements["close-character-modal"].disabled = isBusy;
+  elements["cancel-delete-character"].disabled = isBusy;
+  elements["confirm-delete-character"].disabled = isBusy;
+  elements["delete-character-confirm-label"].textContent = isBusy
+    ? "正在删除…"
+    : "删除角色";
+  elements["confirm-delete-character"].setAttribute(
+    "aria-busy",
+    String(isBusy),
+  );
+}
+
+async function deleteEditingCharacter() {
+  if (state.isDeletingCharacter || isChatInteractionLocked()) return;
+  const characterId = state.editingCharacterId;
+  const deletedIndex = state.characters.findIndex(
+    (character) => character.id === characterId,
+  );
+  const deletedCharacter = state.characters[deletedIndex];
+  if (!characterId || !deletedCharacter) {
+    showDeleteCharacterConfirmError(
+      new Error("要删除的角色已经不存在，请关闭编辑器并刷新角色列表。"),
+    );
+    return;
+  }
+
+  const remainingCharacters = state.characters.filter(
+    (character) => character.id !== characterId,
+  );
+  const preferredCharacter =
+    remainingCharacters[
+      Math.min(deletedIndex, remainingCharacters.length - 1)
+    ] || null;
+
+  state.isDeletingCharacter = true;
+  clearDeleteCharacterConfirmError();
+  setCharacterDeletionBusy(true);
+
+  try {
+    await waitForPendingLocalSaves();
+    await window.PocketLabStorage.deleteCharacter(characterId);
+  } catch (error) {
+    state.isDeletingCharacter = false;
+    setCharacterDeletionBusy(false);
+    showDeleteCharacterConfirmError(error);
+    return;
+  }
+
+  window.PocketLabSettings.saveActiveCharacterId(
+    preferredCharacter?.id || "",
+  );
+  state.characters = remainingCharacters;
+  state.activeCharacterId = "";
+  state.character = createEmptyCharacter();
+  state.messages = [];
+  window.PocketLabMedia.revokeObjectUrl(deletedCharacter.avatarUrl);
+  window.PocketLabMedia.revokeObjectUrl(
+    deletedCharacter.chatBackgroundUrl,
+  );
+
+  state.isDeletingCharacter = false;
+  setCharacterDeletionBusy(false);
+  closeDeleteCharacterConfirm({ shouldFocus: false, force: true });
+  closeCharacterEditor(false);
+
+  try {
+    await refreshAfterCharacterDeletion();
+    renderChat();
+    showView("characters");
+    setLocalDataStatus(
+      "success",
+      "角色已删除",
+      `“${deletedCharacter.name}”的角色资料、聊天、记忆、短信和朋友圈互动已清理。`,
+      "群聊仍会保留，但成员列表已经移除这个角色。",
+    );
+    showToast(`“${deletedCharacter.name}”已删除。`);
+  } catch (error) {
+    renderChat();
+    showView("characters");
+    reportStorageError(error, "刷新删除后的本机数据");
+    showToast("角色已删除，但页面刷新未完成；请重新加载页面查看最新数据。");
+  }
+}
+
+async function refreshAfterCharacterDeletion() {
+  await loadChatFromDatabase();
+  await Promise.all([
+    window.PocketLabWorldBookApp.refresh({ silent: true }),
+    window.PocketLabGroupChatEditor.refresh(),
+    window.PocketLabSmsApp.refresh({ silent: true }),
+    window.PocketLabMomentsApp.refresh(),
+  ]);
+  state.groupChats = await window.PocketLabStorage.listGroupChats();
+  await updateStorageUsage();
 }
 
 function releaseAvatarDraft() {
@@ -2590,9 +2887,26 @@ async function switchCharacter(characterId, options = {}) {
 
 async function saveCharacter(event) {
   event.preventDefault();
-  if (state.isSwitchingCharacter || state.isSavingCharacter) return;
+  if (
+    state.isSwitchingCharacter ||
+    state.isSavingCharacter ||
+    state.isDeletingCharacter
+  ) {
+    return;
+  }
   clearFieldError("character-name");
   clearFieldError("character-persona");
+
+  const isNew = state.characterEditorMode === "new";
+  const previousCharacter = isNew
+    ? null
+    : state.characters.find(
+        (character) => character.id === state.editingCharacterId,
+      );
+  if (!isNew && !previousCharacter) {
+    showToast("这个角色已经不存在，无法保存。请关闭编辑器并刷新角色列表。");
+    return;
+  }
 
   const name = elements["character-name"].value.trim();
   const persona = elements["character-persona"].value.trim();
@@ -2608,12 +2922,6 @@ async function saveCharacter(event) {
   }
   if (!isValid) return;
 
-  const isNew = state.characterEditorMode === "new";
-  const previousCharacter = isNew
-    ? null
-    : state.characters.find(
-        (character) => character.id === state.editingCharacterId,
-      ) || state.character;
   const characterId =
     previousCharacter?.id ||
     state.editingCharacterId ||
@@ -2792,6 +3100,14 @@ async function saveCharacter(event) {
 }
 
 async function handleAvatarFile(event) {
+  if (
+    state.isDeletingCharacter ||
+    elements["character-modal"].classList.contains("is-hidden") ||
+    (state.characterEditorMode === "edit" && !getCharacterEditorBase())
+  ) {
+    event.target.value = "";
+    return;
+  }
   const files = event.target && event.target.files;
   const file = files && files[0];
   if (!file) return;
@@ -2823,7 +3139,9 @@ async function handleAvatarFile(event) {
     }
     applyAvatar(
       elements["character-avatar-preview"],
-      elements["character-name"].value || state.character.name,
+      elements["character-name"].value ||
+        state.character?.name ||
+        "新角色",
       state.avatarDraftUrl,
     );
   } catch (error) {
@@ -2853,10 +3171,8 @@ function clearAvatarDraft() {
 
 function getCharacterEditorBase() {
   if (state.characterEditorMode !== "edit") return null;
-  return (
-    state.characters.find(
-      (character) => character.id === state.editingCharacterId,
-    ) || state.character
+  return state.characters.find(
+    (character) => character.id === state.editingCharacterId,
   );
 }
 
@@ -2879,6 +3195,14 @@ function updateCharacterBackgroundPreview() {
 }
 
 async function handleChatBackgroundFile(event) {
+  if (
+    state.isDeletingCharacter ||
+    elements["character-modal"].classList.contains("is-hidden") ||
+    (state.characterEditorMode === "edit" && !getCharacterEditorBase())
+  ) {
+    event.target.value = "";
+    return;
+  }
   const files = event.target && event.target.files;
   const file = files && files[0];
   if (!file) return;
@@ -2956,7 +3280,27 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function getActiveCharacterRecord() {
+  const activeCharacterId = state.activeCharacterId;
+  if (
+    !activeCharacterId ||
+    state.character?.id !== activeCharacterId
+  ) {
+    return null;
+  }
+  return (
+    state.characters.find(
+      (character) => character.id === activeCharacterId,
+    ) || null
+  );
+}
+
 function ensureConnectedForChat() {
+  if (!getActiveCharacterRecord()) {
+    showToast("还没有可聊天的角色，请先创建角色。");
+    showView("characters");
+    return null;
+  }
   if (isCurrentCharacterBlocked()) {
     showToast("这个角色已被拉黑，解除拉黑后才能生成回复。");
     return null;
@@ -2996,6 +3340,11 @@ function discardPendingRetractionsBeforeNewTurn() {
 function handleChatSubmit(event) {
   event.preventDefault();
   if (isChatInteractionLocked()) return;
+  if (!getActiveCharacterRecord()) {
+    showToast("还没有可聊天的角色，请先创建角色。");
+    showView("characters");
+    return;
+  }
 
   const content = elements["chat-input"].value.trim();
   if (!content) return;
@@ -3220,6 +3569,12 @@ async function regenerateTurn(turnId) {
 
 async function requestSummaryReply(messages, config) {
   if (isChatInteractionLocked()) return;
+  const activeCharacter = getActiveCharacterRecord();
+  if (!activeCharacter) {
+    showToast("当前角色已经不存在，请回到角色列表重新选择。");
+    showView("characters");
+    return;
+  }
   if (isCurrentCharacterBlocked()) {
     showToast("这个角色已被拉黑，解除拉黑后才能生成回复。");
     return;
@@ -3234,7 +3589,7 @@ async function requestSummaryReply(messages, config) {
   );
   if (!requestMessages.length) return;
 
-  const requestCharacter = { ...state.character };
+  const requestCharacter = { ...activeCharacter };
   const requestCharacterId = requestCharacter.id;
   state.isReplying = true;
   requestMessages.forEach((message) => {

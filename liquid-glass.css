@@ -1,0 +1,103 @@
+:root {
+  --app-icon-glass-tint: rgba(224, 244, 255, 0.4);
+  --app-icon-glass-edge: rgba(255, 255, 255, 0.82);
+  --app-icon-glass-shadow: rgba(45, 91, 119, 0.16);
+}
+
+/* Shared liquid-glass surface for every home-screen and Dock app icon. */
+.home-app-tile .app-icon,
+.home-app-drag-ghost .app-icon {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: var(--app-icon-glass-edge);
+  background-color: var(--app-icon-glass-tint);
+  background-image:
+    radial-gradient(
+      ellipse 72% 42% at 20% 3%,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(255, 255, 255, 0.28) 30%,
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(249, 253, 255, 0.62) 0%,
+      rgba(211, 237, 253, 0.42) 52%,
+      rgba(169, 216, 248, 0.32) 100%
+    );
+  box-shadow:
+    0 10px 20px var(--app-icon-glass-shadow),
+    0 2px 5px rgba(40, 83, 108, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.96),
+    inset 1px 0 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 1px rgba(73, 151, 190, 0.16);
+  -webkit-backdrop-filter: blur(14px) saturate(170%) brightness(1.06) contrast(0.97);
+  backdrop-filter: blur(14px) saturate(170%) brightness(1.06) contrast(0.97);
+}
+
+.home-app-tile .app-icon::before,
+.home-app-drag-ghost .app-icon::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      132deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.2) 21%,
+      rgba(255, 255, 255, 0.02) 44%,
+      rgba(154, 223, 249, 0.08) 66%,
+      rgba(255, 255, 255, 0.22) 100%
+    ),
+    radial-gradient(
+      ellipse 76% 54% at 108% 106%,
+      rgba(109, 206, 246, 0.34) 0%,
+      transparent 68%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    inset -1px -1px 2px rgba(74, 154, 195, 0.12);
+  content: "";
+  pointer-events: none;
+}
+
+.home-app-tile .app-icon::after,
+.home-app-drag-ghost .app-icon::after {
+  position: absolute;
+  z-index: 0;
+  top: 7%;
+  left: 14%;
+  width: 58%;
+  height: 22%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.46);
+  filter: blur(4px);
+  opacity: 0.72;
+  content: "";
+  pointer-events: none;
+  transform: rotate(-10deg);
+}
+
+.home-app-tile .app-icon > *,
+.home-app-drag-ghost .app-icon > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 600px) {
+  .home-app-tile .app-icon,
+  .home-app-drag-ghost .app-icon {
+    -webkit-backdrop-filter: blur(10px) saturate(160%) brightness(1.05) contrast(0.98);
+    backdrop-filter: blur(10px) saturate(160%) brightness(1.05) contrast(0.98);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .home-app-tile .app-icon,
+  .home-app-drag-ghost .app-icon {
+    background-color: rgba(228, 246, 255, 0.82);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

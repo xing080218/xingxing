@@ -147,5 +147,6 @@
     update,
     markRead,
     recoverInterrupted,
+    waitForIdle: () => writeQueue,
   });
 })(window);

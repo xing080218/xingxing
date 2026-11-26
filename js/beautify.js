@@ -151,10 +151,13 @@
   function applyBackgroundToPage(key) {
     const url = state.backgroundUrls[key];
     if (key === "home") {
-      const view = byId("home-view");
-      if (!view) return;
-      view.style.setProperty("--home-background-image", url ? `url("${url}")` : "none");
-      view.classList.toggle("has-custom-background", Boolean(url));
+      const screen = document.querySelector(".phone-screen");
+      if (!screen) return;
+      screen.style.setProperty(
+        "--home-background-image",
+        url ? `url("${url}")` : "none",
+      );
+      screen.classList.toggle("has-custom-home-background", Boolean(url));
       return;
     }
 

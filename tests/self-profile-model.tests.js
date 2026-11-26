@@ -6,6 +6,7 @@ const model = require("../js/self-profile-model.js");
 function runTests() {
   const validation = model.validateProfile({
     id: "self-profile-example",
+    avatarId: "self-profile-avatar-example",
     name: "  小星  ",
     persona: "  我是一名普通用户。\n正在学习写作。  ",
     createdAt: 100,
@@ -19,6 +20,24 @@ function runTests() {
   );
   assert.equal(validation.value.createdAt, 100);
   assert.equal(validation.value.updatedAt, 200);
+  assert.equal(validation.value.avatarId, "self-profile-avatar-example");
+  assert.equal(
+    model.normalizeProfile({
+      id: "without-avatar",
+      name: "旧资料",
+      persona: "旧设定",
+    }).avatarId,
+    "",
+  );
+  assert.equal(
+    model.normalizeProfile({
+      id: "invalid-avatar",
+      avatarId: "图".repeat(201),
+      name: "资料",
+      persona: "设定",
+    }).avatarId,
+    "",
+  );
 
   assert.equal(model.validateProfile({ name: "", persona: "" }).ok, false);
   assert.equal(
@@ -82,6 +101,7 @@ function runTests() {
   assert.match(prompt, /名字：新资料/);
   assert.match(prompt, /人设：新设定/);
   assert.match(prompt, /角色不能代替用户说话/);
+  assert.doesNotMatch(prompt, /self-profile-avatar-example/);
   assert.equal(model.buildPrompt({ name: "", persona: "" }), "");
 
   console.log("Self profile model tests passed.");

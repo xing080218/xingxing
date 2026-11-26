@@ -849,6 +849,34 @@
     });
   }
 
+  async function saveAppDataWithImage(
+    appId,
+    data,
+    blob,
+    imageSource = {},
+  ) {
+    const id = String(appId || "").trim();
+    if (!id) throw new Error("App 存档必须使用稳定编号。");
+    const imageRecord = makeImageRecord(blob, imageSource);
+    const record = {
+      appId: id,
+      data,
+      updatedAt: Date.now(),
+    };
+
+    await runWriteTransaction(
+      [STORES.appData, STORES.images],
+      (transaction) => {
+        transaction.objectStore(STORES.images).put(imageRecord);
+        transaction.objectStore(STORES.appData).put(record);
+      },
+    );
+    return {
+      record,
+      image: imageRecord,
+    };
+  }
+
   async function getMeta(key) {
     const record = await readOne(STORES.meta, key);
     return record ? record.value : null;
@@ -1449,6 +1477,7 @@
     getAppData,
     listAppData,
     saveAppData,
+    saveAppDataWithImage,
     getImage,
     getImageBlob,
     saveImage,

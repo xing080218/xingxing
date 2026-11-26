@@ -4161,6 +4161,84 @@ svg {
 
 }
 
+/*
+ * iOS 独立窗口已经显示系统时间、信号、电池和底部 Home Indicator。
+ * 只保留安全区，不再重复绘制网页状态栏内容或第二条底部横线。
+ */
+html.pwa-standalone,
+html.pwa-standalone body {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background-color: #858cda;
+  background-image: url("/assets/backgrounds/star-cat-planet-default.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+html.pwa-standalone .workspace,
+html.pwa-standalone .phone,
+html.pwa-standalone .phone-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+html.pwa-standalone .workspace {
+  display: block;
+  padding: 0;
+}
+
+html.pwa-standalone .phone {
+  display: block;
+}
+
+html.pwa-standalone .phone-frame {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html.pwa-standalone .phone-screen {
+  background-color: #858cda;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+html.pwa-standalone .phone-screen .status-bar {
+  position: relative;
+  flex: 0 0 env(safe-area-inset-top, 0px);
+  height: env(safe-area-inset-top, 0px);
+  padding: 0;
+  color: #fff;
+  background: transparent;
+  pointer-events: none;
+}
+
+html.pwa-standalone .phone-screen:has(.home-view.is-active) .status-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: env(safe-area-inset-top, 0px);
+  padding: 0;
+}
+
+html.pwa-standalone .status-clock,
+html.pwa-standalone .status-indicators,
+html.pwa-standalone .home-indicator {
+  display: none !important;
+}
+
+html.pwa-standalone .phone-screen:has(.home-view.is-active) .home-view {
+  padding-top: max(24px, calc(8px + env(safe-area-inset-top, 0px)));
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

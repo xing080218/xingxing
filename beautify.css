@@ -1389,3 +1389,61 @@
     grid-template-columns: 108px minmax(0, 1fr);
   }
 }
+
+/* ========================================================= */
+/* 终极全屏沉浸补丁（放在 beautify.css 最末尾） */
+/* ========================================================= */
+
+/* 1. 隐藏网页里重复的假状态栏，因为苹果手机自己有状态栏 */
+.status-bar {
+  display: none !important; 
+}
+
+/* 2. 把最底层背景设为透明或壁纸底色，防止上下漏白边 */
+html, body {
+  background: var(--ice) !important; 
+  height: 100dvh !important;
+  overflow: hidden;
+}
+
+/* 3. 彻底拆掉“手机壳”边框，让内容直接铺满整块手机屏幕 */
+.workspace {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+  height: 100dvh !important;
+}
+
+.phone {
+  max-width: none !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.phone-frame {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.phone-screen {
+  border-radius: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* 4. 给主屏幕内容留出灵动岛的安全距离，防止字被挡住 */
+.home-view {
+  padding-top: calc(60px + env(safe-area-inset-top, 0px)) !important;
+}
+
+/* 去掉底部的多余说明文字 */
+.device-caption {
+  display: none !important;
+}

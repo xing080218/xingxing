@@ -4172,18 +4172,25 @@ html.pwa-standalone body {
   min-height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background-color: #858cda;
+  background-color: var(--app-sky-blue);
   background-image: url("/assets/backgrounds/star-cat-planet-default.jpg");
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
 }
 
+html.pwa-standalone body {
+  position: fixed;
+  inset: 0;
+}
+
 html.pwa-standalone .workspace,
 html.pwa-standalone .phone,
 html.pwa-standalone .phone-frame {
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
   min-height: 0;
 }
 
@@ -4205,14 +4212,21 @@ html.pwa-standalone .phone-frame {
 }
 
 html.pwa-standalone .phone-screen {
-  background-color: #858cda;
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  background-color: var(--app-sky-blue);
   border-radius: 0;
   box-shadow: none;
 }
 
 html.pwa-standalone .phone-screen .status-bar {
-  position: relative;
-  flex: 0 0 env(safe-area-inset-top, 0px);
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  flex: 0 0 auto;
   height: env(safe-area-inset-top, 0px);
   padding: 0;
   color: #fff;
@@ -4220,19 +4234,20 @@ html.pwa-standalone .phone-screen .status-bar {
   pointer-events: none;
 }
 
-html.pwa-standalone .phone-screen:has(.home-view.is-active) .status-bar {
+html.pwa-standalone .phone-screen .screen-content {
   position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: env(safe-area-inset-top, 0px);
-  padding: 0;
+  inset: 0;
 }
 
 html.pwa-standalone .status-clock,
 html.pwa-standalone .status-indicators,
 html.pwa-standalone .home-indicator {
   display: none !important;
+}
+
+html.pwa-standalone .phone-screen .view:not(.home-view) {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 html.pwa-standalone .phone-screen:has(.home-view.is-active) .home-view {

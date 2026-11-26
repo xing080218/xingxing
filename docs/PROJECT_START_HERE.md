@@ -348,6 +348,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 - iPhone 截图最上方的灵动岛属于手机系统界面，网页无法移除；用户要求去掉顶部黑色长条时，只删除网页自己绘制的那一条。
 - iOS 从主屏幕以独立窗口打开时，保留系统状态栏和 Home Indicator，只保留安全区；隐藏网页重复绘制的时钟、信号、电池和底部横线，并让全屏壁纸覆盖安全区。修改 PWA 元数据后，用户必须删除旧主屏幕图标并从 Safari 重新添加。
 - 独立窗口识别必须由外部脚本完成并提前给根元素添加 `pwa-standalone`；受 CSP 限制，不得把这段检测写成 `index.html` 内联脚本。
+- iOS 独立窗口打开任意 App 时，系统安全区必须由当前 App 背景连续铺满；不得露出旧紫色根背景，也不得在顶部或底部添加上下独立色条。
 
 ### Vercel 自动发布
 

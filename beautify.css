@@ -11,34 +11,27 @@
 
 /* 奶黄与冰蓝主屏幕 */
 .phone-screen:has(.home-view.is-active) {
-  /* 1. 将最外层背景设为透明，让壁纸透出来 */
-  background: transparent; 
+  background: var(--ice);
 }
 
-.home-view {
-  --home-background-image: none;
-  color: #284554;
-  /* 2. 主屏幕容器背景设为透明 */
-  background: transparent; 
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  /* 3. 给顶部添加安全区距离，防止你的标题被苹果的灵动岛/刘海挡住 */
-  padding-top: calc(16px + env(safe-area-inset-top, 0px)) !important;
-}
-
-.home-wallpaper {
-  /* 4. 让壁纸层绝对定位，直接铺满整个屏幕 */
+.phone-screen:has(.home-view.is-active) .status-bar {
   position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-color: var(--ice);
-  background-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(37, 87, 108, 0.08)),
-    var(--default-phone-wallpaper);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  z-index: 30;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: calc(48px + env(safe-area-inset-top, 0px));
+  padding:
+    calc(13px + env(safe-area-inset-top, 0px))
+    calc(21px + env(safe-area-inset-right, 0px))
+    0
+    calc(21px + env(safe-area-inset-left, 0px));
+  background: transparent;
+  pointer-events: none;
+}
+
+.phone-screen:has(.home-view.is-active) .home-view {
+  padding-top: calc(54px + env(safe-area-inset-top, 0px));
 }
 
 .home-view {
@@ -1388,62 +1381,4 @@
   .wallpaper-option {
     grid-template-columns: 108px minmax(0, 1fr);
   }
-}
-
-/* ========================================================= */
-/* 终极全屏沉浸补丁（放在 beautify.css 最末尾） */
-/* ========================================================= */
-
-/* 1. 隐藏网页里重复的假状态栏，因为苹果手机自己有状态栏 */
-.status-bar {
-  display: none !important; 
-}
-
-/* 2. 把最底层背景设为透明或壁纸底色，防止上下漏白边 */
-html, body {
-  background: var(--ice) !important; 
-  height: 100dvh !important;
-  overflow: hidden;
-}
-
-/* 3. 彻底拆掉“手机壳”边框，让内容直接铺满整块手机屏幕 */
-.workspace {
-  padding: 0 !important;
-  margin: 0 !important;
-  max-width: none !important;
-  height: 100dvh !important;
-}
-
-.phone {
-  max-width: none !important;
-  width: 100vw !important;
-  height: 100dvh !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.phone-frame {
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  width: 100% !important;
-  height: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.phone-screen {
-  border-radius: 0 !important;
-  height: 100% !important;
-  width: 100% !important;
-}
-
-/* 4. 给主屏幕内容留出灵动岛的安全距离，防止字被挡住 */
-.home-view {
-  padding-top: calc(60px + env(safe-area-inset-top, 0px)) !important;
-}
-
-/* 去掉底部的多余说明文字 */
-.device-caption {
-  display: none !important;
 }

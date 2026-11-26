@@ -287,6 +287,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 - 修改网页脚本、样式或入口后更新版本号，并确认 HTML 引用了新版本。
 - 白屏排查先看纯文字检查页和健康接口，再查主页面脚本错误。
 - 服务端静态资源使用 `no-store`，避免电脑或手机继续加载旧文件。
+- 主屏幕壁纸需要覆盖顶部状态栏时，使用同一张壁纸层延伸绘制区域，并解除 `screen-content`、`home-view` 的顶部裁切；不要用第二条纯色块拼接。
 
 ### 本机服务
 

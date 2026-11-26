@@ -11,39 +11,27 @@
 
 /* 奶黄与冰蓝主屏幕 */
 .phone-screen:has(.home-view.is-active) {
-  background: var(--ice);
-}
-
-.phone-screen:has(.home-view.is-active) .status-bar {
-  position: absolute;
-  z-index: 30;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: calc(48px + env(safe-area-inset-top, 0px));
-  padding:
-    calc(13px + env(safe-area-inset-top, 0px))
-    calc(21px + env(safe-area-inset-right, 0px))
-    0
-    calc(21px + env(safe-area-inset-left, 0px));
+  /* 将最外层背景设为透明，让壁纸透出来 */
   background: transparent;
-  pointer-events: none;
-}
-
-.phone-screen:has(.home-view.is-active) .home-view {
-  padding-top: calc(54px + env(safe-area-inset-top, 0px));
 }
 
 .home-view {
   --home-background-image: none;
   color: #284554;
-  background: var(--ice);
+  /* 主屏幕容器保持透明，由壁纸层负责铺满屏幕 */
+  background: transparent;
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
+  /* 顶部安全区避免标题被灵动岛或刘海遮挡 */
+  padding-top: calc(16px + env(safe-area-inset-top, 0px)) !important;
 }
 
 .home-wallpaper {
+  /* 壁纸层铺满整个手机屏幕，包括顶部与底部安全区 */
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background-color: var(--ice);
   background-image:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(37, 87, 108, 0.08)),
@@ -51,6 +39,19 @@
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
+}
+
+/* 主屏幕的状态栏是独立一层，让同一张壁纸延伸到它后方 */
+.phone-screen:has(.home-view.is-active) .screen-content {
+  overflow: visible;
+}
+
+.phone-screen:has(.home-view.is-active) .home-view {
+  overflow: visible;
+}
+
+.phone-screen:has(.home-view.is-active) .home-wallpaper {
+  top: calc(-48px - env(safe-area-inset-top, 0px));
 }
 
 .home-wallpaper::after,

@@ -2,7 +2,9 @@
 
 (() => {
   const model = window.PocketLabSelfProfileModel;
+  const avatarUi = window.PocketLabSelfProfileAvatar;
   const elements = {};
+  let avatarController = null;
   const state = {
     initialized: false,
     store: {
@@ -14,6 +16,8 @@
     editingId: "",
     saving: false,
     refreshRequestId: 0,
+    listAvatarRenderId: 0,
+    listAvatarUrls: new Map(),
   };
 
   function createId() {
@@ -36,6 +40,11 @@
       "self-profile-modal-title",
       "close-self-profile-modal",
       "self-profile-form",
+      "self-profile-avatar-preview",
+      "self-profile-avatar-file",
+      "clear-self-profile-avatar",
+      "self-profile-avatar-help",
+      "self-profile-avatar-error",
       "self-profile-name",
       "self-profile-persona",
       "self-profile-persona-count",
@@ -64,6 +73,7 @@
     elements["self-profile-form"].addEventListener("submit", saveEditor);
     elements["self-profile-name"].addEventListener("input", () => {
       clearFieldError("name");
+      avatarController.updateName(elements["self-profile-name"].value);
     });
     elements["self-profile-persona"].addEventListener("input", () => {
       clearFieldError("persona");
@@ -77,6 +87,10 @@
       ) {
         closeEditor();
       }
+    });
+    window.addEventListener("pagehide", () => {
+      state.listAvatarRenderId += 1;
+      revokeListAvatarUrls();
     });
   }
 
@@ -137,6 +151,13 @@
       `${count} / ${model.MAX_PERSONA_LENGTH}`;
   }
 
+  function revokeListAvatarUrls() {
+    state.listAvatarUrls.forEach((url) =>
+      window.PocketLabMedia.revokeObjectUrl(url),
+    );
+    state.listAvatarUrls.clear();
+  }
+
   function createStatePanel(title, message, actionLabel, action) {
     const panel = document.createElement("div");
     panel.className = "self-profile-state";
@@ -175,7 +196,7 @@
     const avatar = document.createElement("span");
     avatar.className = "self-profile-card-avatar";
     avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = Array.from(profile.name)[0] || "我";
+    avatar.textContent = avatarUi.getInitial(profile.name);
     const titleGroup = document.createElement("div");
     titleGroup.className = "self-profile-card-title";
     const nameRow = document.createElement("div");
@@ -225,9 +246,33 @@
     return card;
   }
 
+  async function hydrateCardAvatar(profile, avatar, requestId) {
+    if (!profile.avatarId) return;
+
+    try {
+      const blob = await window.PocketLabStorage.getImageBlob(profile.avatarId);
+      if (requestId !== state.listAvatarRenderId) return;
+      if (!(blob instanceof Blob) || !blob.size) return;
+
+      const url = window.PocketLabMedia.createObjectUrl(blob);
+      if (!url) return;
+      if (requestId !== state.listAvatarRenderId) {
+        window.PocketLabMedia.revokeObjectUrl(url);
+        return;
+      }
+
+      state.listAvatarUrls.set(profile.id, url);
+      avatarUi.renderAvatar(avatar, profile.name, url);
+    } catch {
+      // A missing avatar must not hide the profile or its text data.
+    }
+  }
+
   function renderList() {
     const list = elements["self-profile-list"];
     const count = state.store.profiles.length;
+    const requestId = ++state.listAvatarRenderId;
+    revokeListAvatarUrls();
     elements["self-profile-count"].textContent =
       count > 0 ? `${count} 份本人资料` : "尚未添加";
 
@@ -263,14 +308,34 @@
       return;
     }
 
-    list.replaceChildren(...state.store.profiles.map(createProfileCard));
+    const cards = state.store.profiles.map((profile) => {
+      const card = createProfileCard(profile);
+      return {
+        profile,
+        card,
+        avatar: card.querySelector(".self-profile-card-avatar"),
+      };
+    });
+    list.replaceChildren(...cards.map((entry) => entry.card));
+    cards.forEach(({ profile, avatar }) => {
+      hydrateCardAvatar(profile, avatar, requestId);
+    });
   }
 
-  async function persist(nextStore) {
+  async function persist(nextStore, avatarImage = null) {
     state.refreshRequestId += 1;
     state.loading = false;
     const normalized = model.normalizeStore(nextStore);
-    await window.PocketLabStorage.saveAppData(model.STORAGE_KEY, normalized);
+    if (avatarImage?.blob) {
+      await window.PocketLabStorage.saveAppDataWithImage(
+        model.STORAGE_KEY,
+        normalized,
+        avatarImage.blob,
+        { id: avatarImage.id },
+      );
+    } else {
+      await window.PocketLabStorage.saveAppData(model.STORAGE_KEY, normalized);
+    }
     state.store = normalized;
     state.loadError = "";
     return normalized;
@@ -324,6 +389,7 @@
 
   function openEditor(profileId = "") {
     const profile = getProfile(profileId);
+    if (state.saving) return;
     state.editingId = profile ? profile.id : "";
     elements["self-profile-modal-title"].textContent = profile
       ? "编辑本人资料"
@@ -331,16 +397,22 @@
     elements["save-self-profile-label"].textContent = profile
       ? "保存修改"
       : "添加并设为当前";
+    avatarController.reset(profile?.avatarId || "", profile?.name || "");
     elements["self-profile-name"].value = profile ? profile.name : "";
     elements["self-profile-persona"].value = profile ? profile.persona : "";
     clearFieldErrors();
     updatePersonaCount();
     elements["self-profile-modal"].classList.remove("is-hidden");
     window.setTimeout(() => elements["self-profile-name"].focus(), 60);
+
+    if (profile?.avatarId) {
+      avatarController.loadSaved(profile);
+    }
   }
 
   function closeEditor() {
     if (state.saving) return;
+    avatarController.reset("", "");
     state.editingId = "";
     elements["self-profile-modal"].classList.add("is-hidden");
     elements["add-self-profile"].focus();
@@ -348,13 +420,15 @@
 
   async function saveEditor(event) {
     event.preventDefault();
-    if (state.saving) return;
+    if (state.saving || avatarController.isProcessing()) return;
     clearFieldErrors();
 
     const existing = getProfile(state.editingId);
+    const avatarDraft = avatarController.getDraft();
     const now = Date.now();
     const source = {
       id: existing?.id || `self-profile-${createId()}`,
+      avatarId: avatarDraft.blob ? "" : avatarDraft.existingId,
       name: elements["self-profile-name"].value,
       persona: elements["self-profile-persona"].value,
       createdAt: existing?.createdAt || now,
@@ -372,6 +446,19 @@
       return;
     }
 
+    const oldAvatarId = existing?.avatarId || "";
+    if (avatarDraft.blob) {
+      validation.value.avatarId = window.PocketLabStorage.createId(
+        "self-profile-avatar",
+      );
+    }
+    const avatarImage = avatarDraft.blob
+      ? {
+          id: validation.value.avatarId,
+          blob: avatarDraft.blob,
+        }
+      : null;
+
     const nextProfiles = existing
       ? state.store.profiles.map((profile) =>
           profile.id === existing.id ? validation.value : profile,
@@ -382,13 +469,22 @@
       : validation.value.id;
 
     state.saving = true;
-    elements["save-self-profile"].disabled = true;
+    avatarController.setSaving(true);
     elements["save-self-profile"].setAttribute("aria-busy", "true");
     try {
-      await persist({
-        profiles: nextProfiles,
-        activeProfileId: nextActiveProfileId,
-      });
+      await persist(
+        {
+          profiles: nextProfiles,
+          activeProfileId: nextActiveProfileId,
+        },
+        avatarImage,
+      );
+      const savedProfile = getProfile(validation.value.id);
+      if (oldAvatarId && oldAvatarId !== savedProfile?.avatarId) {
+        await window.PocketLabStorage.deleteImageIfUnused(oldAvatarId).catch(
+          () => undefined,
+        );
+      }
       state.saving = false;
       closeEditor();
       renderList();
@@ -413,7 +509,7 @@
       );
     } finally {
       state.saving = false;
-      elements["save-self-profile"].disabled = false;
+      avatarController.setSaving(false);
       elements["save-self-profile"].removeAttribute("aria-busy");
     }
   }
@@ -464,6 +560,11 @@
         profiles: nextProfiles,
         activeProfileId: nextActiveProfileId,
       });
+      if (profile.avatarId) {
+        await window.PocketLabStorage.deleteImageIfUnused(
+          profile.avatarId,
+        ).catch(() => undefined);
+      }
       renderList();
       const nextActive = getActiveProfile();
       setFeedback(
@@ -490,6 +591,16 @@
       return;
     }
     cacheElements();
+    avatarController = avatarUi.createController({
+      modal: elements["self-profile-modal"],
+      file: elements["self-profile-avatar-file"],
+      clear: elements["clear-self-profile-avatar"],
+      save: elements["save-self-profile"],
+      preview: elements["self-profile-avatar-preview"],
+      help: elements["self-profile-avatar-help"],
+      error: elements["self-profile-avatar-error"],
+      name: elements["self-profile-name"],
+    });
     bindEvents();
     state.initialized = true;
     await refresh();

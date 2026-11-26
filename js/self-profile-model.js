@@ -30,6 +30,7 @@
     const source = value && typeof value === "object" ? value : {};
     return {
       id: normalizeStableId(source.id),
+      avatarId: normalizeStableId(source.avatarId),
       name:
         typeof source.name === "string"
           ? source.name.trim().slice(0, MAX_NAME_LENGTH)

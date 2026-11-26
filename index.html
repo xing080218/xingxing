@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <meta name="theme-color" content="#858cda" />
+    <meta name="theme-color" content="transparent" />
     <meta name="color-scheme" content="light" />
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
@@ -31,7 +31,7 @@
       sizes="180x180"
       href="/assets/icons/apple-touch-icon.png?v=20261126-01"
     />
-    <link rel="manifest" href="/site.webmanifest?v=20261126-03" />
+    <link rel="manifest" href="/site.webmanifest?v=20261126-04" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -42,7 +42,11 @@
       body {
         min-height: 100%;
         margin: 0;
-        background: #858cda;
+        background-color: #858cda;
+        background-image: url("/assets/backgrounds/star-cat-planet-default.jpg");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
       }
 
       #bootstrap-status {
@@ -57,7 +61,13 @@
         min-width: 0;
         padding: 28px;
         color: #1c2320;
-        background: #858cda;
+        background-color: #858cda;
+        background-image:
+          linear-gradient(rgba(238, 248, 255, 0.16), rgba(238, 248, 255, 0.16)),
+          url("/assets/backgrounds/star-cat-planet-default.jpg");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
         text-align: center;
         font-family: "PingFang SC", "Microsoft YaHei UI", "Segoe UI", sans-serif;
       }
@@ -218,7 +228,7 @@
     </style>
     <link rel="stylesheet" href="/styles.css?v=20261126-01" />
     <link rel="stylesheet" href="/world-book.css?v=20261126-01" />
-    <link rel="stylesheet" href="/beautify.css?v=20261126-01" />
+    <link rel="stylesheet" href="/beautify.css?v=20261126-02" />
     <link rel="stylesheet" href="/self-profile.css?v=20261126-01" />
     <link rel="stylesheet" href="/home-screen.css?v=20261126-01" />
     <link rel="stylesheet" href="/group-chat.css?v=20261126-01" />
@@ -2120,7 +2130,7 @@
     <script src="/bootstrap.js?v=20261126-01" defer></script>
     <script src="/js/lock-password-store.js?v=20261126-01" defer></script>
     <script src="/js/lock-screen.js?v=20261126-01" defer></script>
-    <script src="/js/beautify.js?v=20261126-01" defer></script>
+    <script src="/js/beautify.js?v=20261126-02" defer></script>
     <script src="/js/chat-summary-mode.js?v=20261126-01" defer></script>
     <script src="/js/reply-reveal.js?v=20261126-01" defer></script>
     <script src="/js/world-book-app.js?v=20261126-01" defer></script>

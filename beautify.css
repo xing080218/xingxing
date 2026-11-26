@@ -14,6 +14,30 @@
   background: var(--ice);
 }
 
+.phone-screen::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+}
+
+.phone-screen:has(.home-view.is-active)::before {
+  background-color: var(--ice);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(37, 87, 108, 0.08)),
+    var(--default-phone-wallpaper);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.phone-screen.has-custom-home-background:has(.home-view.is-active)::before {
+  background-image:
+    linear-gradient(180deg, rgba(255, 249, 225, 0.12), rgba(26, 55, 68, 0.28)),
+    var(--home-background-image);
+}
+
 .phone-screen:has(.home-view.is-active) .status-bar {
   position: absolute;
   z-index: 30;
@@ -35,43 +59,11 @@
 }
 
 .home-view {
-  --home-background-image: none;
   color: #284554;
-  background: var(--ice);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background: transparent;
 }
 
 .home-wallpaper {
-  background-color: var(--ice);
-  background-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(37, 87, 108, 0.08)),
-    var(--default-phone-wallpaper);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-}
-
-.home-wallpaper::after,
-.home-wallpaper .wallpaper-line,
-.home-wallpaper .wallpaper-tile {
-  display: none;
-}
-
-.home-view.has-custom-background .home-wallpaper {
-  background-color: #d9f1ff;
-  background-image:
-    linear-gradient(180deg, rgba(255, 249, 225, 0.12), rgba(26, 55, 68, 0.28)),
-    var(--home-background-image);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-}
-
-.home-view.has-custom-background .wallpaper-line,
-.home-view.has-custom-background .wallpaper-tile,
-.home-view.has-custom-background .home-wallpaper::after {
   display: none;
 }
 

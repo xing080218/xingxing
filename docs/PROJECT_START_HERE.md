@@ -206,7 +206,8 @@
 - `lib/vercel-provider.js`：Vercel 接口的地址规范化、请求校验、供应商错误分类和响应解析。
 - `prompts/character-system-prompt.md`：唯一由项目维护者管理的全局角色行为规则文档；不通过小手机页面读写，部署时不允许静态访问。
 - `api/health.js`、`api/test.js`、`api/chat.js`：Vercel 的三个薄入口，只绑定共享云端接口逻辑。
-- `vercel.json`：Vercel 函数时限与安全响应头。
+- `api/not-found.js`：Vercel 的显式 404 入口，用于阻止全局提示词文件被静态访问。
+- `vercel.json`：Vercel 函数时限、提示词打包、静态访问拦截与安全响应头。
 - `tests/`：接口、传输、聊天拆分、逐条显示节奏和超时回归测试。
 
 `app.js` 和 `styles.css` 已超过建议长度。以后新增复杂功能时，先拆出本次涉及的状态、存储、聊天或连接职责，再添加功能；不要为了拆文件一次性重写全部界面。
@@ -377,6 +378,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 - 云函数总等待时间受 Vercel 时限限制；模型请求最多等待 50 秒，接口函数上限设为 60 秒。
 - 线上失败先检查 `/api/health` 的 `mode` 是否为 `vercel`，再区分 Vercel 到模型服务商与用户浏览器到 Vercel 两段。
 - API Key 只随当前请求进入云函数内存；日志、GitHub、文档和测试只允许使用占位符。
+- Vercel 的 `includeFiles` 不能恢复被 `.vercelignore` 排除的文件；`prompts/` 必须纳入部署，并在 `vercel.json` 中重写到 `api/not-found.js`，禁止静态访问提示词。
 
 ### PowerShell 读写
 

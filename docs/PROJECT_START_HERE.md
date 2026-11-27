@@ -378,7 +378,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 - 云函数总等待时间受 Vercel 时限限制；模型请求最多等待 50 秒，接口函数上限设为 60 秒。
 - 线上失败先检查 `/api/health` 的 `mode` 是否为 `vercel`，再区分 Vercel 到模型服务商与用户浏览器到 Vercel 两段。
 - API Key 只随当前请求进入云函数内存；日志、GitHub、文档和测试只允许使用占位符。
-- Vercel 的 `includeFiles` 不能恢复被 `.vercelignore` 排除的文件；`prompts/` 必须纳入部署，并在 `vercel.json` 中重写到 `api/not-found.js`，禁止静态访问提示词。
+- Vercel 的 `includeFiles` 不能恢复被 `.vercelignore` 排除的文件；`prompts/` 必须纳入部署，并在 `vercel.json` 中用预静态 `redirects` 转到 `api/not-found.js`。不要使用 `rewrites`，因为静态文件会在其后被直接返回。
 
 ### PowerShell 读写
 

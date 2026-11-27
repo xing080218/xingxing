@@ -22,13 +22,14 @@ assert.equal(
   "The chat function must include the external system prompt.",
 );
 assert.ok(
-  Array.isArray(config.rewrites) &&
-    config.rewrites.some(
-      (rewrite) =>
-        rewrite.source === "/prompts/:path*" &&
-        rewrite.destination === "/api/not-found",
+  Array.isArray(config.redirects) &&
+    config.redirects.some(
+      (redirect) =>
+        redirect.source === "/prompts/:path*" &&
+        redirect.destination === "/api/not-found" &&
+        redirect.permanent === false,
     ),
-  "Prompt files must be rewritten to the explicit 404 function.",
+  "Prompt files must redirect before static-file serving to the explicit 404 function.",
 );
 
 const headers = new Map();

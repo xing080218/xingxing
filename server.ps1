@@ -8,6 +8,20 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$characterSystemPromptPath = Join-Path $root "prompts\character-system-prompt.md"
+if (-not (Test-Path -LiteralPath $characterSystemPromptPath -PathType Leaf)) {
+  throw "缺少全局角色行为规则文档：$characterSystemPromptPath"
+}
+$characterSystemPrompt = [System.IO.File]::ReadAllText(
+  $characterSystemPromptPath,
+  [System.Text.Encoding]::UTF8
+).Replace("`r`n", "`n").Replace("`r", "`n").Trim()
+if ([string]::IsNullOrWhiteSpace($characterSystemPrompt)) {
+  throw "全局角色行为规则文档不能为空：$characterSystemPromptPath"
+}
+if ($characterSystemPrompt.Length -gt 20000) {
+  throw "全局角色行为规则文档不能超过 20000 个字符：$characterSystemPromptPath"
+}
 $workDirectory = Join-Path $root "work"
 $logPath = Join-Path $workDirectory "server.log"
 
@@ -511,7 +525,7 @@ function Handle-ApiChat {
     return
   }
 
-  $systemContent = "角色名字：$($characterName.Trim())`n$($persona.Trim())"
+  $systemContent = "全局角色行为规则：`n$characterSystemPrompt`n`n角色专属设定：`n角色名字：$($characterName.Trim())`n$($persona.Trim())"
   if ($userProfileSupplied) {
     $systemContent += "`n`n用户本人设定：`n名字：$userProfileName`n人设：$userProfilePersona`n这是用户本人设定，只用于理解用户身份；角色不能代替用户说话。"
   }

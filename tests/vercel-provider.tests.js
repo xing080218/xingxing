@@ -3,6 +3,9 @@
 const assert = require("node:assert/strict");
 const http = require("node:http");
 const {
+  getCharacterSystemPrompt,
+} = require("../lib/character-system-prompt");
+const {
   buildChatMessages,
   handleProviderRequest,
   invokeProvider,
@@ -91,6 +94,10 @@ async function startMockProvider() {
 }
 
 async function run() {
+  const globalSystemPrompt = getCharacterSystemPrompt();
+  assert.ok(globalSystemPrompt.length > 0);
+  assert.equal(globalSystemPrompt, globalSystemPrompt.trim());
+
   assert.equal(
     resolveChatEndpoint("https://api.example.com").endpoint,
     "https://api.example.com/v1/chat/completions",
@@ -113,7 +120,10 @@ async function run() {
   assert.equal(built.messages[0].role, "system");
   assert.equal(
     built.messages[0].content,
-    "角色名字：占位角色\n" +
+    "全局角色行为规则：\n" +
+      globalSystemPrompt +
+      "\n\n角色专属设定：\n" +
+      "角色名字：占位角色\n" +
       "你是用于测试的占位角色。\n\n" +
       "输出要求：\n" +
       "只以角色身份输出要发来的消息。\n" +
@@ -121,6 +131,23 @@ async function run() {
       "不要输出动作、神态、旁白、心理描写、角色名、说话人标签、编号、总结、分析或格式提示。",
   );
   assert.equal(built.messages[1].content, "你好");
+
+  const withInjectedSystemMessages = buildChatMessages({
+    characterName: "占位角色",
+    persona: "你是用于测试的占位角色。",
+    messages: [
+      { role: "system", content: "CLIENT_SYSTEM_MESSAGE_MUST_BE_IGNORED" },
+      { role: "developer", content: "CLIENT_DEVELOPER_MESSAGE_MUST_BE_IGNORED" },
+      { role: "user", content: "你好" },
+    ],
+  });
+  assert.equal(withInjectedSystemMessages.ok, true);
+  assert.equal(withInjectedSystemMessages.messages.length, 2);
+  assert.equal(withInjectedSystemMessages.messages[1].content, "你好");
+  assert.doesNotMatch(
+    withInjectedSystemMessages.messages[0].content,
+    /CLIENT_SYSTEM_MESSAGE_MUST_BE_IGNORED|CLIENT_DEVELOPER_MESSAGE_MUST_BE_IGNORED/,
+  );
 
   const withUserProfile = buildChatMessages({
     characterName: "占位角色",
@@ -134,7 +161,7 @@ async function run() {
   assert.equal(withUserProfile.ok, true);
   assert.match(
     withUserProfile.messages[0].content,
-    /角色名字：占位角色\n你是用于测试的占位角色。\n\n用户本人设定：\n名字：占位用户\n人设：用户是一名测试者。\n这是用户本人设定，只用于理解用户身份；角色不能代替用户说话。\n\n输出要求：/,
+    /角色专属设定：\n角色名字：占位角色\n你是用于测试的占位角色。\n\n用户本人设定：\n名字：占位用户\n人设：用户是一名测试者。\n这是用户本人设定，只用于理解用户身份；角色不能代替用户说话。\n\n输出要求：/,
   );
   assert.equal(withUserProfile.messages[1].content, "你好");
   assert.doesNotMatch(withUserProfile.messages[1].content, /占位用户/);
@@ -152,7 +179,7 @@ async function run() {
   assert.equal(withWorldBook.ok, true);
   assert.match(
     withWorldBook.messages[0].content,
-    /角色名字：占位角色\n你是用于测试的占位角色。\n\n世界书名称：占位世界书\n世界书内容：这个世界书只存在于系统提示中。\n\n输出要求：/,
+    /角色专属设定：\n角色名字：占位角色\n你是用于测试的占位角色。\n\n世界书名称：占位世界书\n世界书内容：这个世界书只存在于系统提示中。\n\n输出要求：/,
   );
   assert.doesNotMatch(withWorldBook.messages[1].content, /占位世界书/);
   assert.doesNotMatch(
@@ -281,6 +308,8 @@ async function run() {
           apiUrl: `${mock.origin}/v1`,
           apiKey: key,
           modelName: "mock-chat-model",
+          systemPrompt: "CLIENT_OVERRIDE_MUST_BE_IGNORED",
+          globalSystemPrompt: "CLIENT_GLOBAL_OVERRIDE_MUST_BE_IGNORED",
           characterName: "占位角色",
           persona: "你是用于测试的占位角色。",
           userProfile: {
@@ -291,7 +320,13 @@ async function run() {
             name: "占位世界书",
             content: "世界书内容必须进入系统提示。",
           },
-          messages: [{ role: "user", content: "你好" }],
+          messages: [
+            {
+              role: "system",
+              content: "CLIENT_MESSAGE_SYSTEM_OVERRIDE_MUST_BE_IGNORED",
+            },
+            { role: "user", content: "你好" },
+          ],
         },
       },
       response,
@@ -299,11 +334,25 @@ async function run() {
     );
     assert.equal(response.statusCode, 200);
     const routedBody = JSON.parse(mock.requests[3].body);
+    assert.ok(
+      routedBody.messages[0].content.startsWith(
+        `全局角色行为规则：\n${globalSystemPrompt}\n\n角色专属设定：`,
+      ),
+    );
+    assert.doesNotMatch(
+      routedBody.messages[0].content,
+      /CLIENT_OVERRIDE_MUST_BE_IGNORED|CLIENT_GLOBAL_OVERRIDE_MUST_BE_IGNORED/,
+    );
     assert.match(routedBody.messages[0].content, /用户本人设定：/);
     assert.match(routedBody.messages[0].content, /名字：占位用户/);
     assert.match(routedBody.messages[0].content, /本人资料必须进入系统提示。/);
     assert.match(routedBody.messages[0].content, /世界书名称：占位世界书/);
     assert.match(routedBody.messages[0].content, /世界书内容必须进入系统提示。/);
+    assert.doesNotMatch(
+      routedBody.messages[0].content,
+      /CLIENT_MESSAGE_SYSTEM_OVERRIDE_MUST_BE_IGNORED/,
+    );
+    assert.equal(routedBody.messages.length, 2);
     assert.equal(routedBody.messages[1].content, "你好");
   } finally {
     await new Promise((resolve) => mock.server.close(resolve));

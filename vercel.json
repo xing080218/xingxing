@@ -8,9 +8,17 @@
       "maxDuration": 60
     },
     "api/chat.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "prompts/**"
     }
   },
+  "redirects": [
+    {
+      "source": "/prompts/:path*",
+      "destination": "/api/not-found",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -12,10 +12,11 @@
       "includeFiles": "prompts/**"
     }
   },
-  "rewrites": [
+  "redirects": [
     {
       "source": "/prompts/:path*",
-      "destination": "/api/not-found"
+      "destination": "/api/not-found",
+      "permanent": false
     }
   ],
   "headers": [

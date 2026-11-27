@@ -1,8 +1,13 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $serverScript = Join-Path $root "server.ps1"
+$characterSystemPromptPath = Join-Path $root "prompts\character-system-prompt.md"
+$characterSystemPrompt = [System.IO.File]::ReadAllText(
+  $characterSystemPromptPath,
+  [System.Text.Encoding]::UTF8
+).Replace("`r`n", "`n").Replace("`r", "`n").Trim()
 $serverProcess = $null
 $mockProcess = $null
 
@@ -160,6 +165,8 @@ try {
     apiUrl = "http://127.0.0.1:$mockPort/v1"
     apiKey = "placeholder-local-world-book-key"
     modelName = "test-model"
+    systemPrompt = "CLIENT_OVERRIDE_MUST_BE_IGNORED"
+    globalSystemPrompt = "CLIENT_GLOBAL_OVERRIDE_MUST_BE_IGNORED"
     characterName = "Test Character"
     persona = "Test persona."
     userProfile = [ordered]@{
@@ -171,6 +178,10 @@ try {
       content = "World Book content must enter the system prompt."
     }
     messages = @(
+      [ordered]@{
+        role = "system"
+        content = "CLIENT_MESSAGE_SYSTEM_OVERRIDE_MUST_BE_IGNORED"
+      }
       [ordered]@{
         role = "user"
         content = "Hello"
@@ -191,20 +202,26 @@ try {
   $record = Get-Content -LiteralPath $recordPath -Encoding UTF8 -Raw |
     ConvertFrom-Json -ErrorAction Stop
   $systemContent = [string]$record.messages[0].content
+  $expectedSystemPrefix = "全局角色行为规则：`n$characterSystemPrompt`n`n角色专属设定："
   if (
+    -not $systemContent.StartsWith($expectedSystemPrefix, [System.StringComparison]::Ordinal) -or
+    $systemContent.Contains("CLIENT_OVERRIDE_MUST_BE_IGNORED") -or
+    $systemContent.Contains("CLIENT_GLOBAL_OVERRIDE_MUST_BE_IGNORED") -or
     $systemContent -notmatch "Test User" -or
     $systemContent -notmatch "User profile must enter the system prompt." -or
     $systemContent -notmatch "Test World Book" -or
     $systemContent -notmatch "World Book content must enter the system prompt." -or
+    $systemContent -match "CLIENT_MESSAGE_SYSTEM_OVERRIDE_MUST_BE_IGNORED" -or
+    $record.messages.Count -ne 2 -or
     $record.messages[1].content -ne "Hello"
   ) {
-    throw "User profile and World Book content were not inserted into the system prompt correctly."
+    throw "Global character rules must be first and must not be overridden by client fields. User profile and World Book content must also remain in the system prompt."
   }
   if ($systemContent -match "API Key") {
     throw "Unexpected content was inserted into the system prompt."
   }
 
-  Write-Host "Local API contract test passed: incomplete settings return HTTP 400 with guidance, and user profile plus World Book content reach the provider through the system prompt."
+  Write-Host "Local API contract test passed: incomplete settings return HTTP 400 with guidance, server-side global character rules are first, client overrides are ignored, and user profile plus World Book content reach the provider through the system prompt."
 } finally {
   if ($null -ne $mockProcess -and -not $mockProcess.HasExited) {
     Stop-Process -Id $mockProcess.Id -Force -ErrorAction SilentlyContinue

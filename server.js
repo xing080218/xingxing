@@ -6,6 +6,7 @@ const os = require("os");
 const path = require("path");
 
 const ROOT = __dirname;
+const PROMPT_DIR = path.resolve(ROOT, "prompts");
 const WORK_DIR = path.join(ROOT, "work");
 const LOG_PATH = path.join(WORK_DIR, "server.log");
 const SERVER_URL_PATH = path.join(WORK_DIR, "server-url.txt");
@@ -14,7 +15,7 @@ const DEFAULT_PORT = 4176;
 const DEFAULT_API_PORT = 4177;
 const MAX_BODY_BYTES = 512 * 1024;
 const API_PROXY_TIMEOUT_MS = 130000;
-const BUILD = "20261126-03";
+const BUILD = "20261127-01";
 
 function parseArgs(argv) {
   const result = {
@@ -207,6 +208,14 @@ function resolveStaticPath(requestUrl) {
   const candidate = path.resolve(ROOT, relative);
   const rootWithSeparator = `${path.resolve(ROOT)}${path.sep}`;
   if (candidate !== path.resolve(ROOT) && !candidate.startsWith(rootWithSeparator)) {
+    return null;
+  }
+  const protectedPromptPrefix = `${PROMPT_DIR}${path.sep}`.toLowerCase();
+  const normalizedCandidate = candidate.toLowerCase();
+  if (
+    normalizedCandidate === PROMPT_DIR.toLowerCase() ||
+    normalizedCandidate.startsWith(protectedPromptPrefix)
+  ) {
     return null;
   }
   return candidate;

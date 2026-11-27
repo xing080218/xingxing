@@ -2,6 +2,7 @@ work/
 outputs/
 tests/
 docs/
+prompts/
 .vercel/
 .env
 .env.*

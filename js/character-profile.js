@@ -113,16 +113,30 @@
       .filter(Boolean);
   }
 
+  function balanceReplyLines(lines, limit) {
+    if (lines.length <= limit) return lines;
+
+    const baseSize = Math.floor(lines.length / limit);
+    const remainder = lines.length % limit;
+    let start = 0;
+    const groups = [];
+
+    // Keep sentence order while putting at most one extra sentence in earlier groups.
+    for (let group = 0; group < limit; group += 1) {
+      const size = baseSize + (group < remainder ? 1 : 0);
+      groups.push(lines.slice(start, start + size).join(" "));
+      start += size;
+    }
+
+    return groups;
+  }
+
   function limitReplyLines(lines, maxConsecutiveMessages) {
     const normalized = normalizeReplyLines(lines);
     if (!normalized.length) return [];
 
     const limit = normalizeMaxConsecutiveMessages(maxConsecutiveMessages);
-    if (normalized.length <= limit) return normalized;
-
-    const visible = normalized.slice(0, limit - 1);
-    visible.push(normalized.slice(limit - 1).join(" "));
-    return visible;
+    return balanceReplyLines(normalized, limit);
   }
 
   return Object.freeze({

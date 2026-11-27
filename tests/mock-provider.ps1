@@ -302,7 +302,7 @@ try {
       } elseif ($ChatSequence) {
         $messages = @($bodyObject.messages)
         $firstReply = if ($PunctuationReply) {
-          "今天先别急着赶路。要不要坐下来歇一会儿？晚饭想吃什么？"
+          "今天先别急着赶路。要不要坐下来歇一会儿？等呼吸平稳了再走。路上不用一直看手机。到家后先喝点温水。晚饭想吃什么？"
         } else {
           "第一行`n`n第二行`n第三行"
         }

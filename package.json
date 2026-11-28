@@ -7,6 +7,6 @@
     "node": "22.x"
   },
   "scripts": {
-    "test": "node tests/settings-store.tests.js && node tests/character-profile.tests.js && node tests/world-book-model.tests.js && node tests/group-chat-model.tests.js && node tests/self-profile-model.tests.js && node tests/sms-model.tests.js && node tests/sms-client.tests.js && node tests/home-screen-model.tests.js && node tests/chat-list-model.tests.js && node tests/moments-model.tests.js && node tests/moments-reaction-client.tests.js && node tests/moments-reaction-service.tests.js && node tests/character-deletion-model.tests.js && node tests/vercel-deployment.tests.js && node tests/vercel-provider.tests.js && node tests/chat-summary-mode.tests.js && node tests/reply-reveal.tests.js"
+    "test": "node tests/settings-store.tests.js && node tests/character-profile.tests.js && node tests/world-book-model.tests.js && node tests/group-chat-model.tests.js && node tests/self-profile-model.tests.js && node tests/sms-model.tests.js && node tests/sms-client.tests.js && node tests/home-screen-model.tests.js && node tests/chat-list-model.tests.js && node tests/moments-model.tests.js && node tests/moments-reaction-client.tests.js && node tests/moments-reaction-service.tests.js && node tests/character-deletion-model.tests.js && node tests/vercel-deployment.tests.js && node tests/vercel-provider.tests.js && node tests/chat-turn-model.tests.js && node tests/chat-summary-mode.tests.js && node tests/reply-reveal.tests.js"
   }
 }

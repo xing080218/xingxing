@@ -90,6 +90,8 @@
 ### API 与密钥
 
 - 接口地址按服务商文档填写，兼容 OpenAI 格式时统一转换为聊天接口，不在界面中猜造服务商地址。
+- 完整的 `/chat/completions` 和 `/responses` 地址必须原样保留，不能再二次拼接；Base URL 只在末尾补当前协议端点。Chat Completions 请求使用 `messages`，Responses 请求使用 `input`。
+- 连接失败必须区分浏览器到濴星语后端、后端到模型服务商两段；云端失败不能显示成“电脑本地服务失败”，也不能在没有服务商响应时把所有问题归因于 Key。
 - API Key 由用户在设置页填写，保存在当前浏览器与当前网址的 `localStorage`；刷新页面后仍保留，可在设置页清除。旧版 `sessionStorage` 配置会在首次读取时迁移。
 - 代码、文档、测试、日志、截图和 GitHub 文件中只允许出现 `your-api-key` 等占位符。
 - 服务端只允许在单次请求的内存中使用 Key，不写日志，不记录请求头，不记录完整请求体。
@@ -292,7 +294,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\provider-timeout
 
 ### 超时语义
 
-- 模型请求默认最多等待约 120 秒，本机代理约 130 秒，浏览器约 140 秒。
+- 云端模型请求最多等待约 50 秒，超过后由后端返回 `HTTP 504`；浏览器保留更长等待，以便接收这个结构化错误。
+- 本机调试的模型请求最多等待约 120 秒，本机代理约 130 秒，浏览器约 140 秒。
 - 真实超时统一返回 `HTTP 504` 和 `error.code = timeout`。
 - 不要把超时显示成 `HTTP 200`，也不要把边界超时误判为 `connection_reset`。
 

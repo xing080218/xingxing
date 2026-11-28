@@ -3654,7 +3654,7 @@ async function requestSummaryReply(messages, config) {
 
       const payload = await response.json().catch(() => null);
       if (!payload) {
-        throw new Error("本地聊天服务返回了无法识别的结果。");
+        throw new Error("后端聊天服务返回了无法识别的结果。");
       }
 
       if (!response.ok || !payload.ok) {
@@ -3684,17 +3684,17 @@ async function requestSummaryReply(messages, config) {
     if (error.name === "AbortError") {
       failure = {
         title: "回复超时",
-        message: `本地服务等待模型服务商超过约 ${Math.round(
+        message: `浏览器等待后端和模型服务商超过约 ${Math.round(
           apiRequestTimeoutMs / 1000,
         )} 秒，没有返回完整回复。`,
-        nextStep: "先检查网络和服务商状态，然后点击“重试总结”。",
+        nextStep: "先检查测试网址和后端部署状态；若页面能打开，再检查服务商状态，然后点击“重试总结”。",
         status: 0,
       };
     } else {
       failure = {
-        title: "无法连接本地聊天服务",
-        message: error.message || "本地服务没有响应。",
-        nextStep: `确认启动窗口仍在运行，再刷新 ${window.location.origin} 后重试。`,
+        title: "无法连接后端聊天服务",
+        message: error.message || "后端服务没有响应。",
+        nextStep: `刷新 ${window.location.origin} 后重试；如果页面本身仍能打开，先检查后端部署状态，不要反复重新填写 API Key。`,
         status: 0,
       };
     }
@@ -3856,10 +3856,10 @@ function normalizeConnectionError(error) {
     );
   if (isSocketPermissionError) {
     return {
-      title: "本机网络权限阻止了连接",
-      message: `Windows 阻止了本地服务访问接口地址：${message}`,
+      title: "运行环境网络权限阻止了连接",
+      message: `运行环境阻止了后端访问接口地址：${message}`,
       nextStep:
-        "先刷新页面再测试。若仍然出现，请关闭原来的黑色启动窗口，再到项目文件夹双击 start.bat，从普通 Windows 桌面重新启动；并在防火墙或安全软件中允许 PowerShell 访问网络。这不是 API Key 错误。",
+        "先刷新页面再测试。若仍出现，请检查运行后端的 Windows、防火墙和安全软件网络权限；云端测试版则检查 Vercel Function 的出站网络。这不是 API Key 错误。",
     };
   }
 
@@ -3878,16 +3878,16 @@ function normalizeConnectionError(error) {
   }
 
   if (raw.code === "connection_reset") {
-    const hasLocalServiceContext =
-      /页面已经连接到电脑上的本地服务|浏览器到电脑/.test(message);
+    const hasBackendContext =
+      /页面已经连接到.*后端服务|浏览器到后端/.test(message);
     return {
-      title: "电脑无法连接模型服务商",
-      message: hasLocalServiceContext
+      title: "后端无法连接模型服务商",
+      message: hasBackendContext
         ? message
-        : `页面已经连接到电脑上的本地服务，说明浏览器到电脑这一段正常；失败发生在电脑到模型服务商这一段。${message}`,
+        : `页面已经连接到濴星语后端服务，说明浏览器到后端这一段正常；失败发生在后端到模型服务商这一段。${message}`,
       nextStep:
         raw.nextStep ||
-        "先关闭 Radmin VPN、其他 VPN 或代理，再点一次“连接测试”。如果仍然失败，请把电脑网络切换到手机热点后再测试。此阶段不要先修改 API Key。",
+        "检查后端网络、VPN、代理或服务商的 IP 白名单；这不是页面白屏，也不应先修改 API Key。若使用本地测试版，可重启本地服务后再试。",
     };
   }
 
@@ -3900,21 +3900,21 @@ function normalizeConnectionError(error) {
       title: "连接超时",
       message:
         raw.code === "api_proxy_timeout"
-          ? "页面已经连接到电脑上的本地服务，但本地服务等待模型服务商时超时。失败发生在电脑到模型服务商这一段，不是手机 Wi-Fi 或 API Key 格式问题。"
+          ? "页面已经连接到濴星语后端服务，但后端等待模型服务商时超时。失败发生在后端到模型服务商这一段，不是手机 Wi-Fi 或 API Key 格式问题。"
           : message,
       nextStep:
         raw.nextStep ||
-        "先用电脑浏览器打开服务商控制台，确认当前网络能访问；再退出 Radmin VPN、其他 VPN 和代理后重试。若仍超时，可把电脑网络切换到手机热点，或换用响应更快的普通对话模型。",
+        "先确认服务商控制台可访问，再检查后端网络、VPN、代理和服务商地区限制；若仍超时，可换用响应更快的普通对话模型。",
     };
   }
 
   if (raw.code === "api_proxy_unavailable" || raw.code === "transport_internal") {
     return {
-      title: "本地 API 服务没有响应",
+      title: "后端 API 服务没有响应",
       message,
       nextStep:
         raw.nextStep ||
-        "关闭旧的启动窗口，重新双击 start.bat，看到电脑与手机地址后再刷新页面测试。",
+        "先刷新测试网址；若页面能打开但接口仍失败，请检查最新 Vercel 部署和后端函数状态，不要先修改 API Key。",
     };
   }
 
@@ -3955,7 +3955,7 @@ async function handleConnectionTest(event) {
 
     const payload = await response.json().catch(() => null);
     if (!payload) {
-      throw new Error(`本地测试服务返回了无法识别的结果（HTTP ${response.status}）。`);
+      throw new Error(`后端测试服务返回了无法识别的结果（HTTP ${response.status}）。`);
     }
 
     if (response.ok && payload.ok) {
@@ -4021,15 +4021,17 @@ async function handleConnectionTest(event) {
     if (error.name === "AbortError") {
       showResultError(
         "连接超时",
-        "页面已连接到电脑上的本地服务，但等待模型服务商超过约 120 秒。失败发生在电脑到模型服务商这一段，不是手机 Wi-Fi 问题。",
-        "先检查电脑能否打开服务商控制台；再退出 Radmin VPN、其他 VPN 和代理后重试。若仍超时，可切换到手机热点或换用响应更快的普通对话模型。",
+        `浏览器等待濴星语后端和模型服务商超过约 ${Math.round(
+          apiRequestTimeoutMs / 1000,
+        )} 秒。云端模型请求通常会在约 50 秒时先返回 HTTP 504，因此这个提示表示后端本身没有及时完成响应。`,
+        "先检查测试网址和 Backend Function 状态；若页面能打开，再检查服务商控制台、后端网络和服务商地区限制，不要先修改 API Key。",
         504,
       );
     } else {
       showResultError(
-        "无法连接本地测试服务",
-        error.message || "本地服务没有响应。",
-        `确认启动窗口仍在运行，再刷新 ${window.location.origin} 重试。`,
+        "无法连接后端测试服务",
+        error.message || "后端服务没有响应。",
+        `刷新 ${window.location.origin} 后重试；如果页面本身仍能打开，先检查后端服务状态，不要反复重新填写 API Key。`,
       );
     }
     if (settingsSaveError) {
@@ -4093,8 +4095,14 @@ function showResultSuccess(payload) {
     ? `模型回复：“${truncate(payload.reply, 160)}”`
     : "服务商已接受请求并返回有效响应。";
 
+  const protocolLabel =
+    payload.protocol === "responses" ||
+    String(payload.endpoint || "").replace(/\/+$/, "").endsWith("/responses")
+      ? "Responses"
+      : "Chat Completions";
   const metaItems = [
     ["状态", `HTTP ${payload.status || 200}`],
+    ["协议", protocolLabel],
     ["模型", payload.model || elements["model-name"].value.trim()],
     ["耗时", `${payload.latencyMs || 0} ms`],
     ["测试端点", payload.endpoint || "chat/completions"],

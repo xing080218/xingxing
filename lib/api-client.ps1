@@ -75,9 +75,9 @@ function Get-ProviderNodeTransportError {
   switch ($normalizedCode) {
     "timeout" {
       return New-ConnectionError `
-        -Title "连接超时" `
-        -Message "本地服务已经响应，但接口地址在 $($script:DefaultTimeoutSeconds) 秒内没有返回完整响应。" `
-        -NextStep "失败发生在电脑到模型服务商这一段，不是手机 Wi-Fi 问题。先用电脑浏览器打开服务商控制台，确认网络可以访问；再退出 VPN、代理或安全软件的网络拦截。如果当前使用推理模型，请换用普通对话模型后重试。" `
+        -Title "后端等待模型服务商超时" `
+        -Message "后端服务已经响应，但接口地址在 $($script:DefaultTimeoutSeconds) 秒内没有返回完整响应。请求已经离开浏览器，失败发生在后端到模型服务商这一段。" `
+        -NextStep "先确认服务商控制台和后端网络可以访问；再检查 VPN、代理、防火墙或服务商地区限制。如果当前使用推理模型，请换用普通对话模型后重试。" `
         -Code "timeout"
     }
     "dns" {
@@ -99,7 +99,7 @@ function Get-ProviderNodeTransportError {
         $NextStep
       }
       $connectionError = New-ConnectionError `
-        -Title "电脑无法连接模型服务商" `
+        -Title "后端无法连接模型服务商" `
         -Message $safeMessage `
         -NextStep $resolvedNextStep `
         -Code "connection_reset"
@@ -109,7 +109,7 @@ function Get-ProviderNodeTransportError {
       return $connectionError
     }
     "response_too_large" {
-      return New-ConnectionError -Title "服务商返回内容过大" -Message $safeMessage -NextStep "确认接口地址指向 chat/completions，而不是文件或其他大体积接口。" -Code "response_too_large"
+      return New-ConnectionError -Title "服务商返回内容过大" -Message $safeMessage -NextStep "确认接口地址指向 /chat/completions 或 /responses，而不是文件或其他大体积接口。" -Code "response_too_large"
     }
     "redirect" {
       return New-ConnectionError -Title "接口跳转地址无效" -Message $safeMessage -NextStep "从服务商文档重新复制完整接口地址，避免使用会跳转到错误页面的网址。" -Code "redirect"
@@ -269,14 +269,16 @@ function Resolve-ProviderChatEndpoint {
   $path = $path -replace "/{2,}", "/"
   if ([string]::IsNullOrEmpty($path)) {
     $path = "/v1/chat/completions"
-  } elseif ($path -notmatch "/chat/completions$") {
-    if ($path -match "/v1$" -or $path -match "/compatible-mode/v1$" -or $path -match "/api/v1$") {
-      $path = "$path/chat/completions"
-    } elseif ($path -match "/chat$") {
-      $path = "$path/completions"
-    } else {
-      $path = "$path/chat/completions"
-    }
+  } elseif ($path -match "/chat/completions$") {
+    # 完整的 Chat Completions 地址保持原样。
+  } elseif ($path -match "/responses$") {
+    # 完整的 Responses 地址必须原样保留，不能再拼接 chat/completions。
+  } elseif ($path -match "/v1$" -or $path -match "/compatible-mode/v1$" -or $path -match "/api/v1$") {
+    $path = "$path/chat/completions"
+  } elseif ($path -match "/chat$") {
+    $path = "$path/completions"
+  } else {
+    # 未知的完整路径不擅自改写，让服务商返回的真实路径诊断可见。
   }
 
   $builder = [System.UriBuilder]::new($uri)
@@ -285,17 +287,32 @@ function Resolve-ProviderChatEndpoint {
   return $builder.Uri.AbsoluteUri
 }
 
+function Get-ProviderEndpointProtocol {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Endpoint
+  )
+
+  $uri = [System.Uri]::new($Endpoint)
+  if ($uri.AbsolutePath -match "/responses$") {
+    return "responses"
+  }
+  return "chat"
+}
+
 function Add-ProviderEndpointDiagnostic {
   param(
     [Parameter(Mandatory = $true)]
     $ConnectionError,
     [Parameter(Mandatory = $true)]
-    [string]$EndpointLabel
+    [string]$EndpointLabel,
+    [string]$Protocol = "chat"
   )
 
   if ([int]$ConnectionError.status -eq 404) {
     $ConnectionError.message = "$($ConnectionError.message)`n实际请求路径：$EndpointLabel"
-    $ConnectionError.nextStep = "接口地址请只填服务商文档中的 Base URL（常见以 /v1 结尾），或完整填入以 /chat/completions 结尾的地址，二选一，不要填写网页登录地址。模型名必须填写文档中的模型 ID；如果两项都确认无误，请把服务商文档里的请求示例发给我。"
+    $protocolLabel = if ($Protocol -eq "responses") { "Responses" } else { "Chat Completions" }
+    $ConnectionError.nextStep = "接口地址请填写服务商文档中的 Base URL（常见以 /v1 结尾），或完整填入以 /chat/completions 或 /responses 结尾的地址，二选一，不要填写网页登录地址。当前协议为 $protocolLabel；模型名必须填写文档中的模型 ID；如果两项都确认无误，请把服务商文档里的请求示例发给我。"
   }
 
   return $ConnectionError
@@ -554,7 +571,8 @@ function Get-ProviderHttpError {
     [AllowNull()]
     [string]$Body,
     [Parameter(Mandatory = $true)]
-    [string]$ApiKey
+    [string]$ApiKey,
+    [string]$Protocol = "chat"
   )
 
   $providerMessage = Protect-ProviderMessage -Message (Get-ProviderErrorMessage -Body $Body) -ApiKey $ApiKey
@@ -563,6 +581,8 @@ function Get-ProviderHttpError {
   } else {
     $providerMessage
   }
+  $protocolLabel = if ($Protocol -eq "responses") { "Responses" } else { "Chat Completions" }
+  $endpointHint = if ($Protocol -eq "responses") { "/responses（使用 input）" } else { "/chat/completions（使用 messages）" }
 
   if (Test-ProviderOutputBudgetError -Message $displayMessage) {
     return New-ConnectionError -Status $StatusCode -Title "模型输出预算不足" -Message "服务商已经收到请求，但模型的思考过程在生成答复前耗尽了输出预算。服务商原文：$displayMessage" -NextStep "这不是 API Key、接口地址或权限错误。请在服务商控制台或网关中提高 max_output_tokens / thinking budget；如果当前模型是推理模型，也可以先换用普通对话模型再测试。" -Code "model_output_budget"
@@ -570,7 +590,7 @@ function Get-ProviderHttpError {
 
   $error = switch ($StatusCode) {
     400 {
-      New-ConnectionError -Status $StatusCode -Title "请求参数被服务商拒绝" -Message $displayMessage -NextStep "重点检查模型名是否与服务商文档完全一致，并确认该模型支持 chat/completions 接口。"
+      New-ConnectionError -Status $StatusCode -Title "请求参数被服务商拒绝" -Message $displayMessage -NextStep "重点检查模型名是否与服务商文档完全一致，并确认该模型支持 $protocolLabel 接口；请求格式应使用 $endpointHint，检查请求路径是否与服务商文档一致。" -Code "http_400"
     }
     401 {
       New-ConnectionError -Status $StatusCode -Title "API Key 未通过验证" -Message $displayMessage -NextStep "重新复制完整 API Key，确认没有空格或引号；再到服务商控制台确认 Key 已启用且账户状态正常。"
@@ -579,7 +599,7 @@ function Get-ProviderHttpError {
       New-ConnectionError -Status $StatusCode -Title "当前 Key 没有调用权限" -Message $displayMessage -NextStep "检查该 Key 是否开通了对应模型，或服务商是否要求额外权限、IP 白名单或项目 ID。"
     }
     404 {
-      New-ConnectionError -Status $StatusCode -Title "接口地址或模型不存在" -Message $displayMessage -NextStep "对照服务商文档检查 Base URL；模型名请填写文档里的模型 ID，不要填写页面上的显示名称。" -Code "http_404"
+      New-ConnectionError -Status $StatusCode -Title "接口地址或模型不存在" -Message $displayMessage -NextStep "对照服务商文档检查 Base URL，或完整填写以 /chat/completions 或 /responses 结尾的地址；模型名请填写文档里的模型 ID，不要填写页面上的显示名称。" -Code "http_404"
     }
     429 {
       New-ConnectionError -Status $StatusCode -Title "请求过多或额度不足" -Message $displayMessage -NextStep "检查账户余额和限流设置，等待几分钟后再测试。"
@@ -638,7 +658,58 @@ function Get-ReplyText {
 
   $outputTextProperty = $Payload.PSObject.Properties["output_text"]
   if ($null -ne $outputTextProperty -and $null -ne $outputTextProperty.Value) {
-    return [string]$outputTextProperty.Value
+    $outputText = $outputTextProperty.Value
+    if ($outputText -is [System.Array]) {
+      $textParts = @($outputText | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+      if ($textParts.Count -gt 0) {
+        return ($textParts -join "`n").Trim()
+      }
+    } elseif (-not [string]::IsNullOrWhiteSpace([string]$outputText)) {
+      return ([string]$outputText).Trim()
+    }
+  }
+
+  $outputProperty = $Payload.PSObject.Properties["output"]
+  if ($null -ne $outputProperty) {
+    $outputParts = @()
+    foreach ($item in @($outputProperty.Value)) {
+      if ($null -eq $item) {
+        continue
+      }
+      $typeProperty = $item.PSObject.Properties["type"]
+      if ($null -ne $typeProperty -and [string]$typeProperty.Value -eq "reasoning") {
+        continue
+      }
+
+      $itemTextProperty = $item.PSObject.Properties["text"]
+      if ($null -ne $itemTextProperty -and -not [string]::IsNullOrWhiteSpace([string]$itemTextProperty.Value)) {
+        $outputParts += ([string]$itemTextProperty.Value).Trim()
+      }
+
+      $contentProperty = $item.PSObject.Properties["content"]
+      if ($null -eq $contentProperty -or $null -eq $contentProperty.Value) {
+        continue
+      }
+      $contentValue = $contentProperty.Value
+      if ($contentValue -is [string]) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$contentValue)) {
+          $outputParts += ([string]$contentValue).Trim()
+        }
+        continue
+      }
+      foreach ($part in @($contentValue)) {
+        if ($null -eq $part) {
+          continue
+        }
+        $partTextProperty = $part.PSObject.Properties["text"]
+        if ($null -ne $partTextProperty -and -not [string]::IsNullOrWhiteSpace([string]$partTextProperty.Value)) {
+          $outputParts += ([string]$partTextProperty.Value).Trim()
+        }
+      }
+    }
+    if ($outputParts.Count -gt 0) {
+      return ($outputParts -join "`n").Trim()
+    }
   }
 
   return ""
@@ -647,10 +718,11 @@ function Get-ReplyText {
 function New-ProviderTestRequestPayload {
   param(
     [Parameter(Mandatory = $true)]
-    [string]$ModelName
+    [string]$ModelName,
+    [string]$Protocol = "chat"
   )
 
-  return New-ProviderChatRequestPayload -ModelName $ModelName -Messages @(
+  return New-ProviderChatRequestPayload -ModelName $ModelName -Protocol $Protocol -Messages @(
     [ordered]@{
       role = "user"
       content = "只回复 OK"
@@ -662,6 +734,7 @@ function New-ProviderChatRequestPayload {
   param(
     [Parameter(Mandatory = $true)]
     [string]$ModelName,
+    [string]$Protocol = "chat",
     [Parameter(Mandatory = $true)]
     [AllowEmptyCollection()]
     [object[]]$Messages
@@ -685,6 +758,14 @@ function New-ProviderChatRequestPayload {
     }
   }
 
+  if ($Protocol -eq "responses") {
+    return [ordered]@{
+      model = $ModelName
+      input = $normalizedMessages
+      stream = $false
+    }
+  }
+
   return [ordered]@{
     model = $ModelName
     messages = $normalizedMessages
@@ -700,14 +781,15 @@ function Invoke-ProviderChatRequest {
     [string]$ApiKey,
     [Parameter(Mandatory = $true)]
     [string]$ModelName,
+    [string]$Protocol = "chat",
     [AllowNull()]
     [object[]]$Messages = $null
   )
 
   $bodyObject = if ($null -eq $Messages) {
-    New-ProviderTestRequestPayload -ModelName $ModelName
+    New-ProviderTestRequestPayload -ModelName $ModelName -Protocol $Protocol
   } else {
-    New-ProviderChatRequestPayload -ModelName $ModelName -Messages $Messages
+    New-ProviderChatRequestPayload -ModelName $ModelName -Protocol $Protocol -Messages $Messages
   }
   $body = $bodyObject | ConvertTo-Json -Depth 8 -Compress
 
@@ -749,6 +831,42 @@ function Invoke-ProviderChatRequest {
   }
 }
 
+function New-ProviderInvalidJsonError {
+  param(
+    [int]$StatusCode,
+    [string]$Protocol = "chat"
+  )
+
+  $protocolLabel = if ($Protocol -eq "responses") { "Responses" } else { "Chat Completions" }
+  return New-ConnectionError `
+    -Status $StatusCode `
+    -Title "返回格式不符合预期" `
+    -Message "服务商返回了成功状态，但内容不是标准 JSON。请确认接口地址指向 $protocolLabel 对应的完整端点，而不是网页或控制台页面。" `
+    -NextStep "从服务商文档重新复制完整的 $protocolLabel 端点；Chat Completions 使用 messages，Responses 使用 input。" `
+    -Code "invalid_response"
+}
+
+function New-ProviderEmptyReplyError {
+  param(
+    [int]$StatusCode,
+    [string]$Protocol = "chat"
+  )
+
+  $protocolLabel = if ($Protocol -eq "responses") { "Responses" } else { "Chat Completions" }
+  $message = if ($Protocol -eq "responses") {
+    "服务商返回了有效 JSON，但 output_text 和 output[].content[].text 为空。"
+  } else {
+    "服务商返回了有效 JSON，但 choices[0].message.content 为空。"
+  }
+
+  return New-ConnectionError `
+    -Status $StatusCode `
+    -Title "模型没有返回文字" `
+    -Message $message `
+    -NextStep "确认模型支持 $protocolLabel，或换用普通对话模型后点击重试按钮。" `
+    -Code "empty_reply"
+}
+
 function Invoke-ProviderChatCompletion {
   param(
     [Parameter(Mandatory = $true)]
@@ -767,6 +885,7 @@ function Invoke-ProviderChatCompletion {
   try {
     $endpoint = Resolve-ProviderChatEndpoint -ApiUrl $ApiUrl
     $endpointLabel = Get-ProviderEndpointLabel -ApiUrl $ApiUrl
+    $protocol = Get-ProviderEndpointProtocol -Endpoint $endpoint
   } catch {
     return [ordered]@{
       ok = $false
@@ -775,7 +894,7 @@ function Invoke-ProviderChatCompletion {
   }
 
   try {
-    $result = Invoke-ProviderChatRequest -Endpoint $endpoint -ApiKey $ApiKey -ModelName $ModelName -Messages $Messages
+    $result = Invoke-ProviderChatRequest -Endpoint $endpoint -ApiKey $ApiKey -ModelName $ModelName -Protocol $protocol -Messages $Messages
   } catch {
     return [ordered]@{
       ok = $false
@@ -794,10 +913,10 @@ function Invoke-ProviderChatCompletion {
   }
 
   if (-not $result.Success) {
-    $httpError = Get-ProviderHttpError -StatusCode ([int]$result.StatusCode) -Body $result.Body -ApiKey $ApiKey
+    $httpError = Get-ProviderHttpError -StatusCode ([int]$result.StatusCode) -Body $result.Body -ApiKey $ApiKey -Protocol $protocol
     return [ordered]@{
       ok = $false
-      error = Add-ProviderEndpointDiagnostic -ConnectionError $httpError -EndpointLabel $endpointLabel
+      error = Add-ProviderEndpointDiagnostic -ConnectionError $httpError -EndpointLabel $endpointLabel -Protocol $protocol
     }
   }
 
@@ -806,7 +925,7 @@ function Invoke-ProviderChatCompletion {
   } catch {
     return [ordered]@{
       ok = $false
-      error = New-ConnectionError -Status $result.StatusCode -Title "返回格式不符合预期" -Message "服务商返回了成功状态，但内容不是标准 JSON。请确认接口地址指向 chat/completions，而不是网页或控制台页面。" -NextStep "从服务商文档重新复制 OpenAI 兼容接口地址；如果文档使用其他协议，请提供文档做专用适配。" -Code "invalid_response"
+      error = New-ProviderInvalidJsonError -StatusCode $result.StatusCode -Protocol $protocol
     }
   }
 
@@ -815,12 +934,12 @@ function Invoke-ProviderChatCompletion {
     if (Test-ProviderOutputBudgetError -Message $result.Body) {
       return [ordered]@{
         ok = $false
-        error = Get-ProviderHttpError -StatusCode 0 -Body $result.Body -ApiKey $ApiKey
+        error = Get-ProviderHttpError -StatusCode 0 -Body $result.Body -ApiKey $ApiKey -Protocol $protocol
       }
     }
     return [ordered]@{
       ok = $false
-      error = New-ConnectionError -Status $result.StatusCode -Title "模型没有返回文字" -Message "服务商返回了有效 JSON，但 choices[0].message.content 为空。" -NextStep "确认模型支持 chat/completions，或换用普通对话模型后点击重试按钮。" -Code "empty_reply"
+      error = New-ProviderEmptyReplyError -StatusCode $result.StatusCode -Protocol $protocol
     }
   }
 
@@ -840,6 +959,7 @@ function Invoke-ProviderChatCompletion {
     model = $responseModel
     latencyMs = $latencyMs
     endpoint = $endpointLabel
+    protocol = $protocol
     reply = Protect-ProviderMessage -Message $reply -ApiKey $ApiKey
   }
 }
@@ -859,6 +979,7 @@ function Invoke-ProviderConnectionTest {
   try {
     $endpoint = Resolve-ProviderChatEndpoint -ApiUrl $ApiUrl
     $endpointLabel = Get-ProviderEndpointLabel -ApiUrl $ApiUrl
+    $protocol = Get-ProviderEndpointProtocol -Endpoint $endpoint
   } catch {
     return [ordered]@{
       ok = $false
@@ -867,7 +988,7 @@ function Invoke-ProviderConnectionTest {
   }
 
   try {
-    $result = Invoke-ProviderChatRequest -Endpoint $endpoint -ApiKey $ApiKey -ModelName $ModelName
+    $result = Invoke-ProviderChatRequest -Endpoint $endpoint -ApiKey $ApiKey -ModelName $ModelName -Protocol $protocol
   } catch {
     return [ordered]@{
       ok = $false
@@ -886,10 +1007,10 @@ function Invoke-ProviderConnectionTest {
   }
 
   if (-not $result.Success) {
-    $httpError = Get-ProviderHttpError -StatusCode ([int]$result.StatusCode) -Body $result.Body -ApiKey $ApiKey
+    $httpError = Get-ProviderHttpError -StatusCode ([int]$result.StatusCode) -Body $result.Body -ApiKey $ApiKey -Protocol $protocol
     return [ordered]@{
       ok = $false
-      error = Add-ProviderEndpointDiagnostic -ConnectionError $httpError -EndpointLabel $endpointLabel
+      error = Add-ProviderEndpointDiagnostic -ConnectionError $httpError -EndpointLabel $endpointLabel -Protocol $protocol
     }
   }
 
@@ -898,7 +1019,7 @@ function Invoke-ProviderConnectionTest {
   } catch {
     return [ordered]@{
       ok = $false
-      error = New-ConnectionError -Status $result.StatusCode -Title "返回格式不符合预期" -Message "服务商返回了成功状态，但内容不是标准 JSON。请确认接口地址指向 chat/completions，而不是网页或控制台页面。" -NextStep "从服务商文档重新复制 OpenAI 兼容接口地址；如果文档使用其他协议，请把文档发给我做专用适配。"
+      error = New-ProviderInvalidJsonError -StatusCode $result.StatusCode -Protocol $protocol
     }
   }
 
@@ -907,10 +1028,13 @@ function Invoke-ProviderConnectionTest {
     if (Test-ProviderOutputBudgetError -Message $result.Body) {
       return [ordered]@{
         ok = $false
-        error = Get-ProviderHttpError -StatusCode 0 -Body $result.Body -ApiKey $ApiKey
+        error = Get-ProviderHttpError -StatusCode 0 -Body $result.Body -ApiKey $ApiKey -Protocol $protocol
       }
     }
-    $reply = "服务商返回了有效 JSON，但测试回复为空。"
+    return [ordered]@{
+      ok = $false
+      error = New-ProviderEmptyReplyError -StatusCode $result.StatusCode -Protocol $protocol
+    }
   }
 
   $modelProperty = $payload.PSObject.Properties["model"]
@@ -929,6 +1053,7 @@ function Invoke-ProviderConnectionTest {
     model = $responseModel
     latencyMs = $latencyMs
     endpoint = $endpointLabel
+    protocol = $protocol
     reply = Protect-ProviderMessage -Message $reply -ApiKey $ApiKey
   }
 }

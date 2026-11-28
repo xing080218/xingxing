@@ -53,6 +53,12 @@ async function startMockProvider() {
         return;
       }
 
+      if (request.url.startsWith("/not-found/")) {
+        response.writeHead(404, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: { message: "Not found" } }));
+        return;
+      }
+
       if (request.url.startsWith("/budget/")) {
         response.writeHead(451, { "Content-Type": "application/json" });
         response.end(
@@ -63,6 +69,29 @@ async function startMockProvider() {
                 "AI Studio returned an empty response: max output tokens were exhausted before any answer (raise max_output_tokens / thinking budget)",
               status: "INVALID_ARGUMENT",
             },
+          }),
+        );
+        return;
+      }
+
+      if (request.url === "/responses") {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(
+          JSON.stringify({
+            model: "mock-responses-model",
+            output: [
+              {
+                type: "reasoning",
+                content: [{ type: "reasoning_text", text: "不能显示的思考过程" }],
+              },
+              {
+                type: "message",
+                content: [
+                  { type: "output_text", text: "第一条回答。" },
+                  { type: "output_text", text: "第二条回答。" },
+                ],
+              },
+            ],
           }),
         );
         return;
@@ -98,17 +127,47 @@ async function run() {
   assert.ok(globalSystemPrompt.length > 0);
   assert.equal(globalSystemPrompt, globalSystemPrompt.trim());
 
-  assert.equal(
-    resolveChatEndpoint("https://api.example.com").endpoint,
-    "https://api.example.com/v1/chat/completions",
+  assert.deepEqual(resolveChatEndpoint("https://api.example.com"), {
+    endpoint: "https://api.example.com/v1/chat/completions",
+    endpointLabel: "/v1/chat/completions",
+    protocol: "chat",
+  });
+  assert.deepEqual(resolveChatEndpoint("https://api.example.com/v1/"), {
+    endpoint: "https://api.example.com/v1/chat/completions",
+    endpointLabel: "/v1/chat/completions",
+    protocol: "chat",
+  });
+  assert.deepEqual(
+    resolveChatEndpoint("https://api.example.com/api/v1"),
+    {
+      endpoint: "https://api.example.com/api/v1/chat/completions",
+      endpointLabel: "/api/v1/chat/completions",
+      protocol: "chat",
+    },
   );
-  assert.equal(
-    resolveChatEndpoint("https://api.example.com/v1/").endpoint,
-    "https://api.example.com/v1/chat/completions",
+  assert.deepEqual(
+    resolveChatEndpoint("https://api.example.com/v1/chat/completions/"),
+    {
+      endpoint: "https://api.example.com/v1/chat/completions",
+      endpointLabel: "/v1/chat/completions",
+      protocol: "chat",
+    },
   );
-  assert.equal(
-    resolveChatEndpoint("https://api.example.com/v1/chat/completions").endpoint,
-    "https://api.example.com/v1/chat/completions",
+  assert.deepEqual(
+    resolveChatEndpoint("https://api.example.com/v1/responses"),
+    {
+      endpoint: "https://api.example.com/v1/responses",
+      endpointLabel: "/v1/responses",
+      protocol: "responses",
+    },
+  );
+  assert.deepEqual(
+    resolveChatEndpoint("https://api.example.com/custom/provider"),
+    {
+      endpoint: "https://api.example.com/custom/provider",
+      endpointLabel: "/custom/provider",
+      protocol: "chat",
+    },
   );
 
   const built = buildChatMessages({
@@ -255,6 +314,30 @@ async function run() {
   assert.equal(parseReplyText({
     choices: [{ message: { content: "第一行\n\n第二行" } }],
   }), "第一行\n\n第二行");
+  assert.equal(
+    parseReplyText({
+      output_text: ["第一条", "", "第二条"],
+    }),
+    "第一条\n第二条",
+  );
+  assert.equal(
+    parseReplyText({
+      output: [
+        {
+          type: "reasoning",
+          content: [{ type: "reasoning_text", text: "思考过程" }],
+        },
+        {
+          type: "message",
+          content: [
+            { type: "output_text", text: "嵌套第一行" },
+            { type: "output_text", text: "嵌套第二行" },
+          ],
+        },
+      ],
+    }),
+    "嵌套第一行\n嵌套第二行",
+  );
 
   const key = "placeholder-cloud-key";
   const safe = protectMessage(`Bearer ${key} and sk-123456789`, key);
@@ -264,7 +347,7 @@ async function run() {
   const mock = await startMockProvider();
   try {
     const success = await invokeProvider({
-      apiUrl: `${mock.origin}/v1`,
+      apiUrl: `${mock.origin}/chat-success/v1`,
       apiKey: key,
       modelName: "mock-chat-model",
       messages: [{ role: "user", content: "你好" }],
@@ -272,15 +355,46 @@ async function run() {
     assert.equal(success.status, 200);
     assert.equal(success.payload.ok, true);
     assert.equal(success.payload.reply, "第一行\n\n第二行");
-    assert.equal(mock.requests[0].path, "/v1/chat/completions");
-    assert.equal(mock.requests[0].authorization, `Bearer ${key}`);
-    const sentBody = JSON.parse(mock.requests[0].body);
-    assert.equal(sentBody.stream, false);
-    assert.equal(sentBody.messages[0].content, "你好");
-    assert.equal("max_tokens" in sentBody, false);
+    assert.equal(success.payload.protocol, "chat");
+    assert.equal(success.payload.endpoint, "/chat-success/v1/chat/completions");
+    const chatRequest = mock.requests.at(-1);
+    assert.equal(chatRequest.path, "/chat-success/v1/chat/completions");
+    assert.equal(chatRequest.authorization, `Bearer ${key}`);
+    const chatBody = JSON.parse(chatRequest.body);
+    assert.equal(chatBody.stream, false);
+    assert.equal(chatBody.messages[0].content, "你好");
+    assert.equal("input" in chatBody, false);
+    assert.equal("max_tokens" in chatBody, false);
+
+    const responses = await invokeProvider({
+      apiUrl: `${mock.origin}/responses`,
+      apiKey: key,
+      modelName: "mock-responses-model",
+      messages: [
+        { role: "system", content: "保持角色设定。" },
+        { role: "user", content: "你好" },
+      ],
+    });
+    assert.equal(responses.status, 200);
+    assert.equal(responses.payload.ok, true);
+    assert.equal(responses.payload.protocol, "responses");
+    assert.equal(responses.payload.endpoint, "/responses");
+    assert.equal(responses.payload.model, "mock-responses-model");
+    assert.equal(
+      responses.payload.reply,
+      "第一条回答。\n第二条回答。",
+    );
+    const responsesRequest = mock.requests.at(-1);
+    assert.equal(responsesRequest.path, "/responses");
+    assert.equal(responsesRequest.authorization, `Bearer ${key}`);
+    const responsesBody = JSON.parse(responsesRequest.body);
+    assert.equal(responsesBody.stream, false);
+    assert.equal(responsesBody.input[0].content, "保持角色设定。");
+    assert.equal(responsesBody.input[1].content, "你好");
+    assert.equal("messages" in responsesBody, false);
 
     const unauthorized = await invokeProvider({
-      apiUrl: `${mock.origin}/unauthorized`,
+      apiUrl: `${mock.origin}/unauthorized/v1`,
       apiKey: key,
       modelName: "mock-chat-model",
       messages: [{ role: "user", content: "你好" }],
@@ -289,9 +403,25 @@ async function run() {
     assert.equal(unauthorized.payload.ok, false);
     assert.equal(unauthorized.payload.error.code, "http_401");
     assert.doesNotMatch(unauthorized.payload.error.message, new RegExp(key));
+    assert.equal(
+      mock.requests.at(-1).path,
+      "/unauthorized/v1/chat/completions",
+    );
+
+    const notFound = await invokeProvider({
+      apiUrl: `${mock.origin}/not-found/v1`,
+      apiKey: key,
+      modelName: "mock-chat-model",
+      messages: [{ role: "user", content: "你好" }],
+    });
+    assert.equal(notFound.status, 404);
+    assert.equal(notFound.payload.error.code, "http_404");
+    assert.match(notFound.payload.error.message, /\/not-found\/v1\/chat\/completions/);
+    assert.match(notFound.payload.error.nextStep, /\/chat\/completions/);
+    assert.match(notFound.payload.error.nextStep, /\/responses/);
 
     const budget = await invokeProvider({
-      apiUrl: `${mock.origin}/budget`,
+      apiUrl: `${mock.origin}/budget/v1`,
       apiKey: key,
       modelName: "mock-chat-model",
       messages: [{ role: "user", content: "你好" }],
@@ -305,7 +435,7 @@ async function run() {
       {
         method: "POST",
         body: {
-          apiUrl: `${mock.origin}/v1`,
+          apiUrl: `${mock.origin}/routed/v1`,
           apiKey: key,
           modelName: "mock-chat-model",
           systemPrompt: "CLIENT_OVERRIDE_MUST_BE_IGNORED",
@@ -333,7 +463,8 @@ async function run() {
       "chat",
     );
     assert.equal(response.statusCode, 200);
-    const routedBody = JSON.parse(mock.requests[3].body);
+    assert.equal(mock.requests.at(-1).path, "/routed/v1/chat/completions");
+    const routedBody = JSON.parse(mock.requests.at(-1).body);
     assert.ok(
       routedBody.messages[0].content.startsWith(
         `全局角色行为规则：\n${globalSystemPrompt}\n\n角色专属设定：`,

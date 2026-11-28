@@ -12,7 +12,10 @@ $cases = @{
   "https://api.example.com/v1/chat/completions/" = "https://api.example.com/v1/chat/completions"
   "https://api.example.com//v1//chat/completions" = "https://api.example.com/v1/chat/completions"
   "https://api.example.com/compatible-mode/v1" = "https://api.example.com/compatible-mode/v1/chat/completions"
+  "https://api.example.com/api/v1" = "https://api.example.com/api/v1/chat/completions"
   "https://api.example.com/chat" = "https://api.example.com/chat/completions"
+  "https://api.example.com/v1/responses" = "https://api.example.com/v1/responses"
+  "https://api.example.com/custom/provider" = "https://api.example.com/custom/provider"
 }
 
 foreach ($entry in $cases.GetEnumerator()) {
@@ -20,6 +23,13 @@ foreach ($entry in $cases.GetEnumerator()) {
   if ($actual -ne $entry.Value) {
     throw "Endpoint normalization failed for $($entry.Key): $actual"
   }
+}
+
+if ((Get-ProviderEndpointProtocol -Endpoint "https://api.example.com/v1/chat/completions") -ne "chat") {
+  throw "Chat Completions protocol was not detected correctly."
+}
+if ((Get-ProviderEndpointProtocol -Endpoint "https://api.example.com/v1/responses") -ne "responses") {
+  throw "Responses protocol was not detected correctly."
 }
 
 $key = "placeholder-test-key"
@@ -154,6 +164,21 @@ if ($chatBody -notmatch '"role":"system"' -or $chatBody -notmatch '"role":"assis
 if ($chatBody -match '"max(?:_completion)?_tokens"\s*:') {
   throw "Chat payload must not force a tiny output token limit."
 }
+if ($chatBody -match '"input"\s*:' -or $chatBody -notmatch '"messages"\s*:') {
+  throw "Chat payload must use messages and must not use input."
+}
+
+$responsesPayload = New-ProviderChatRequestPayload -ModelName "test-model" -Protocol "responses" -Messages @(
+  [ordered]@{ role = "system"; content = "保持角色设定。" }
+  [ordered]@{ role = "user"; content = "你好" }
+)
+$responsesBody = $responsesPayload | ConvertTo-Json -Depth 8 -Compress
+if ($responsesBody -notmatch '"input"\s*:' -or $responsesBody -match '"messages"\s*:') {
+  throw "Responses payload must use input and must not use messages."
+}
+if ($responsesBody -match '"max(?:_completion)?_tokens"\s*:') {
+  throw "Responses payload must not force a tiny output token limit."
+}
 
 $replyPayload = [pscustomobject]@{
   choices = @(
@@ -167,6 +192,34 @@ $replyPayload = [pscustomobject]@{
 $replyText = Get-ReplyText -Payload $replyPayload
 if ($replyText -ne "第一行`n`n第二行") {
   throw "The complete multiline reply was not preserved."
+}
+
+$responsesArrayPayload = [pscustomobject]@{
+  output_text = @("第一条", "", "第二条")
+}
+if ((Get-ReplyText -Payload $responsesArrayPayload) -ne "第一条`n第二条") {
+  throw "Responses output_text arrays were not parsed correctly."
+}
+
+$responsesNestedPayload = [pscustomobject]@{
+  output = @(
+    [pscustomobject]@{
+      type = "reasoning"
+      content = @(
+        [pscustomobject]@{ type = "reasoning_text"; text = "思考过程" }
+      )
+    }
+    [pscustomobject]@{
+      type = "message"
+      content = @(
+        [pscustomobject]@{ type = "output_text"; text = "嵌套第一行" }
+        [pscustomobject]@{ type = "output_text"; text = "嵌套第二行" }
+      )
+    }
+  )
+}
+if ((Get-ReplyText -Payload $responsesNestedPayload) -ne "嵌套第一行`n嵌套第二行") {
+  throw "Nested Responses output was not parsed correctly."
 }
 
 $budgetMessage = 'Protocol generation failed: protocol upstream 400: {"error":{"code":400,"message":"AI Studio returned an empty response: max output tokens were exhausted before any answer (raise max_output_tokens / thinking budget) (finish_reason=max_tokens)","status":"INVALID_ARGUMENT"}}'
@@ -187,12 +240,15 @@ if ($unrelated451.code -eq "model_output_budget") {
   throw "An unrelated HTTP 451 error was incorrectly classified as output budget exhaustion."
 }
 
-$notFoundError = Get-ProviderHttpError -StatusCode 404 -Body '{"error":{"message":"Not found"}}' -ApiKey $key
-$diagnosticError = Add-ProviderEndpointDiagnostic -ConnectionError $notFoundError -EndpointLabel "/v1/chat/completions"
+$notFoundError = Get-ProviderHttpError -StatusCode 404 -Body '{"error":{"message":"Not found"}}' -ApiKey $key -Protocol "responses"
+$diagnosticError = Add-ProviderEndpointDiagnostic -ConnectionError $notFoundError -EndpointLabel "/v1/responses" -Protocol "responses"
 if (
   $diagnosticError.code -ne "http_404" -or
-  $diagnosticError.message -notmatch "/v1/chat/completions" -or
-  $diagnosticError.nextStep -notmatch "Base URL"
+  $diagnosticError.message -notmatch "/v1/responses" -or
+  $diagnosticError.nextStep -notmatch "Base URL" -or
+  $diagnosticError.nextStep -notmatch "/chat/completions" -or
+  $diagnosticError.nextStep -notmatch "/responses" -or
+  $diagnosticError.nextStep -notmatch "Responses"
 ) {
   throw "HTTP 404 endpoint diagnostics were not preserved."
 }

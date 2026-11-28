@@ -2,7 +2,7 @@
 
 > 这是项目唯一的长期规则与制作经验入口。开始工作前先读完本文，再读相关代码。
 >
-> 最后更新：2026-11-27
+> 最后更新：2026-11-28
 
 ## 1. 每次开工的执行顺序
 
@@ -38,6 +38,7 @@
 - 主屏幕最下方用独立毛玻璃 Dock，默认存放“我”App；Dock 最多放 4 个 App，支持与主屏幕双向拖动和 Dock 内左右排序，只显示图标和名称。可保存多份用户本人资料，并指定一份“当前”资料；每个角色可以在角色编辑页选择固定使用哪一份本人资料。角色只保存 `selfProfileId`，未选择、旧角色或原资料已删除时跟随当前资料。本人资料只进入 system prompt，不进入普通聊天消息，也不会写入角色人设或世界书；没有本人资料时聊天请求保持原样。
 - 每份本人资料可以单独上传、替换和移除头像；头像只用于界面显示，不进入聊天提示词、普通消息、世界书或模型请求。
 - 用户可连续发送一条或多条消息，再点“总结并回复”；模型综合理解整组消息，只输出角色要发来的日常聊天内容，不逐条编号作答。
+- 聊天轮次按消息顺序重建：连续用户消息属于同一轮，角色回复结束本轮；只有最新且尚未回复的一轮可以保持待回复，历史只携带已经完成、未撤回的前序轮次。
 - 所有虚拟角色共用一份只定义行为规则的外部系统提示词 `prompts/character-system-prompt.md`。服务端在角色专属设定之前注入，普通聊天、短信和朋友圈角色互动统一生效；页面不提供查看、编辑或覆盖入口，修改文件并重新部署或重启本机服务后才生效。
 - 最近一轮消息撤回、删除、重新生成。
 - 角色聊天页的“拉黑”只阻止该角色继续生成回复；历史记录仍可查看、撤回和彻底删除，解除拉黑后恢复聊天。角色编辑保存时不得意外清除拉黑状态。
@@ -185,6 +186,7 @@
 - `assets/backgrounds/`：随项目发布的内置背景图片，不写入用户 IndexedDB。
 - `assets/icons/`、`site.webmanifest`：浏览器标签、苹果主屏幕、安卓主屏幕图标及网页应用安装信息。
 - `js/backup.js`：把文字和图片组织成单文件备份，并在导入前复用存储层校验。
+- `js/chat-turn-model.js`：按顺序重建聊天轮次、清理陈旧待回复状态、恢复失败轮次，并只输出当前轮次之前的已完成历史。
 - `js/chat-summary-mode.js`：聊天总结提示词、回复清洗和句末标点分条。
 - `js/reply-reveal.js`：完整回复收到后，聊天气泡逐条出现的顺序与节奏。
 - `js/chat-list-model.js`：人物列表的最新消息选择、单行预览、相对时间和按最近聊天排序。
@@ -259,15 +261,14 @@
 5. 至少运行：
 
 ```powershell
+npm test
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\api-client.tests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\local-api-contract.tests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\node-transport.tests.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\provider-timeout.tests.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-storage-e2e.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 ```
 
-两个浏览器回归脚本要求电脑入口已经在 `http://127.0.0.1:4176/` 运行；存储脚本使用独立临时浏览器配置，不会读取日常浏览器数据。
+涉及聊天或存储时，再使用独立临时浏览器配置检查电脑入口 `http://127.0.0.1:4176/`；不要读取或复用用户日常浏览器数据。
 
 6. 检查 JavaScript 和 PowerShell 语法；涉及页面时实际请求电脑入口和健康接口。
 7. 页面脚本或样式发生变化时更新统一的构建版本号，避免浏览器继续使用旧缓存。
@@ -294,6 +295,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\run-chat-e2e.ps1
 - 模型请求默认最多等待约 120 秒，本机代理约 130 秒，浏览器约 140 秒。
 - 真实超时统一返回 `HTTP 504` 和 `error.code = timeout`。
 - 不要把超时显示成 `HTTP 200`，也不要把边界超时误判为 `connection_reset`。
+
+### 聊天轮次与重试
+
+- 每次加载或发送前按消息顺序重建轮次，不能信任旧 `turnId`、`batchId` 或 `pendingReply`；同一轮已经有角色回复时，必须清除该轮陈旧待回复状态。
+- 请求历史只取当前轮次之前已经完成且未撤回的轮次；连续发送只把当前整组合并成一条当前提示，失败重试和刷新恢复都只重试最新实际待回复轮次。
 
 ### 页面白屏与缓存
 

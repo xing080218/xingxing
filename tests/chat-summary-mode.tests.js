@@ -7,6 +7,10 @@ const singlePrompt = buildPrompt([{ content: "今天有点累。" }]);
 assert.match(singlePrompt, /综合理解整段内容/);
 assert.match(singlePrompt, /今天有点累。/);
 assert.match(singlePrompt, /只输出角色要发来的消息。/);
+assert.match(
+  singlePrompt,
+  /只回应下方本轮内容；历史消息只用于理解关系和已知事实，不要复述、续写或重发上一条角色回复。/,
+);
 assert.match(singlePrompt, /每条消息单独一行/);
 assert.match(singlePrompt, /句号、问号、感叹号等句末标点后换行/);
 assert.match(singlePrompt, /不要输出动作、神态、旁白、心理描写/);

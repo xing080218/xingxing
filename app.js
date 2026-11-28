@@ -80,6 +80,7 @@ const icons = {
 const characterProfile = window.PocketLabCharacterProfile;
 const chatListModel = window.PocketLabChatListModel;
 const groupChatModel = window.PocketLabGroupChatModel;
+const chatTurnModel = window.PocketLabChatTurnModel;
 const defaultCharacter = {
   ...characterProfile.normalizeCharacter(characterProfile.defaultCharacter),
   avatarUrl: "",
@@ -1597,26 +1598,10 @@ function normalizeStoredMessage(value, options = {}) {
 }
 
 function ensureMessageTurns() {
-  let currentTurnId = "";
-  const turnsByBatchId = new Map();
-
-  state.messages.forEach((message) => {
-    if (message.turnId) {
-      currentTurnId = message.turnId;
-      if (message.batchId) turnsByBatchId.set(message.batchId, message.turnId);
-      return;
-    }
-
-    if (message.role === "user") {
-      const batchTurnId = message.batchId ? turnsByBatchId.get(message.batchId) : "";
-      message.turnId = batchTurnId || `turn-${message.id}`;
-      currentTurnId = message.turnId;
-      if (message.batchId) turnsByBatchId.set(message.batchId, message.turnId);
-      return;
-    }
-
-    message.turnId = currentTurnId || `turn-${message.id}`;
-  });
+  if (!chatTurnModel) {
+    throw new Error("聊天轮次模块没有加载。");
+  }
+  chatTurnModel.normalizeMessageTurns(state.messages);
 }
 
 function getTurnId(message) {
@@ -1904,12 +1889,10 @@ function getInitial(name) {
 }
 
 function getPendingMessages(batchId = "") {
-  return state.messages.filter(
-    (message) =>
-      message.role === "user" &&
-      message.pendingReply &&
-      !message.retracted &&
-      (!batchId || message.batchId === batchId),
+  const pendingTurn = chatTurnModel.getPendingTurn(state.messages, batchId);
+  if (!pendingTurn) return [];
+  return pendingTurn.userMessages.filter(
+    (message) => message.pendingReply && !message.retracted,
   );
 }
 
@@ -3399,20 +3382,13 @@ function buildProviderMessages(requestInput) {
   );
   if (!currentMessages.length) return [];
 
-  const firstMessage = currentMessages[0];
-  const currentIds = new Set(currentMessages.map((message) => message.id));
-  const currentIndex = state.messages.findIndex((message) => message.id === firstMessage.id);
-  const sourceHistory = state.messages.slice(0, Math.max(0, currentIndex));
-  const recentHistory = sourceHistory
-    .filter((message) => !currentIds.has(message.id))
-    .filter((message) => message.role === "user" || message.role === "assistant")
-    .filter((message) => !message.retracted)
-    .filter((message) => !message.failed && !message.pendingReply)
-    .slice(-20)
-    .map((message) => ({
-      role: message.role,
-      content: message.content,
-    }));
+  ensureMessageTurns();
+  const currentTurnId = getTurnId(currentMessages[0]);
+  const recentHistory = chatTurnModel.getCompletedHistory(
+    state.messages,
+    currentTurnId,
+    { limit: 20 },
+  );
 
   const summaryPrompt = window.PocketLabChatSummary.buildPrompt(currentMessages);
   if (!summaryPrompt) return [];
